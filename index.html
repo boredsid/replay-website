@@ -6,18 +6,20 @@
   <title>REPLAY - Bangalore's Board Game Convention</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;900&family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;700;900&family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --navy: #172052;
-      --blue: #283891;
+      --black: #0A0A0A;
+      --red: #C43E3A;
+      --yellow: #E8B83D;
       --orange: #EA6124;
       --orange-dark: #AC4A1E;
       --cream: #FDF9ED;
+      --purple: #B8A0D2;
+      --navy: #172052;
       --white: #FFFFFF;
-      --black: #000000;
     }
 
     html { scroll-behavior: smooth; }
@@ -25,7 +27,7 @@
     body {
       font-family: 'Alexandria', sans-serif;
       background: var(--cream);
-      color: var(--navy);
+      color: var(--black);
       overflow-x: hidden;
     }
 
@@ -40,17 +42,11 @@
       align-items: center;
       justify-content: space-between;
       padding: 1rem 2rem;
-      background: var(--navy);
-      backdrop-filter: blur(8px);
+      background: var(--black);
     }
-    nav .logo {
-      font-weight: 900;
-      font-size: 1.5rem;
-      color: var(--cream);
-      letter-spacing: 0.15em;
-      text-decoration: none;
-    }
-    nav .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    nav .logo { display: flex; align-items: center; text-decoration: none; }
+    nav .logo .nav-logo { height: 32px; width: auto; }
+    nav .nav-links { display: flex; gap: 1.5rem; list-style: none; align-items: center; }
     nav .nav-links a {
       color: var(--cream);
       text-decoration: none;
@@ -71,88 +67,7 @@
       transition: 0.3s;
     }
 
-    /* ── Hero ── */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      background: var(--blue);
-      overflow: hidden;
-      padding: 6rem 2rem 4rem;
-    }
-
-    .hero-watermark {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 0.5rem;
-      opacity: 0.06;
-      pointer-events: none;
-      overflow: hidden;
-    }
-    .hero-watermark span {
-      font-family: 'Alexandria', sans-serif;
-      font-weight: 900;
-      font-size: clamp(4rem, 10vw, 8rem);
-      color: var(--cream);
-      white-space: nowrap;
-      letter-spacing: 0.3em;
-      line-height: 1.2;
-    }
-    .hero-watermark span:nth-child(even) { margin-left: 4rem; }
-
-    .hero-content { position: relative; z-index: 2; max-width: 800px; }
-
-    .hero-content h1 {
-      font-weight: 900;
-      font-size: clamp(4rem, 12vw, 9rem);
-      color: var(--cream);
-      letter-spacing: 0.1em;
-      line-height: 0.95;
-      margin-bottom: 1rem;
-    }
-
-    .hero-content .tagline {
-      font-family: 'Amatic SC', cursive;
-      font-size: clamp(1.5rem, 4vw, 2.5rem);
-      color: var(--orange);
-      font-weight: 700;
-      margin-bottom: 2rem;
-    }
-
-    .hero-details {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
-    }
-    .hero-details .detail {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 12px;
-      padding: 1rem 1.5rem;
-      color: var(--cream);
-    }
-    .hero-details .detail .label {
-      font-family: 'Amatic SC', cursive;
-      font-size: 1.1rem;
-      color: var(--orange);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.25rem;
-    }
-    .hero-details .detail .value {
-      font-weight: 700;
-      font-size: 1.05rem;
-    }
-
+    /* ── Buttons ── */
     .btn {
       display: inline-block;
       padding: 1rem 2.5rem;
@@ -167,47 +82,131 @@
       cursor: pointer;
       border: none;
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
     .btn-orange { background: var(--orange); color: var(--white); }
-    .btn-cream { background: var(--cream); color: var(--navy); }
+    .btn-cream { background: var(--cream); color: var(--black); }
     .btn-navy { background: var(--navy); color: var(--cream); }
+    .btn-black { background: var(--black); color: var(--cream); }
 
-    /* ── Decorative arrow SVG ── */
-    .arrow-decor {
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .carousel-track {
       position: absolute;
-      pointer-events: none;
-      opacity: 0.15;
+      inset: 0;
+    }
+    .carousel-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
+    }
+    .carousel-slide.active { opacity: 1; }
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(
+        to bottom,
+        rgba(10,10,10,0.25) 0%,
+        rgba(10,10,10,0.55) 50%,
+        rgba(10,10,10,0.85) 100%
+      );
+      padding: 2rem;
+    }
+
+    .hero-logo {
+      max-width: min(500px, 70vw);
+      height: auto;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
+    }
+
+    .hero-tagline {
+      font-family: 'Amatic SC', cursive;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      color: var(--cream);
+      margin-bottom: 2rem;
+      letter-spacing: 0.15em;
+    }
+
+    .carousel-dots {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      gap: 0.75rem;
+    }
+    .carousel-dots .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--cream);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+      padding: 0;
+    }
+    .carousel-dots .dot.active {
+      background: var(--orange);
+      border-color: var(--orange);
     }
 
     /* ── Section shared ── */
-    section { padding: 5rem 2rem; }
+    section { padding: 5rem 2rem; position: relative; overflow: hidden; }
     .section-title {
       font-weight: 900;
-      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
       text-align: center;
       margin-bottom: 0.5rem;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      line-height: 1;
     }
     .section-subtitle {
       font-family: 'Amatic SC', cursive;
       font-size: clamp(1.3rem, 3vw, 2rem);
       text-align: center;
-      color: var(--orange);
       margin-bottom: 3rem;
     }
     .container { max-width: 1100px; margin: 0 auto; }
 
-    /* ── Divider ── */
-    .divider {
-      height: 4px;
-      background: linear-gradient(90deg, transparent, var(--orange), transparent);
-      opacity: 0.55;
-      margin: 0 auto;
-      max-width: 600px;
+    /* ── Decorative diamonds ── */
+    .diamond {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border: 2px solid currentColor;
+      transform: rotate(45deg);
+      opacity: 0.15;
+      pointer-events: none;
     }
 
     /* ── About ── */
-    .about { background: var(--cream); }
+    .about {
+      background: var(--red);
+      color: var(--cream);
+    }
+    .about .section-subtitle { color: var(--yellow); }
+    .about .diamond { color: var(--cream); }
     .about-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -215,51 +214,45 @@
       align-items: center;
     }
     .about-text p {
-      font-weight: 700;
+      font-weight: 400;
       font-size: 1.05rem;
       line-height: 1.7;
       margin-bottom: 1.5rem;
-      color: var(--navy);
+      color: var(--cream);
     }
     .about-text .highlight {
       font-family: 'Amatic SC', cursive;
       font-size: 1.8rem;
-      color: var(--orange);
+      color: var(--yellow);
       line-height: 1.3;
+      font-weight: 700;
     }
     .about-photos {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
     }
-    .photo-placeholder {
-      background: var(--blue);
-      border-radius: 16px;
+    .about-photo {
+      border-radius: 12px;
       aspect-ratio: 4/3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--cream);
-      font-family: 'Amatic SC', cursive;
-      font-size: 1.3rem;
-      text-align: center;
-      padding: 1rem;
-      position: relative;
       overflow: hidden;
+      border: 3px solid rgba(0,0,0,0.2);
     }
-    .photo-placeholder::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 2px dashed rgba(255,255,255,0.3);
-      border-radius: 16px;
-      margin: 8px;
+    .about-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    .photo-placeholder.tall { grid-row: span 2; aspect-ratio: auto; }
+    .about-photo.tall { grid-row: span 2; aspect-ratio: auto; }
 
     /* ── Schedule ── */
-    .schedule { background: var(--navy); color: var(--cream); }
-    .schedule .section-title { color: var(--cream); }
+    .schedule {
+      background: var(--yellow);
+      color: var(--black);
+    }
+    .schedule .section-title { color: var(--black); }
+    .schedule .section-subtitle { color: var(--red); }
+    .schedule .diamond { color: var(--red); }
 
     .tabs {
       display: flex;
@@ -274,16 +267,16 @@
       font-size: 0.9rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      border: 2px solid var(--orange);
+      border: 3px solid var(--black);
       background: transparent;
-      color: var(--cream);
+      color: var(--black);
       border-radius: 50px;
       cursor: pointer;
       transition: all 0.2s;
     }
     .tab-btn.active, .tab-btn:hover {
-      background: var(--orange);
-      color: var(--white);
+      background: var(--black);
+      color: var(--cream);
     }
 
     .tab-content { display: none; }
@@ -300,35 +293,44 @@
       grid-template-columns: 160px 1fr;
       gap: 1.5rem;
       padding: 1rem 1.5rem;
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.5);
       border-radius: 12px;
-      border-left: 3px solid var(--orange);
+      border-left: 4px solid var(--orange);
       align-items: center;
     }
     .schedule-item .time {
       font-family: 'Amatic SC', cursive;
       font-size: 1.4rem;
-      color: var(--orange);
+      color: var(--red);
       white-space: nowrap;
+      font-weight: 700;
     }
     .schedule-item .event-name {
       font-weight: 700;
       font-size: 0.95rem;
       letter-spacing: 0.03em;
+      color: var(--black);
     }
     .schedule-item.milestone {
-      background: rgba(234,97,36,0.12);
-      border-left-color: var(--cream);
+      background: var(--black);
+      border-left-color: var(--yellow);
     }
-    .schedule-item.milestone .time { color: var(--cream); }
+    .schedule-item.milestone .time { color: var(--yellow); }
     .schedule-item.milestone .event-name {
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      color: var(--cream);
     }
 
     /* ── Tickets ── */
-    .tickets { background: var(--cream); }
+    .tickets {
+      background: var(--navy);
+      color: var(--cream);
+    }
+    .tickets .section-subtitle { color: var(--orange); }
+    .tickets .diamond { color: var(--purple); }
+
     .ticket-cards {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -337,26 +339,26 @@
       margin: 0 auto;
     }
     .ticket-card {
-      background: var(--white);
+      background: var(--cream);
+      color: var(--black);
       border-radius: 24px;
       padding: 2.5rem 2rem;
       text-align: center;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 4px 24px rgba(23,32,82,0.08);
       transition: transform 0.2s;
     }
     .ticket-card:hover { transform: translateY(-4px); }
     .ticket-card.featured {
-      background: var(--navy);
-      color: var(--cream);
+      background: var(--orange);
+      color: var(--white);
     }
     .ticket-card .badge {
       position: absolute;
       top: 1rem;
       right: -2rem;
-      background: var(--orange);
-      color: var(--white);
+      background: var(--yellow);
+      color: var(--black);
       font-weight: 900;
       font-size: 0.7rem;
       letter-spacing: 0.1em;
@@ -369,7 +371,9 @@
       font-size: 2.2rem;
       color: var(--orange);
       margin-bottom: 0.25rem;
+      font-weight: 700;
     }
+    .ticket-card.featured .tier { color: var(--cream); }
     .ticket-card .tier-sub {
       font-weight: 700;
       font-size: 0.85rem;
@@ -398,40 +402,44 @@
       padding: 0.5rem 0;
       font-weight: 700;
       font-size: 0.9rem;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
     }
     .ticket-card.featured .features li {
-      border-bottom-color: rgba(255,255,255,0.1);
+      border-bottom-color: rgba(255,255,255,0.15);
     }
     .ticket-card .features li::before {
       content: '+ ';
       color: var(--orange);
       font-weight: 900;
     }
+    .ticket-card.featured .features li::before {
+      color: var(--cream);
+    }
 
     /* ── Footer ── */
     footer {
-      background: var(--navy);
+      background: var(--black);
       color: var(--cream);
       padding: 3rem 2rem;
       text-align: center;
+      border-top: 4px solid var(--orange);
     }
-    footer .footer-brand {
-      font-weight: 900;
-      font-size: 2rem;
-      letter-spacing: 0.15em;
-      margin-bottom: 0.5rem;
+    .footer-logo {
+      max-width: 200px;
+      height: auto;
+      margin-bottom: 0.75rem;
     }
     footer .footer-tagline {
       font-family: 'Amatic SC', cursive;
       font-size: 1.5rem;
       color: var(--orange);
       margin-bottom: 1.5rem;
+      font-weight: 700;
     }
     footer .footer-info {
-      font-weight: 700;
+      font-weight: 400;
       font-size: 0.85rem;
-      opacity: 0.6;
+      opacity: 0.5;
       line-height: 1.8;
     }
     footer .social-links {
@@ -447,7 +455,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.2);
       color: var(--cream);
       text-decoration: none;
       font-weight: 900;
@@ -469,11 +477,21 @@
         top: 100%;
         left: 0;
         right: 0;
-        background: var(--navy);
+        background: var(--black);
         padding: 1rem 2rem 1.5rem;
         gap: 1rem;
       }
       .nav-toggle { display: block; }
+      .nav-logo { height: 28px !important; }
+
+      .hero-overlay {
+        background: linear-gradient(
+          to bottom,
+          rgba(10,10,10,0.35) 0%,
+          rgba(10,10,10,0.65) 50%,
+          rgba(10,10,10,0.9) 100%
+        );
+      }
 
       .about-grid { grid-template-columns: 1fr; }
       .about-photos { order: -1; }
@@ -485,7 +503,10 @@
         gap: 0.25rem;
       }
 
-      .hero-details { flex-direction: column; align-items: center; }
+      .carousel-dots { gap: 0.5rem; }
+      .carousel-dots .dot { width: 10px; height: 10px; }
+
+      section { padding: 4rem 1.5rem; }
     }
   </style>
 </head>
@@ -493,7 +514,9 @@
 
   <!-- Nav -->
   <nav>
-    <a href="#" class="logo">REPLAY</a>
+    <a href="#" class="logo">
+      <img src="replay-logo.png" alt="REPLAY" class="nav-logo">
+    </a>
     <button class="nav-toggle" aria-label="Toggle menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
@@ -505,43 +528,52 @@
     </ul>
   </nav>
 
-  <!-- Hero -->
+  <!-- Hero - Photo Carousel -->
   <section class="hero" id="hero">
-    <div class="hero-watermark">
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-      <span>REPLAY REPLAY REPLAY REPLAY</span>
-    </div>
-    <div class="hero-content">
-      <h1>REPLAY</h1>
-      <p class="tagline">Bangalore's Board Game Convention</p>
-      <div class="hero-details">
-        <div class="detail">
-          <div class="label">When</div>
-          <div class="value">April 18 - 19, 2025</div>
-        </div>
-        <div class="detail">
-          <div class="label">Where</div>
-          <div class="value">The Bangalore Local, Koramangala</div>
-        </div>
-        <div class="detail">
-          <div class="label">Hours</div>
-          <div class="value">10 AM - 10 PM</div>
-        </div>
+    <div class="carousel-track">
+      <div class="carousel-slide active">
+        <img src="carousel-photos/1.jpeg" alt="Board game convention" loading="eager">
       </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/2.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/3.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/4.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/5.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/6.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+      <div class="carousel-slide">
+        <img src="carousel-photos/7.jpeg" alt="Board game convention" loading="lazy">
+      </div>
+    </div>
+    <div class="hero-overlay">
+      <img src="replay-logo.png" alt="REPLAY" class="hero-logo">
+      <p class="hero-tagline">To the gaming community</p>
       <a href="#tickets" class="btn btn-orange">Get Your Pass</a>
+    </div>
+    <div class="carousel-dots">
+      <button class="dot active" data-slide="0" aria-label="Slide 1"></button>
+      <button class="dot" data-slide="1" aria-label="Slide 2"></button>
+      <button class="dot" data-slide="2" aria-label="Slide 3"></button>
+      <button class="dot" data-slide="3" aria-label="Slide 4"></button>
+      <button class="dot" data-slide="4" aria-label="Slide 5"></button>
+      <button class="dot" data-slide="5" aria-label="Slide 6"></button>
+      <button class="dot" data-slide="6" aria-label="Slide 7"></button>
     </div>
   </section>
 
-  <div class="divider"></div>
-
   <!-- About -->
   <section class="about" id="about">
+    <div class="diamond" style="top:3rem;left:5%;width:60px;height:60px;"></div>
+    <div class="diamond" style="bottom:4rem;right:8%;width:35px;height:35px;"></div>
+    <div class="diamond" style="top:50%;right:3%;width:25px;height:25px;opacity:0.1;"></div>
     <div class="container">
       <h2 class="section-title">Roll the Dice</h2>
       <p class="section-subtitle">Two days of games, stories & unforgettable moments</p>
@@ -552,25 +584,25 @@
           <p>Plus, catch the exclusive pre-launch of <strong>Cats from Hell</strong>, grab deals during Store Price Drop Hour, and close out the evenings with a Murder Mystery night and a Quiz showdown.</p>
         </div>
         <div class="about-photos">
-          <!-- PHOTO PLACEHOLDERS: Replace these with real event photos -->
-          <div class="photo-placeholder tall">
-            Photo Placeholder: Board game table with players
+          <div class="about-photo tall">
+            <img src="carousel-photos/5.jpeg" alt="Board game players" loading="lazy">
           </div>
-          <div class="photo-placeholder">
-            Photo Placeholder: Close-up of game pieces
+          <div class="about-photo">
+            <img src="carousel-photos/2.jpeg" alt="Playing card games" loading="lazy">
           </div>
-          <div class="photo-placeholder">
-            Photo Placeholder: Players laughing together
+          <div class="about-photo">
+            <img src="carousel-photos/6.jpeg" alt="Gaming together" loading="lazy">
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <div class="divider"></div>
-
   <!-- Schedule -->
   <section class="schedule" id="schedule">
+    <div class="diamond" style="top:2rem;right:6%;width:50px;height:50px;"></div>
+    <div class="diamond" style="bottom:3rem;left:4%;width:30px;height:30px;"></div>
+    <div class="diamond" style="top:40%;left:2%;width:20px;height:20px;opacity:0.1;"></div>
     <div class="container">
       <h2 class="section-title">The Schedule</h2>
       <p class="section-subtitle">Your adventure awaits</p>
@@ -702,10 +734,10 @@
     </div>
   </section>
 
-  <div class="divider"></div>
-
   <!-- Tickets -->
   <section class="tickets" id="tickets">
+    <div class="diamond" style="top:3rem;left:8%;width:45px;height:45px;"></div>
+    <div class="diamond" style="bottom:5rem;right:5%;width:55px;height:55px;"></div>
     <div class="container">
       <h2 class="section-title">Choose Your Adventure</h2>
       <p class="section-subtitle">Every hero needs a pass</p>
@@ -715,7 +747,7 @@
         <div class="ticket-card">
           <div class="tier">One Shot</div>
           <div class="tier-sub">Day Pass</div>
-          <div class="price">&rupee;800</div>
+          <div class="price">&#x20B9;800</div>
           <div class="price-note">per person / per day</div>
           <ul class="features">
             <li>Pick Saturday or Sunday</li>
@@ -731,7 +763,7 @@
           <div class="badge">Best Value</div>
           <div class="tier">Campaign</div>
           <div class="tier-sub">2-Day Pass</div>
-          <div class="price">&rupee;1,400</div>
+          <div class="price">&#x20B9;1,400</div>
           <div class="price-note">per person / both days</div>
           <ul class="features">
             <li>Saturday + Sunday access</li>
@@ -739,7 +771,7 @@
             <li>Board game library all day</li>
             <li>Both evening events included</li>
           </ul>
-          <a href="#" class="btn btn-orange">Register Now</a>
+          <a href="#" class="btn btn-cream">Register Now</a>
         </div>
 
       </div>
@@ -748,7 +780,7 @@
 
   <!-- Footer -->
   <footer>
-    <div class="footer-brand">REPLAY</div>
+    <img src="replay-logo.png" alt="REPLAY" class="footer-logo">
     <div class="footer-tagline">See you at the table</div>
     <div class="footer-info">
       April 18 - 19, 2025<br>
@@ -763,16 +795,45 @@
   </footer>
 
   <script>
+    // Carousel
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.carousel-dots .dot');
+    let current = 0;
+    let timer;
+
+    function goToSlide(n) {
+      slides[current].classList.remove('active');
+      dots[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      dots[current].classList.add('active');
+    }
+
+    function startAutoplay() {
+      timer = setInterval(function() { goToSlide(current + 1); }, 5000);
+    }
+
+    dots.forEach(function(dot) {
+      dot.addEventListener('click', function() {
+        clearInterval(timer);
+        goToSlide(parseInt(dot.dataset.slide));
+        startAutoplay();
+      });
+    });
+
+    startAutoplay();
+
+    // Schedule tabs
     function switchTab(day) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
       document.getElementById(day).classList.add('active');
       event.currentTarget.classList.add('active');
     }
 
     // Close mobile nav on link click
-    document.querySelectorAll('.nav-links a').forEach(a => {
-      a.addEventListener('click', () => {
+    document.querySelectorAll('.nav-links a').forEach(function(a) {
+      a.addEventListener('click', function() {
         document.querySelector('.nav-links').classList.remove('open');
       });
     });
