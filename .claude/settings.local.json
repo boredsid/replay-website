@@ -5,7 +5,11 @@
       "Bash(ln -sfn \"/Users/siddhantnarula/Documents/REPLAY website\" /tmp/replay-site)",
       "Bash(mkdir -p /tmp/replay-preview)",
       "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/index.html\" /tmp/replay-preview/)",
-      "Bash(open \"/Users/siddhantnarula/Documents/REPLAY website/index.html\")"
+      "Bash(open \"/Users/siddhantnarula/Documents/REPLAY website/index.html\")",
+      "Bash(ruby -v)",
+      "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/replay-logo.png\" /tmp/replay-preview/)",
+      "Bash(mkdir -p /tmp/replay-preview/carousel-photos)",
+      "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/carousel-photos/\"*.jpeg /tmp/replay-preview/carousel-photos/)"
     ]
   }
 }
