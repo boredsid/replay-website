@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ln -sfn \"/Users/siddhantnarula/Documents/REPLAY website\" /tmp/replay-site)",
+      "Bash(mkdir -p /tmp/replay-preview)",
+      "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/index.html\" /tmp/replay-preview/)",
+      "Bash(open \"/Users/siddhantnarula/Documents/REPLAY website/index.html\")"
+    ]
+  }
+}
