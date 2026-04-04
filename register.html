@@ -997,6 +997,7 @@
       var result = getDiscountedTotal();
       var originalEl = document.getElementById('originalPrice');
       var finalEl = document.getElementById('finalPrice');
+      var submitBtn = document.querySelector('.submit-btn');
 
       if (result.discountApplied && result.full !== result.final) {
         originalEl.textContent = '\u20B9' + result.full.toLocaleString('en-IN');
@@ -1005,6 +1006,16 @@
       } else {
         originalEl.style.display = 'none';
         finalEl.textContent = '\u20B9' + result.full.toLocaleString('en-IN');
+      }
+
+      // Update button text and note based on total
+      var submitNote = document.querySelector('.submit-note');
+      if (result.final === 0 && result.discountApplied) {
+        submitBtn.textContent = 'Get my passes';
+        submitNote.textContent = 'No payment needed — your membership covers this!';
+      } else {
+        submitBtn.textContent = 'Proceed to Pay';
+        submitNote.textContent = "You'll be able to pay via UPI in the next step";
       }
     }
 
@@ -1114,10 +1125,10 @@
     var UPI_ID = 'suranjanadatta24-1@okaxis';
     var UPI_NAME = 'REPLAY Convention';
 
-    function buildUpiUrl(scheme, amount, regName) {
+    function buildUpiUrl(scheme, path, amount, regName) {
       var name = encodeURIComponent(regName || 'REPLAY Pass');
       var pn = encodeURIComponent(UPI_NAME);
-      return scheme + '://pay?pa=' + UPI_ID + '&pn=' + pn + '&am=' + amount + '&cu=INR&tn=' + name;
+      return scheme + '://' + path + 'pay?pa=' + UPI_ID + '&pn=' + pn + '&am=' + amount + '&cu=INR&tn=' + name;
     }
 
     function openPaymentSheet() {
@@ -1130,8 +1141,8 @@
 
       // Build UPI URLs
       var upiGeneric = 'upi://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + amount + '&cu=INR&tn=' + encodeURIComponent(regName);
-      document.getElementById('gpayLink').href = buildUpiUrl('tez', amount, regName);
-      document.getElementById('phonepeLink').href = buildUpiUrl('phonepe', amount, regName);
+      document.getElementById('gpayLink').href = buildUpiUrl('tez', 'upi/', amount, regName);
+      document.getElementById('phonepeLink').href = buildUpiUrl('phonepe', '', amount, regName);
       document.getElementById('paytmLink').href = 'paytmmp://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + amount + '&cu=INR&tn=' + encodeURIComponent(regName);
 
       // Generate QR code
@@ -1204,11 +1215,65 @@
         '<a href="index.html" class="btn btn-orange" style="display:block;text-align:center;margin-top:0.5rem;">Back to Home</a>';
     }
 
+    // Direct submit (for free passes)
+    function submitDirectly() {
+      var pass = getSelectedPass();
+      var dayEl = document.querySelector('input[name="day"]:checked');
+      var result = getDiscountedTotal();
+
+      var discountInfo = 'None';
+      if (result.discountApplied && result.plan) {
+        discountInfo = result.plan + ' (' + Math.round((1 - result.final / result.full) * 100) + '% off)';
+      }
+
+      var payload = {
+        name: document.getElementById('name').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        pass: pass === 'oneshot' ? 'One Shot (Day Pass)' : 'Campaign (2-Day Pass)',
+        day: pass === 'oneshot' && dayEl ? (dayEl.value === 'saturday' ? 'Saturday, Apr 18' : 'Sunday, Apr 19') : 'Both days',
+        quantity: quantity,
+        total: result.final,
+        discount: discountInfo
+      };
+
+      var submitBtn = document.querySelector('.submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function() {
+        showSuccessFullPage();
+      }).catch(function() {
+        showSuccessFullPage();
+      });
+    }
+
+    function showSuccessFullPage() {
+      var card = document.querySelector('.form-card');
+      card.innerHTML =
+        '<div style="text-align:center;padding:2rem 0;">' +
+          '<div style="width:56px;height:56px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.6rem;color:#fff;">&#10003;</div>' +
+          '<h2 style="font-size:1.15rem;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;color:var(--black);margin-bottom:0.3rem;">You\'re all set!</h2>' +
+          '<p style="font-size:0.85rem;color:rgba(0,0,0,0.5);line-height:1.6;">We\'ll confirm your registration<br>on WhatsApp shortly.</p>' +
+          '<a href="index.html" class="btn btn-orange" style="display:inline-block;margin-top:1.5rem;">Back to Home</a>' +
+        '</div>';
+    }
+
     // Submit
     document.getElementById('registerForm').addEventListener('submit', function(e) {
       e.preventDefault();
       if (validateForm()) {
-        openPaymentSheet();
+        var result = getDiscountedTotal();
+        if (result.final === 0) {
+          submitDirectly();
+        } else {
+          openPaymentSheet();
+        }
       }
     });
 
