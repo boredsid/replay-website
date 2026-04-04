@@ -492,20 +492,14 @@
       width: 48px;
       height: 48px;
       border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 0.6rem;
-      color: var(--white);
-      letter-spacing: 0.02em;
+      overflow: hidden;
     }
 
-    .upi-icon-gpay { background: #4285F4; }
-    .upi-icon-phonepe { background: #5F259F; }
-    .upi-icon-paytm { background: #00BAF2; }
-
-    .upi-icon svg { width: 28px; height: 28px; fill: var(--white); }
+    .upi-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
     .upi-btn .upi-name {
       font-size: 0.7rem;
@@ -724,20 +718,20 @@
       <div class="upi-label">Or pay directly with</div>
       <div class="upi-grid">
         <a class="upi-btn" id="gpayLink" href="#">
-          <div class="upi-icon upi-icon-gpay">
-            <svg viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+          <div class="upi-icon">
+            <img src="payment-app-icons/gpay.png" alt="Google Pay">
           </div>
           <span class="upi-name">Google Pay</span>
         </a>
         <a class="upi-btn" id="phonepeLink" href="#">
-          <div class="upi-icon upi-icon-phonepe">
-            <svg viewBox="0 0 24 24"><path d="M7.39 7.51h2.89l3.2 4.98V7.51h2.5v8.98h-2.72l-3.37-5.25v5.25H7.39V7.51zM3 3v18h18V3H3zm17 17H4V4h16v16z"/></svg>
+          <div class="upi-icon">
+            <img src="payment-app-icons/phonepe.png" alt="PhonePe">
           </div>
           <span class="upi-name">PhonePe</span>
         </a>
         <a class="upi-btn" id="paytmLink" href="#">
-          <div class="upi-icon upi-icon-paytm">
-            <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 3h8v2H8V9zm0 4h5v2H8v-2z"/></svg>
+          <div class="upi-icon">
+            <img src="payment-app-icons/paytm.jpg" alt="Paytm">
           </div>
           <span class="upi-name">Paytm</span>
         </a>
