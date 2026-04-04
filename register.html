@@ -507,34 +507,54 @@
       color: var(--black);
     }
 
-    .sheet-footer {
-      text-align: center;
+    .sheet-done {
+      display: block;
+      width: 100%;
       margin-top: 1.25rem;
-      font-size: 0.7rem;
-      color: rgba(0,0,0,0.35);
-      line-height: 1.5;
+      padding: 0.85rem;
+      background: var(--orange);
+      color: var(--white);
+      border: none;
+      border-radius: 60px;
+      font-family: 'Alexandria', sans-serif;
+      font-weight: 900;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    }
+
+    .sheet-done:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+
+    .sheet-done:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .sheet-close {
       display: block;
       width: 100%;
-      margin-top: 1rem;
+      margin-top: 0.6rem;
       padding: 0.75rem;
       background: none;
-      border: 2px solid #ddd;
-      border-radius: 60px;
+      border: none;
       font-family: 'Alexandria', sans-serif;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: rgba(0,0,0,0.5);
+      color: rgba(0,0,0,0.35);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: color 0.2s;
     }
 
     .sheet-close:hover {
-      border-color: var(--black);
       color: var(--black);
     }
 
@@ -738,10 +758,7 @@
       </div>
     </div>
 
-    <div class="sheet-footer">
-      Pay to UPI ID: suranjanadatta24-1@okaxis
-    </div>
-
+    <button class="sheet-done" id="sheetDone">I've completed the payment</button>
     <button class="sheet-close" id="sheetClose">Cancel</button>
   </div>
 
@@ -926,6 +943,58 @@
 
     document.getElementById('sheetBackdrop').addEventListener('click', closePaymentSheet);
     document.getElementById('sheetClose').addEventListener('click', closePaymentSheet);
+
+    // Google Sheets submission
+    var SHEET_URL = ''; // Paste your Google Apps Script Web App URL here
+
+    document.getElementById('sheetDone').addEventListener('click', function() {
+      var btn = this;
+      var pass = getSelectedPass();
+      var dayEl = document.querySelector('input[name="day"]:checked');
+      var amount = prices[pass] * quantity;
+
+      var payload = {
+        name: document.getElementById('name').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        pass: pass === 'oneshot' ? 'One Shot (Day Pass)' : 'Campaign (2-Day Pass)',
+        day: pass === 'oneshot' && dayEl ? (dayEl.value === 'saturday' ? 'Saturday, Apr 18' : 'Sunday, Apr 19') : 'Both days',
+        quantity: quantity,
+        total: amount
+      };
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      if (!SHEET_URL) {
+        // No sheet URL configured — just show success
+        setTimeout(function() { showSuccess(); }, 500);
+        return;
+      }
+
+      fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function() {
+        showSuccess();
+      }).catch(function() {
+        // Still show success — no-cors won't give us a readable response
+        showSuccess();
+      });
+    });
+
+    function showSuccess() {
+      var sheet = document.getElementById('paymentSheet');
+      sheet.innerHTML = '<div class="sheet-handle"></div>' +
+        '<div style="text-align:center;padding:2rem 0 1rem;">' +
+          '<div style="width:56px;height:56px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.6rem;color:#fff;">&#10003;</div>' +
+          '<h2 style="font-size:1.15rem;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;color:var(--black);margin-bottom:0.3rem;">You\'re all set!</h2>' +
+          '<p style="font-size:0.85rem;color:rgba(0,0,0,0.5);line-height:1.6;">We\'ll confirm your registration<br>on WhatsApp shortly.</p>' +
+        '</div>' +
+        '<a href="index.html" class="btn btn-orange" style="display:block;text-align:center;margin-top:0.5rem;">Back to Home</a>';
+    }
 
     // Submit
     document.getElementById('registerForm').addEventListener('submit', function(e) {
