@@ -558,6 +558,43 @@
       color: var(--black);
     }
 
+    /* Discount banner */
+    .discount-banner {
+      display: none;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--navy);
+      background: rgba(232, 184, 61, 0.15);
+      border: 2px solid var(--yellow);
+    }
+
+    .discount-banner.visible {
+      display: block;
+    }
+
+    .discount-banner .discount-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--yellow);
+      color: var(--black);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.35rem;
+    }
+
+    .discount-original {
+      text-decoration: line-through;
+      opacity: 0.45;
+      margin-right: 0.35rem;
+    }
+
     /* ── Footer ── */
     footer {
       background: var(--black);
@@ -701,9 +738,17 @@
           </div>
         </div>
 
+        <div class="discount-banner" id="discountBanner">
+          <span class="discount-tag" id="discountTag"></span><br>
+          <span id="discountText"></span>
+        </div>
+
         <div class="total-bar">
           <span class="total-label">Total</span>
-          <span class="total-amount" id="totalAmount">&#x20B9;0</span>
+          <span class="total-amount" id="totalAmount">
+            <span class="discount-original" id="originalPrice" style="display:none;"></span>
+            <span id="finalPrice">&#x20B9;0</span>
+          </span>
         </div>
 
         <button type="submit" class="submit-btn">Proceed to Pay</button>
@@ -778,6 +823,136 @@
     var quantity = 1;
     var prices = { oneshot: 800, campaign: 1400 };
 
+    // Guild & registration data
+    var GUILD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRnxm_GrfdyAKghkS9b_CN3KTHtaS7ahis8bnHySOpwD9xI1GR9bnKwqEzg8QAt639AEekCeeeW-oNg/pub?gid=581649392&single=true&output=csv';
+    var REG_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1eHgoj6zeLisdUrlEZsq1xhSkGRe3kfmE_kG9Xxy-ErnfYj2dEB4h8xd1A1AgDV6irYItV_c2QeF/pub?gid=0&single=true&output=csv';
+
+    var guildMembers = {};   // phone -> { name, plan }
+    var existingRegs = {};   // phone -> true
+    var activeMember = null; // current matched member info
+    var discountBlocked = false; // true if phone already registered
+
+    // Discount rates: { oneshot: fraction_off, campaign: fraction_off }
+    var discountRates = {
+      'Initiate':    { oneshot: 0.20, campaign: 0.10 },
+      'Adventurer':  { oneshot: 1.00, campaign: 0.50 },
+      'Guildmaster': { oneshot: 1.00, campaign: 1.00 }
+    };
+
+    var discountMessages = {
+      'Initiate':    'As a Guild Path Initiate, you are eligible for 20% off on one day passes and 10% off on 2 day passes',
+      'Adventurer':  'As a Guild Path Adventurer, you are eligible for 100% off on one day passes and 50% off on 2 day passes',
+      'Guildmaster': 'As a Guildmaster, your 2 day passes are completely free!'
+    };
+
+    // Parse CSV text into array of objects
+    function parseCSV(text) {
+      var lines = text.trim().split('\n');
+      if (lines.length < 2) return [];
+      // Handle quoted fields in header
+      var headers = parseCSVLine(lines[0]);
+      var rows = [];
+      for (var i = 1; i < lines.length; i++) {
+        var vals = parseCSVLine(lines[i]);
+        var obj = {};
+        for (var j = 0; j < headers.length; j++) {
+          obj[headers[j].trim()] = (vals[j] || '').trim();
+        }
+        rows.push(obj);
+      }
+      return rows;
+    }
+
+    function parseCSVLine(line) {
+      var result = [];
+      var current = '';
+      var inQuotes = false;
+      for (var i = 0; i < line.length; i++) {
+        var ch = line[i];
+        if (inQuotes) {
+          if (ch === '"') { inQuotes = false; } else { current += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { result.push(current); current = ''; }
+          else { current += ch; }
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    // Normalize phone: keep last 10 digits
+    function normalizePhone(p) {
+      var digits = (p || '').replace(/\D/g, '');
+      return digits.length >= 10 ? digits.slice(-10) : digits;
+    }
+
+    // Fetch guild members and existing registrations
+    function fetchData() {
+      fetch(GUILD_CSV_URL)
+        .then(function(r) { return r.text(); })
+        .then(function(csv) {
+          var rows = parseCSV(csv);
+          rows.forEach(function(row) {
+            var phone = normalizePhone(row['Phone Number']);
+            var state = row['Current State'];
+            if (phone && state === 'Active') {
+              guildMembers[phone] = { name: row['Name'], plan: row['Plan'] };
+            }
+          });
+        })
+        .catch(function() {});
+
+      fetch(REG_CSV_URL)
+        .then(function(r) { return r.text(); })
+        .then(function(csv) {
+          var rows = parseCSV(csv);
+          rows.forEach(function(row) {
+            var phone = normalizePhone(row['Phone']);
+            if (phone) {
+              existingRegs[phone] = true;
+            }
+          });
+        })
+        .catch(function() {});
+    }
+
+    fetchData();
+
+    // Check membership when phone changes
+    function checkMembership() {
+      var phone = normalizePhone(document.getElementById('phone').value);
+      var banner = document.getElementById('discountBanner');
+      var tag = document.getElementById('discountTag');
+      var text = document.getElementById('discountText');
+
+      if (phone.length === 10 && guildMembers[phone]) {
+        var member = guildMembers[phone];
+
+        // Check fraud: already registered?
+        if (existingRegs[phone]) {
+          activeMember = null;
+          discountBlocked = true;
+          banner.classList.remove('visible');
+          updateTotal();
+          return;
+        }
+
+        activeMember = member;
+        discountBlocked = false;
+        tag.textContent = 'Guild Path: ' + member.plan;
+        text.textContent = discountMessages[member.plan];
+        banner.classList.add('visible');
+      } else {
+        activeMember = null;
+        discountBlocked = false;
+        banner.classList.remove('visible');
+      }
+      updateTotal();
+    }
+
+    document.getElementById('phone').addEventListener('input', checkMembership);
+
     // Read URL param
     var params = new URLSearchParams(window.location.search);
     var preselect = params.get('pass');
@@ -792,11 +967,45 @@
       return el ? el.value : null;
     }
 
-    function updateTotal() {
+    function getDiscountedTotal() {
       var pass = getSelectedPass();
       var price = pass ? prices[pass] : 0;
-      var total = price * quantity;
-      document.getElementById('totalAmount').textContent = '\u20B9' + total.toLocaleString('en-IN');
+      var fullTotal = price * quantity;
+      var discountFraction = 0;
+      var discountApplied = false;
+
+      if (activeMember && !discountBlocked && pass) {
+        var rates = discountRates[activeMember.plan];
+        if (rates) {
+          discountFraction = rates[pass] || 0;
+          discountApplied = discountFraction > 0;
+        }
+      }
+
+      var discountAmount = Math.round(fullTotal * discountFraction);
+      var finalTotal = fullTotal - discountAmount;
+
+      return {
+        full: fullTotal,
+        final: finalTotal,
+        discountApplied: discountApplied,
+        plan: activeMember ? activeMember.plan : null
+      };
+    }
+
+    function updateTotal() {
+      var result = getDiscountedTotal();
+      var originalEl = document.getElementById('originalPrice');
+      var finalEl = document.getElementById('finalPrice');
+
+      if (result.discountApplied && result.full !== result.final) {
+        originalEl.textContent = '\u20B9' + result.full.toLocaleString('en-IN');
+        originalEl.style.display = 'inline';
+        finalEl.textContent = '\u20B9' + result.final.toLocaleString('en-IN');
+      } else {
+        originalEl.style.display = 'none';
+        finalEl.textContent = '\u20B9' + result.full.toLocaleString('en-IN');
+      }
     }
 
     function updateDaySelector() {
@@ -806,7 +1015,6 @@
         dayEl.classList.add('visible');
       } else {
         dayEl.classList.remove('visible');
-        // Clear day selection when switching to campaign
         document.querySelectorAll('input[name="day"]').forEach(function(r) { r.checked = false; });
       }
     }
@@ -913,7 +1121,8 @@
     }
 
     function openPaymentSheet() {
-      var amount = prices[getSelectedPass()] * quantity;
+      var result = getDiscountedTotal();
+      var amount = result.final;
       var regName = document.getElementById('name').value.trim();
 
       // Update amount display
@@ -951,7 +1160,12 @@
       var btn = this;
       var pass = getSelectedPass();
       var dayEl = document.querySelector('input[name="day"]:checked');
-      var amount = prices[pass] * quantity;
+      var result = getDiscountedTotal();
+
+      var discountInfo = 'None';
+      if (result.discountApplied && result.plan) {
+        discountInfo = result.plan + ' (' + Math.round((1 - result.final / result.full) * 100) + '% off)';
+      }
 
       var payload = {
         name: document.getElementById('name').value.trim(),
@@ -960,17 +1174,12 @@
         pass: pass === 'oneshot' ? 'One Shot (Day Pass)' : 'Campaign (2-Day Pass)',
         day: pass === 'oneshot' && dayEl ? (dayEl.value === 'saturday' ? 'Saturday, Apr 18' : 'Sunday, Apr 19') : 'Both days',
         quantity: quantity,
-        total: amount
+        total: result.final,
+        discount: discountInfo
       };
 
       btn.disabled = true;
       btn.textContent = 'Submitting...';
-
-      if (!SHEET_URL) {
-        // No sheet URL configured — just show success
-        setTimeout(function() { showSuccess(); }, 500);
-        return;
-      }
 
       fetch(SHEET_URL, {
         method: 'POST',
@@ -980,7 +1189,6 @@
       }).then(function() {
         showSuccess();
       }).catch(function() {
-        // Still show success — no-cors won't give us a readable response
         showSuccess();
       });
     });
