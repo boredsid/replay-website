@@ -352,57 +352,196 @@
       margin-top: 0.75rem;
     }
 
-    /* Success overlay */
-    .success-overlay {
+    /* Payment bottom sheet */
+    .sheet-backdrop {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(10,10,10,0.7);
+      background: rgba(10,10,10,0.6);
       z-index: 200;
-      justify-content: center;
-      align-items: center;
-      padding: 1.5rem;
     }
 
-    .success-overlay.visible {
-      display: flex;
+    .sheet-backdrop.visible {
+      display: block;
     }
 
-    .success-card {
-      background: var(--cream);
-      color: var(--black);
-      border-radius: 20px;
-      padding: 3rem;
+    .payment-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 201;
+      background: var(--white);
+      border-radius: 20px 20px 0 0;
+      padding: 1.5rem 1.5rem 2rem;
+      max-width: 520px;
+      margin: 0 auto;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .payment-sheet.visible {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: #d0d0d0;
+      border-radius: 2px;
+      margin: 0 auto 1.25rem;
+    }
+
+    .sheet-header {
       text-align: center;
-      max-width: 420px;
-      width: 100%;
+      margin-bottom: 1.25rem;
     }
 
-    .success-card .check {
-      width: 64px;
-      height: 64px;
-      background: var(--orange);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem;
-      font-size: 2rem;
-      color: var(--white);
-    }
-
-    .success-card h2 {
-      font-size: 1.5rem;
+    .sheet-header h2 {
+      font-size: 1.15rem;
       font-weight: 900;
       text-transform: uppercase;
-      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+      color: var(--black);
+      margin-bottom: 0.2rem;
     }
 
-    .success-card p {
-      font-size: 0.9rem;
-      color: rgba(0,0,0,0.6);
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
+    .sheet-header .sheet-amount {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--orange);
+    }
+
+    .sheet-header .sheet-to {
+      font-size: 0.75rem;
+      color: rgba(0,0,0,0.45);
+      margin-top: 0.15rem;
+    }
+
+    .sheet-divider {
+      height: 1px;
+      background: #eee;
+      margin: 1.25rem 0;
+    }
+
+    /* QR section */
+    .qr-section {
+      text-align: center;
+    }
+
+    .qr-section .qr-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(0,0,0,0.45);
+      margin-bottom: 0.75rem;
+    }
+
+    .qr-box {
+      display: inline-block;
+      padding: 12px;
+      background: var(--white);
+      border: 2px solid #eee;
+      border-radius: 12px;
+    }
+
+    .qr-box img {
+      display: block;
+      width: 180px;
+      height: 180px;
+    }
+
+    /* UPI app buttons */
+    .upi-apps {
+      margin-top: 1.25rem;
+    }
+
+    .upi-apps .upi-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(0,0,0,0.45);
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .upi-grid {
+      display: flex;
+      justify-content: center;
+      gap: 1.25rem;
+    }
+
+    .upi-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      text-decoration: none;
+      transition: transform 0.15s;
+    }
+
+    .upi-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .upi-btn .upi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.6rem;
+      color: var(--white);
+      letter-spacing: 0.02em;
+    }
+
+    .upi-icon-gpay { background: #4285F4; }
+    .upi-icon-phonepe { background: #5F259F; }
+    .upi-icon-paytm { background: #00BAF2; }
+
+    .upi-icon svg { width: 28px; height: 28px; fill: var(--white); }
+
+    .upi-btn .upi-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--black);
+    }
+
+    .sheet-footer {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.7rem;
+      color: rgba(0,0,0,0.35);
+      line-height: 1.5;
+    }
+
+    .sheet-close {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: none;
+      border: 2px solid #ddd;
+      border-radius: 60px;
+      font-family: 'Alexandria', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sheet-close:hover {
+      border-color: var(--black);
+      color: var(--black);
     }
 
     /* ── Footer ── */
@@ -553,21 +692,63 @@
           <span class="total-amount" id="totalAmount">&#x20B9;0</span>
         </div>
 
-        <button type="submit" class="submit-btn">Register</button>
-        <div class="submit-note">Payment details will be shared on WhatsApp after registration</div>
+        <button type="submit" class="submit-btn">Proceed to Pay</button>
+        <div class="submit-note">You'll be able to pay via UPI in the next step</div>
 
       </form>
     </div>
   </section>
 
-  <!-- Success Overlay -->
-  <div class="success-overlay" id="successOverlay">
-    <div class="success-card">
-      <div class="check">&#10003;</div>
-      <h2>You're In!</h2>
-      <p>We've got your details. We'll reach out on WhatsApp with payment info and next steps.</p>
-      <a href="index.html" class="btn btn-orange">Back to Home</a>
+  <!-- Payment Bottom Sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="payment-sheet" id="paymentSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Complete Payment</h2>
+      <div class="sheet-amount" id="sheetAmount"></div>
+      <div class="sheet-to">REPLAY Convention</div>
     </div>
+
+    <div class="sheet-divider"></div>
+
+    <div class="qr-section">
+      <div class="qr-label">Scan with any UPI app</div>
+      <div class="qr-box">
+        <img id="qrImage" alt="UPI QR Code" src="">
+      </div>
+    </div>
+
+    <div class="sheet-divider"></div>
+
+    <div class="upi-apps">
+      <div class="upi-label">Or pay directly with</div>
+      <div class="upi-grid">
+        <a class="upi-btn" id="gpayLink" href="#">
+          <div class="upi-icon upi-icon-gpay">
+            <svg viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+          </div>
+          <span class="upi-name">Google Pay</span>
+        </a>
+        <a class="upi-btn" id="phonepeLink" href="#">
+          <div class="upi-icon upi-icon-phonepe">
+            <svg viewBox="0 0 24 24"><path d="M7.39 7.51h2.89l3.2 4.98V7.51h2.5v8.98h-2.72l-3.37-5.25v5.25H7.39V7.51zM3 3v18h18V3H3zm17 17H4V4h16v16z"/></svg>
+          </div>
+          <span class="upi-name">PhonePe</span>
+        </a>
+        <a class="upi-btn" id="paytmLink" href="#">
+          <div class="upi-icon upi-icon-paytm">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 3h8v2H8V9zm0 4h5v2H8v-2z"/></svg>
+          </div>
+          <span class="upi-name">Paytm</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="sheet-footer">
+      Pay to UPI ID: suranjanadatta24-1@okaxis
+    </div>
+
+    <button class="sheet-close" id="sheetClose">Cancel</button>
   </div>
 
   <!-- Footer -->
@@ -710,11 +891,53 @@
       });
     });
 
+    // Payment sheet
+    var UPI_ID = 'suranjanadatta24-1@okaxis';
+    var UPI_NAME = 'REPLAY Convention';
+
+    function buildUpiUrl(scheme, amount, regName) {
+      var name = encodeURIComponent(regName || 'REPLAY Pass');
+      var pn = encodeURIComponent(UPI_NAME);
+      return scheme + '://pay?pa=' + UPI_ID + '&pn=' + pn + '&am=' + amount + '&cu=INR&tn=' + name;
+    }
+
+    function openPaymentSheet() {
+      var amount = prices[getSelectedPass()] * quantity;
+      var regName = document.getElementById('name').value.trim();
+
+      // Update amount display
+      document.getElementById('sheetAmount').textContent = '\u20B9' + amount.toLocaleString('en-IN');
+
+      // Build UPI URLs
+      var upiGeneric = 'upi://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + amount + '&cu=INR&tn=' + encodeURIComponent(regName);
+      document.getElementById('gpayLink').href = buildUpiUrl('tez', amount, regName);
+      document.getElementById('phonepeLink').href = buildUpiUrl('phonepe', amount, regName);
+      document.getElementById('paytmLink').href = 'paytmmp://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + amount + '&cu=INR&tn=' + encodeURIComponent(regName);
+
+      // Generate QR code
+      var qrImg = document.getElementById('qrImage');
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=' + encodeURIComponent(upiGeneric);
+
+      // Show sheet
+      document.getElementById('sheetBackdrop').classList.add('visible');
+      document.getElementById('paymentSheet').classList.add('visible');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePaymentSheet() {
+      document.getElementById('paymentSheet').classList.remove('visible');
+      document.getElementById('sheetBackdrop').classList.remove('visible');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('sheetBackdrop').addEventListener('click', closePaymentSheet);
+    document.getElementById('sheetClose').addEventListener('click', closePaymentSheet);
+
     // Submit
     document.getElementById('registerForm').addEventListener('submit', function(e) {
       e.preventDefault();
       if (validateForm()) {
-        document.getElementById('successOverlay').classList.add('visible');
+        openPaymentSheet();
       }
     });
 
