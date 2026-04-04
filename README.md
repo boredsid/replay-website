@@ -1,6 +1,6 @@
-# REPLAY - Bangalore's Board Game Convention
+# REPLAY - Bangalore's Gaming Convention
 
-The official website for REPLAY, a board game convention held in Bangalore. Built entirely with vanilla HTML, CSS, and JavaScript — no frameworks, no build tools.
+The official website for REPLAY, a gaming convention held in Bangalore. Built entirely with vanilla HTML, CSS, and JavaScript — no frameworks, no build tools.
 
 **Live at [replaycon.in](https://replaycon.in)**
 
