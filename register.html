@@ -866,15 +866,22 @@
 
     // Discount rates: { oneshot: fraction_off, campaign: fraction_off }
     var discountRates = {
-      'Initiate':    { oneshot: 0.20, campaign: 0.10 },
-      'Adventurer':  { oneshot: 1.00, campaign: 0.50 },
+      'Initiate':    { oneshot: 0.20, campaign: 0.20 },
+      'Adventurer':  { oneshot: 1.00, campaign: 1.00 },
       'Guildmaster': { oneshot: 1.00, campaign: 1.00 }
     };
 
+    // Max discount amount per tier (null = unlimited)
+    var discountCaps = {
+      'Initiate':    null,
+      'Adventurer':  1000,
+      'Guildmaster': null
+    };
+
     var discountMessages = {
-      'Initiate':    'As a Guild Path Initiate, you are eligible for 20% off on one day passes and 10% off on 2 day passes',
-      'Adventurer':  'As a Guild Path Adventurer, you are eligible for 100% off on one day passes and 50% off on 2 day passes',
-      'Guildmaster': 'As a Guildmaster, your 2 day passes are completely free!'
+      'Initiate':    'As a Guild Path Initiate, you get 20% off on all passes!',
+      'Adventurer':  'As a Guild Path Adventurer, you get 100% off on all passes (up to \u20B91,000)!',
+      'Guildmaster': 'As a Guildmaster, your passes are completely free!'
     };
 
     // Parse CSV text into array of objects
@@ -1089,6 +1096,13 @@
       }
 
       var discountAmount = Math.round(fullTotal * discountFraction);
+      // Apply per-tier cap
+      if (discountApplied && activeMember) {
+        var cap = discountCaps[activeMember.plan];
+        if (cap !== null && discountAmount > cap) {
+          discountAmount = cap;
+        }
+      }
       var finalTotal = fullTotal - discountAmount;
 
       return {
