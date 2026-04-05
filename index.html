@@ -200,6 +200,33 @@
       pointer-events: none;
     }
 
+    /* ── Sponsors ── */
+    .sponsors {
+      background: var(--cream);
+      padding: 4rem 2rem;
+    }
+    .sponsors .section-title { color: var(--black); font-size: clamp(1.8rem, 4vw, 2.8rem); }
+    .sponsors .section-subtitle { color: var(--red); }
+    .sponsors-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 2.5rem 3rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .sponsor-logo {
+      height: 100px;
+      width: auto;
+      max-width: 220px;
+      object-fit: contain;
+      transition: transform 0.3s;
+    }
+    .sponsor-logo:hover {
+      transform: scale(1.1);
+    }
+
     /* ── About ── */
     .about {
       background: var(--red);
@@ -506,6 +533,10 @@
       .carousel-dots { gap: 0.5rem; }
       .carousel-dots .dot { width: 10px; height: 10px; }
 
+      .sponsors { padding: 3rem 1.5rem; }
+      .sponsors-grid { gap: 1.5rem 2rem; }
+      .sponsor-logo { height: 70px; max-width: 160px; }
+
       section { padding: 4rem 1.5rem; }
     }
   </style>
@@ -566,6 +597,27 @@
       <button class="dot" data-slide="4" aria-label="Slide 5"></button>
       <button class="dot" data-slide="5" aria-label="Slide 6"></button>
       <button class="dot" data-slide="6" aria-label="Slide 7"></button>
+    </div>
+  </section>
+
+  <!-- Sponsors -->
+  <section class="sponsors">
+    <div class="container">
+      <h2 class="section-title">Our Partners & Sponsors</h2>
+      <p class="section-subtitle">Powered by the best in the community</p>
+      <div class="sponsors-grid">
+        <img src="sponsor-logos/BRB Snacks.png" alt="BRB Snacks" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Board Game Company.png" alt="Board Game Company" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Cats from hell.png" alt="Cats from Hell" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Forensic Files.png" alt="Forensic Files" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Jigsaw Nation.png" alt="Jigsaw Nation" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Shuffle N Roll.png" alt="Shuffle N Roll" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Squircle Games.png" alt="Squircle Games" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/TTRPGcon.png" alt="TTRPGcon" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/The Bangalore Local.png" alt="The Bangalore Local" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/The Kyu Co.png" alt="The Kyu Co" class="sponsor-logo" loading="lazy">
+        <img src="sponsor-logos/Zenwood Games.png" alt="Zenwood Games" class="sponsor-logo" loading="lazy">
+      </div>
     </div>
   </section>
 
