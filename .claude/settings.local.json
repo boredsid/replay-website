@@ -15,7 +15,9 @@
       "WebFetch(domain:doc-0o-bo-sheets.googleusercontent.com)",
       "WebFetch(domain:doc-0s-bo-sheets.googleusercontent.com)",
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnxm_GrfdyAKghkS9b_CN3KTHtaS7ahis8bnHySOpwD9xI1GR9bnKwqEzg8QAt639AEekCeeeW-oNg/pub?gid=581649392&single=true&output=csv\")",
-      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1eHgoj6zeLisdUrlEZsq1xhSkGRe3kfmE_kG9Xxy-ErnfYj2dEB4h8xd1A1AgDV6irYItV_c2QeF/pub?gid=0&single=true&output=csv\")"
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1eHgoj6zeLisdUrlEZsq1xhSkGRe3kfmE_kG9Xxy-ErnfYj2dEB4h8xd1A1AgDV6irYItV_c2QeF/pub?gid=0&single=true&output=csv\")",
+      "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/instagram-launch-post.html\" /tmp/replay-preview/)",
+      "Read(//private/tmp/replay-preview/**)"
     ]
   }
 }
