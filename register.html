@@ -851,8 +851,8 @@
     var prices = { oneshot: 800, campaign: 1400 };
 
     // Guild & registration data
-    var GUILD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRnxm_GrfdyAKghkS9b_CN3KTHtaS7ahis8bnHySOpwD9xI1GR9bnKwqEzg8QAt639AEekCeeeW-oNg/pub?gid=581649392&single=true&output=csv';
-    var REG_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1eHgoj6zeLisdUrlEZsq1xhSkGRe3kfmE_kG9Xxy-ErnfYj2dEB4h8xd1A1AgDV6irYItV_c2QeF/pub?gid=0&single=true&output=csv';
+    var GUILD_CSV_URL = '__GUILD_CSV_URL__';
+    var REG_CSV_URL = '__REG_CSV_URL__';
 
     var guildMembers = {};   // phone -> { name, plan }
     var existingRegs = {};   // phone -> true
@@ -1285,7 +1285,7 @@
     document.getElementById('sheetClose').addEventListener('click', closePaymentSheet);
 
     // Google Sheets submission
-    var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxLxLBgffOZv-9YZX9AWEJxgqL9OuGdYI7Ch8czBYuSLKggXJ0qmewm_QdwphrscOk/exec';
+    var SHEET_URL = '__SHEET_URL__';
 
     document.getElementById('sheetDone').addEventListener('click', function() {
       var btn = this;
