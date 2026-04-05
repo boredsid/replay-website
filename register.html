@@ -558,6 +558,33 @@
       color: var(--black);
     }
 
+    /* Sold out state */
+    .radio-option.sold-out label {
+      opacity: 0.4;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .radio-option.sold-out label::after {
+      content: 'SOLD OUT';
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--red);
+      margin-top: 0.25rem;
+    }
+
+    .day-option.sold-out label::after {
+      content: 'SOLD OUT';
+      display: inline;
+      font-size: 0.6rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--red);
+      margin-left: 0.5rem;
+    }
+
     /* Discount banner */
     .discount-banner {
       display: none;
@@ -832,6 +859,11 @@
     var activeMember = null; // current matched member info
     var discountBlocked = false; // true if phone already registered
 
+    // Capacity tracking
+    var CAPACITY_PER_DAY = 60;
+    var saturdayCount = 0;
+    var sundayCount = 0;
+
     // Discount rates: { oneshot: fraction_off, campaign: fraction_off }
     var discountRates = {
       'Initiate':    { oneshot: 0.20, campaign: 0.10 },
@@ -912,7 +944,20 @@
             if (phone) {
               existingRegs[phone] = true;
             }
+            // Count capacity
+            var qty = parseInt(row['Quantity']) || 1;
+            var passType = row['Pass Type'] || '';
+            var day = row['Day'] || '';
+            if (passType.indexOf('2-Day') !== -1 || day === 'Both days') {
+              saturdayCount += qty;
+              sundayCount += qty;
+            } else if (day.indexOf('Saturday') !== -1) {
+              saturdayCount += qty;
+            } else if (day.indexOf('Sunday') !== -1) {
+              sundayCount += qty;
+            }
           });
+          updateAvailability();
         })
         .catch(function() {});
     }
@@ -952,6 +997,67 @@
     }
 
     document.getElementById('phone').addEventListener('input', checkMembership);
+
+    // Capacity / sold-out checks
+    var satSoldOut = false;
+    var sunSoldOut = false;
+    var campaignSoldOut = false;
+
+    function updateAvailability() {
+      satSoldOut = saturdayCount >= CAPACITY_PER_DAY;
+      sunSoldOut = sundayCount >= CAPACITY_PER_DAY;
+      campaignSoldOut = satSoldOut || sunSoldOut;
+
+      // Campaign pass
+      var campaignOption = document.getElementById('passCampaign').closest('.radio-option');
+      if (campaignSoldOut) {
+        campaignOption.classList.add('sold-out');
+        document.getElementById('passCampaign').disabled = true;
+        if (document.getElementById('passCampaign').checked) {
+          document.getElementById('passCampaign').checked = false;
+          updateDaySelector();
+          updateTotal();
+        }
+      } else {
+        campaignOption.classList.remove('sold-out');
+        document.getElementById('passCampaign').disabled = false;
+      }
+
+      // One Shot — only disable if both days are sold out
+      var oneshotOption = document.getElementById('passOneshot').closest('.radio-option');
+      if (satSoldOut && sunSoldOut) {
+        oneshotOption.classList.add('sold-out');
+        document.getElementById('passOneshot').disabled = true;
+      } else {
+        oneshotOption.classList.remove('sold-out');
+        document.getElementById('passOneshot').disabled = false;
+      }
+
+      // Day options
+      var satOption = document.getElementById('daySaturday').closest('.radio-option');
+      if (satSoldOut) {
+        satOption.classList.add('sold-out');
+        document.getElementById('daySaturday').disabled = true;
+        if (document.getElementById('daySaturday').checked) {
+          document.getElementById('daySaturday').checked = false;
+        }
+      } else {
+        satOption.classList.remove('sold-out');
+        document.getElementById('daySaturday').disabled = false;
+      }
+
+      var sunOption = document.getElementById('daySunday').closest('.radio-option');
+      if (sunSoldOut) {
+        sunOption.classList.add('sold-out');
+        document.getElementById('daySunday').disabled = true;
+        if (document.getElementById('daySunday').checked) {
+          document.getElementById('daySunday').checked = false;
+        }
+      } else {
+        sunOption.classList.remove('sold-out');
+        document.getElementById('daySunday').disabled = false;
+      }
+    }
 
     // Read URL param
     var params = new URLSearchParams(window.location.search);
