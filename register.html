@@ -851,9 +851,6 @@
     var prices = { oneshot: 800, campaign: 1400 };
 
     // Guild & registration data
-    var GUILD_CSV_URL = '__GUILD_CSV_URL__';
-    var REG_CSV_URL = '__REG_CSV_URL__';
-
     var guildMembers = {};   // phone -> { name, plan }
     var existingRegs = {};   // phone -> true
     var activeMember = null; // current matched member info
@@ -928,43 +925,39 @@
 
     // Fetch guild members and existing registrations
     function fetchData() {
-      fetch(GUILD_CSV_URL)
-        .then(function(r) { return r.text(); })
-        .then(function(csv) {
-          var rows = parseCSV(csv);
-          rows.forEach(function(row) {
-            var phone = normalizePhone(row['Phone Number']);
-            var state = row['Current State'];
-            if (phone && state === 'Active') {
-              guildMembers[phone] = { name: row['Name'], plan: row['Plan'] };
-            }
-          });
-        })
-        .catch(function() {});
-
-      fetch(REG_CSV_URL)
-        .then(function(r) { return r.text(); })
-        .then(function(csv) {
-          var rows = parseCSV(csv);
-          rows.forEach(function(row) {
-            var phone = normalizePhone(row['Phone']);
-            if (phone) {
-              existingRegs[phone] = true;
-            }
-            // Count capacity
-            var qty = parseInt(row['Quantity']) || 1;
-            var passType = row['Pass Type'] || '';
-            var day = row['Day'] || '';
-            if (passType.indexOf('2-Day') !== -1 || day === 'Both days') {
-              saturdayCount += qty;
-              sundayCount += qty;
-            } else if (day.indexOf('Saturday') !== -1) {
-              saturdayCount += qty;
-            } else if (day.indexOf('Sunday') !== -1) {
-              sundayCount += qty;
-            }
-          });
-          updateAvailability();
+      fetch(SHEET_URL + '?action=getData')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          // Process guild members
+          if (data.guild) {
+            data.guild.forEach(function(row) {
+              var phone = normalizePhone(row.phone);
+              if (phone && row.state === 'Active') {
+                guildMembers[phone] = { name: row.name, plan: row.plan };
+              }
+            });
+          }
+          // Process registrations
+          if (data.registrations) {
+            data.registrations.forEach(function(row) {
+              var phone = normalizePhone(row.phone);
+              if (phone) {
+                existingRegs[phone] = true;
+              }
+              var qty = parseInt(row.quantity) || 1;
+              var passType = row.passType || '';
+              var day = row.day || '';
+              if (passType.indexOf('2-Day') !== -1 || day === 'Both days') {
+                saturdayCount += qty;
+                sundayCount += qty;
+              } else if (day.indexOf('Saturday') !== -1) {
+                saturdayCount += qty;
+              } else if (day.indexOf('Sunday') !== -1) {
+                sundayCount += qty;
+              }
+            });
+            updateAvailability();
+          }
         })
         .catch(function() {});
     }

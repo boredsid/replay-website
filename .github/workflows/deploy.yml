@@ -24,16 +24,12 @@ jobs:
 
       - name: Inject secrets into register.html
         env:
-          GUILD_CSV_URL: ${{ secrets.GUILD_CSV_URL }}
-          REG_CSV_URL: ${{ secrets.REG_CSV_URL }}
           SHEET_URL: ${{ secrets.SHEET_URL }}
         run: |
           python3 -c "
           import os
           with open('register.html', 'r') as f:
               content = f.read()
-          content = content.replace('__GUILD_CSV_URL__', os.environ['GUILD_CSV_URL'])
-          content = content.replace('__REG_CSV_URL__', os.environ['REG_CSV_URL'])
           content = content.replace('__SHEET_URL__', os.environ['SHEET_URL'])
           with open('register.html', 'w') as f:
               f.write(content)
