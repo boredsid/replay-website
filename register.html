@@ -849,6 +849,7 @@
   <script>
     var quantity = 1;
     var prices = { oneshot: 800, campaign: 1400 };
+    var SHEET_URL = '__SHEET_URL__';
 
     // Guild & registration data
     var guildMembers = {};   // phone -> { name, plan }
@@ -1276,9 +1277,6 @@
 
     document.getElementById('sheetBackdrop').addEventListener('click', closePaymentSheet);
     document.getElementById('sheetClose').addEventListener('click', closePaymentSheet);
-
-    // Google Sheets submission
-    var SHEET_URL = '__SHEET_URL__';
 
     document.getElementById('sheetDone').addEventListener('click', function() {
       var btn = this;
