@@ -924,43 +924,43 @@
       return digits.length >= 10 ? digits.slice(-10) : digits;
     }
 
-    // Fetch guild members and existing registrations
+    // JSONP callback for guild + registration data
+    function handleData(data) {
+      if (data.guild) {
+        data.guild.forEach(function(row) {
+          var phone = normalizePhone(row.phone);
+          if (phone && row.state === 'Active') {
+            guildMembers[phone] = { name: row.name, plan: row.plan };
+          }
+        });
+      }
+      if (data.registrations) {
+        data.registrations.forEach(function(row) {
+          var phone = normalizePhone(row.phone);
+          if (phone) {
+            existingRegs[phone] = true;
+          }
+          var qty = parseInt(row.quantity) || 1;
+          var passType = row.passType || '';
+          var day = row.day || '';
+          if (passType.indexOf('2-Day') !== -1 || day === 'Both days') {
+            saturdayCount += qty;
+            sundayCount += qty;
+          } else if (day.indexOf('Saturday') !== -1) {
+            saturdayCount += qty;
+          } else if (day.indexOf('Sunday') !== -1) {
+            sundayCount += qty;
+          }
+        });
+        updateAvailability();
+      }
+    }
+
+    // Load data via JSONP (avoids CORS)
     function fetchData() {
-      fetch(SHEET_URL + '?action=getData')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          // Process guild members
-          if (data.guild) {
-            data.guild.forEach(function(row) {
-              var phone = normalizePhone(row.phone);
-              if (phone && row.state === 'Active') {
-                guildMembers[phone] = { name: row.name, plan: row.plan };
-              }
-            });
-          }
-          // Process registrations
-          if (data.registrations) {
-            data.registrations.forEach(function(row) {
-              var phone = normalizePhone(row.phone);
-              if (phone) {
-                existingRegs[phone] = true;
-              }
-              var qty = parseInt(row.quantity) || 1;
-              var passType = row.passType || '';
-              var day = row.day || '';
-              if (passType.indexOf('2-Day') !== -1 || day === 'Both days') {
-                saturdayCount += qty;
-                sundayCount += qty;
-              } else if (day.indexOf('Saturday') !== -1) {
-                saturdayCount += qty;
-              } else if (day.indexOf('Sunday') !== -1) {
-                sundayCount += qty;
-              }
-            });
-            updateAvailability();
-          }
-        })
-        .catch(function() {});
+      var script = document.createElement('script');
+      script.src = SHEET_URL + '?action=getData&callback=handleData';
+      document.body.appendChild(script);
     }
 
     fetchData();
