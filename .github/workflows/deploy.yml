@@ -22,17 +22,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject secrets into register.html
+      - name: Inject secrets into HTML files
         env:
           SHEET_URL: ${{ secrets.SHEET_URL }}
         run: |
           python3 -c "
           import os
-          with open('register.html', 'r') as f:
-              content = f.read()
-          content = content.replace('__SHEET_URL__', os.environ['SHEET_URL'])
-          with open('register.html', 'w') as f:
-              f.write(content)
+          sheet_url = os.environ['SHEET_URL']
+          for fname in ['register.html', 'preorder.html']:
+              with open(fname, 'r') as f:
+                  content = f.read()
+              content = content.replace('__SHEET_URL__', sheet_url)
+              with open(fname, 'w') as f:
+                  f.write(content)
           "
 
       - uses: actions/configure-pages@v4
