@@ -223,7 +223,96 @@ function sendPreorderConfirmation(data) {
 
 /**
  * ═══════════════════════════════════════════════════════════
- *  KEEP your existing parseCsv() and parseCsvLine() as-is
- *  (no changes needed to those functions)
+ *  STEP 4: REPLACE your existing parseCsv() and parseCsvLine()
+ *
+ *  The old parser splits on \n first, which breaks multi-line
+ *  quoted fields (like product descriptions with line breaks).
+ *  This updated version handles them correctly.
  * ═══════════════════════════════════════════════════════════
  */
+
+function parseCsv(text) {
+  var rows = parseCsvRows(text);
+  if (rows.length < 2) return [];
+  var headers = rows[0];
+  var result = [];
+  for (var i = 1; i < rows.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j].trim()] = (rows[i][j] || '').trim();
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
+// Multi-line-safe CSV row splitter
+function parseCsvRows(text) {
+  var rows = [];
+  var row = [];
+  var field = '';
+  var inQuotes = false;
+
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    var next = text[i + 1] || '';
+
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        field += '"';
+        i++; // skip escaped quote
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\r' && next === '\n') {
+        row.push(field);
+        field = '';
+        rows.push(row);
+        row = [];
+        i++; // skip \n after \r
+      } else if (ch === '\n') {
+        row.push(field);
+        field = '';
+        rows.push(row);
+        row = [];
+      } else {
+        field += ch;
+      }
+    }
+  }
+
+  // Push last field/row
+  if (field || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+// Keep parseCsvLine for backwards compat (used by existing getData action)
+function parseCsvLine(line) {
+  var result = [];
+  var current = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') { inQuotes = false; } else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { result.push(current); current = ''; }
+      else { current += ch; }
+    }
+  }
+  result.push(current);
+  return result;
+}
