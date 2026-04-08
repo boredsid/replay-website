@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "replay-site",
-      "runtimeExecutable": "ruby",
-      "runtimeArgs": ["-run", "-e", "httpd", "/tmp/replay-preview", "-p", "3000"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/siddhantnarula/Documents/REPLAY website", "-l", "3000", "--no-clipboard"],
       "port": 3000
     }
   ]

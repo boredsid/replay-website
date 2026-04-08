@@ -107,6 +107,55 @@
       margin-top: 0.25rem;
     }
 
+    /* ── Deadline Banner ── */
+    .deadline-banner {
+      background: var(--red);
+      color: var(--white);
+      text-align: center;
+      padding: 0.6rem 2rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      margin-top: 60px;
+    }
+    .deadline-banner + .store-header {
+      padding-top: 2rem;
+    }
+
+    /* ── Store Closed Overlay ── */
+    .store-closed {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .store-closed h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .store-closed .closed-sub {
+      font-family: 'Amatic SC', cursive;
+      font-size: 1.5rem;
+      color: var(--orange);
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+    .store-closed p {
+      font-size: 0.9rem;
+      opacity: 0.6;
+      line-height: 1.6;
+      max-width: 400px;
+    }
+    .store-closed .btn {
+      margin-top: 2rem;
+    }
+
     /* ── Filter Bar ── */
     .filter-bar {
       position: sticky;
@@ -175,6 +224,7 @@
       padding: 1.5rem 2rem 8rem;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
+      align-items: start;
       gap: 1.25rem;
       max-width: 1200px;
       margin: 0 auto;
@@ -897,6 +947,11 @@
     </ul>
   </nav>
 
+  <!-- Deadline Banner -->
+  <div class="deadline-banner" id="deadlineBanner">
+    Orders close on April 11 at midnight. Don't miss out!
+  </div>
+
   <!-- Header -->
   <div class="store-header">
     <h1>REPLAY Store</h1>
@@ -1036,6 +1091,26 @@
   </footer>
 
   <script>
+    // ── Store Deadline Check ──
+    // Close the store after April 12, 2026 6:00 AM IST (= April 11, 2026 midnight + 6hrs)
+    var STORE_DEADLINE = new Date('2026-04-12T00:30:00Z'); // April 12 6:00 AM IST = 00:30 UTC
+    var now = new Date();
+
+    if (now >= STORE_DEADLINE) {
+      document.body.innerHTML =
+        '<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:var(--black);">' +
+          '<a href="index.html" class="logo"><img src="replay-logo.png" alt="REPLAY" style="height:32px;width:auto;"></a>' +
+        '</nav>' +
+        '<div class="store-closed">' +
+          '<h1>Store Closed</h1>' +
+          '<div class="closed-sub">Pre-orders are now closed!</div>' +
+          '<p>The REPLAY Store pre-order window has ended. See you at the convention to check out what\'s available at the store!</p>' +
+          '<a href="index.html" class="btn btn-orange" style="margin-top:2rem;">Back to Home</a>' +
+        '</div>';
+      // Stop executing the rest of the script
+      throw new Error('Store closed');
+    }
+
     var SHEET_URL = '__SHEET_URL__';
 
     // State
