@@ -22,12 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject secrets into HTML files
+      - name: Inject secrets and sponsor logos into HTML files
         env:
           SHEET_URL: ${{ secrets.SHEET_URL }}
         run: |
-          python3 -c "
+          python3 << 'PY'
           import os
+          from urllib.parse import quote
+
           sheet_url = os.environ['SHEET_URL']
           for fname in ['register.html', 'preorder.html']:
               with open(fname, 'r') as f:
@@ -35,7 +37,26 @@ jobs:
               content = content.replace('__SHEET_URL__', sheet_url)
               with open(fname, 'w') as f:
                   f.write(content)
-          "
+
+          logo_dir = 'sponsor-logos'
+          exts = ('.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif')
+          files = sorted(
+              f for f in os.listdir(logo_dir)
+              if f.lower().endswith(exts) and not f.startswith('.')
+          )
+          tags = [
+              f'<img src="{logo_dir}/{quote(f)}" alt="{os.path.splitext(f)[0]}" class="sponsor-logo" loading="lazy">'
+              for f in files
+          ]
+          placeholder = '<!-- SPONSOR_LOGOS: injected at deploy time from sponsor-logos/ by .github/workflows/deploy.yml -->'
+          with open('index.html', 'r') as f:
+              content = f.read()
+          if placeholder not in content:
+              raise SystemExit('sponsor logo placeholder missing from index.html')
+          content = content.replace(placeholder, '\n        '.join(tags))
+          with open('index.html', 'w') as f:
+              f.write(content)
+          PY
 
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
