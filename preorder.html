@@ -965,8 +965,8 @@
     </div>
     <div class="category-pills">
       <button class="pill active" data-category="all">All</button>
-      <button class="pill" data-category="puzzle">Jigsaw Puzzles</button>
       <button class="pill" data-category="game">Board Games</button>
+      <button class="pill" data-category="puzzle">Jigsaw Puzzles</button>
     </div>
   </div>
 
@@ -1180,6 +1180,29 @@
 
       allProducts = [];
 
+      if (data.games) {
+        data.games.forEach(function(row, i) {
+          var mrp = parsePrice(row['MRP including GST']);
+          var sale = parsePrice(row['Reselling price']);
+          if (!row['Name'] || !sale) return;
+          allProducts.push({
+            id: 'game-' + (i + 1),
+            category: 'game',
+            name: row['Name'],
+            publisher: row['Publisher'] || '',
+            description: row['Description'] || '',
+            mrp: mrp,
+            price: sale,
+            image1: row['Image 1'] || '',
+            image2: row['Image 2'] || '',
+            image3: row['Image 3'] || '',
+            playerCount: row['Player Count'] || '',
+            playTime: row['Play Time'] || '',
+            link: row['Website Links'] || ''
+          });
+        });
+      }
+
       if (data.puzzles) {
         data.puzzles.forEach(function(row, i) {
           var mrp = parsePrice(row['MRP including GST']);
@@ -1200,29 +1223,6 @@
             shape: row['Shape'] || '',
             size: row['Size'] || '',
             designer: row['Designer'] || '',
-            link: row['Website Links'] || ''
-          });
-        });
-      }
-
-      if (data.games) {
-        data.games.forEach(function(row, i) {
-          var mrp = parsePrice(row['MRP including GST']);
-          var sale = parsePrice(row['Reselling price']);
-          if (!row['Name'] || !sale) return;
-          allProducts.push({
-            id: 'game-' + (i + 1),
-            category: 'game',
-            name: row['Name'],
-            publisher: row['Publisher'] || '',
-            description: row['Description'] || '',
-            mrp: mrp,
-            price: sale,
-            image1: row['Image 1'] || '',
-            image2: row['Image 2'] || '',
-            image3: row['Image 3'] || '',
-            playerCount: row['Player Count'] || '',
-            playTime: row['Play Time'] || '',
             link: row['Website Links'] || ''
           });
         });
