@@ -17,7 +17,23 @@
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnxm_GrfdyAKghkS9b_CN3KTHtaS7ahis8bnHySOpwD9xI1GR9bnKwqEzg8QAt639AEekCeeeW-oNg/pub?gid=581649392&single=true&output=csv\")",
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1eHgoj6zeLisdUrlEZsq1xhSkGRe3kfmE_kG9Xxy-ErnfYj2dEB4h8xd1A1AgDV6irYItV_c2QeF/pub?gid=0&single=true&output=csv\")",
       "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/instagram-launch-post.html\" /tmp/replay-preview/)",
-      "Read(//private/tmp/replay-preview/**)"
+      "Read(//private/tmp/replay-preview/**)",
+      "Bash(cp \"/Users/siddhantnarula/Documents/REPLAY website/email-confirmation.html\" /tmp/replay-preview/)",
+      "Bash(gh run:*)",
+      "Bash(brew list:*)",
+      "Bash(node -e \"require\\(''pptxgenjs''\\)\")",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\")",
+      "Bash(npm install:*)",
+      "Bash(node generate.js)",
+      "Bash(python3 -c \"from pptx import Presentation; print\\(''python-pptx available''\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -m markitdown \"/Users/siddhantnarula/Documents/REPLAY website/REPLAY-Sponsor-Deck.pptx\")",
+      "Bash(python3:*)",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vTHiksNCT0XRTczxBkQ5qBvOLqsW6iMpXihvhV8O3dYp_fwXyAaGfrSokBFhxFNJBQ7-aEmHdleoPn3/pub?gid=0&single=true&output=csv\")",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vTHiksNCT0XRTczxBkQ5qBvOLqsW6iMpXihvhV8O3dYp_fwXyAaGfrSokBFhxFNJBQ7-aEmHdleoPn3/pub?gid=22445468&single=true&output=csv\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)"
     ]
   }
 }
