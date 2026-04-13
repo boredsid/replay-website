@@ -332,6 +332,20 @@
       font-size: 1.3rem;
     }
 
+    .cover-info {
+      display: none;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--navy);
+      background: rgba(23, 32, 82, 0.08);
+      border: 2px solid var(--navy);
+      text-align: center;
+    }
+
     /* Submit */
     .submit-btn {
       width: 100%;
@@ -787,6 +801,10 @@
           </span>
         </div>
 
+        <div class="cover-info" id="coverInfo">
+          <span id="coverText"></span>
+        </div>
+
         <button type="submit" class="submit-btn">Proceed to Pay</button>
         <div class="submit-note">You'll be able to pay via UPI in the next step</div>
 
@@ -1140,6 +1158,21 @@
         submitBtn.textContent = 'Proceed to Pay';
         submitNote.textContent = "You'll be able to pay via UPI in the next step";
       }
+
+      updateCoverInfo();
+    }
+
+    function updateCoverInfo() {
+      var pass = getSelectedPass();
+      var coverEl = document.getElementById('coverInfo');
+      var coverText = document.getElementById('coverText');
+      if (!pass) { coverEl.style.display = 'none'; return; }
+      var days = pass === 'campaign' ? 2 : 1;
+      var total = 200 * quantity * days;
+      coverEl.style.display = 'block';
+      var text = 'Includes \u20B9' + total.toLocaleString('en-IN') + ' for F&B at the attached cafe';
+      if (total > 200) text += ' (\u20B9200/person/day)';
+      coverText.textContent = text;
     }
 
     function updateDaySelector() {
