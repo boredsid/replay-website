@@ -1100,27 +1100,18 @@
   </footer>
 
   <script>
-    // ── Store Deadline Check ──
-    // Close the store after April 12, 2026 6:00 AM IST (= April 11, 2026 midnight + 6hrs)
-    var STORE_DEADLINE = new Date('2026-04-12T00:30:00Z'); // April 12 6:00 AM IST = 00:30 UTC
-    var now = new Date();
-
-    if (now >= STORE_DEADLINE) {
-      document.body.innerHTML =
-        '<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:var(--black);">' +
-          '<a href="index.html" class="logo"><img src="replay-logo.png" alt="REPLAY" style="height:32px;width:auto;"></a>' +
-        '</nav>' +
-        '<div class="store-closed">' +
-          '<h1>Store Closed</h1>' +
-          '<div class="closed-sub">Pre-orders are now closed!</div>' +
-          '<p>The REPLAY Store pre-order window has ended. See you at the convention to check out what\'s available at the store!</p>' +
-          '<a href="index.html" class="btn btn-orange" style="margin-top:2rem;">Back to Home</a>' +
-        '</div>';
-      // Stop executing the rest of the script
-      throw new Error('Store closed');
-    }
-
     var SHEET_URL = '__SHEET_URL__';
+
+    // Treat a product as out of stock if its last column value explicitly
+    // signals unavailability. Empty / missing values default to in-stock.
+    function isInStock(row) {
+      var keys = Object.keys(row || {});
+      if (keys.length === 0) return true;
+      var val = (row[keys[keys.length - 1]] || '').toString().trim().toLowerCase();
+      if (!val) return true;
+      var outSignals = ['out of stock', 'out', 'no', 'false', '0', 'sold out', 'unavailable', 'n'];
+      return outSignals.indexOf(val) === -1;
+    }
 
     // State
     var allProducts = [];
@@ -1194,6 +1185,7 @@
           var mrp = parsePrice(row['MRP including GST']);
           var sale = parsePrice(row['Reselling price']);
           if (!row['Name'] || !sale) return;
+          if (!isInStock(row)) return;
           allProducts.push({
             id: 'game-' + (i + 1),
             category: 'game',
@@ -1217,6 +1209,7 @@
           var mrp = parsePrice(row['MRP including GST']);
           var sale = parsePrice(row['Reselling price']);
           if (!row['Name'] || !sale) return;
+          if (!isInStock(row)) return;
           allProducts.push({
             id: 'puzzle-' + (i + 1),
             category: 'puzzle',
