@@ -958,7 +958,7 @@
 
   <!-- Deadline Banner -->
   <div class="deadline-banner" id="deadlineBanner">
-    Orders close on April 11 at midnight. Don't miss out!
+    Orders close in <span id="deadlineCountdown">—</span>
   </div>
 
   <!-- Header -->
@@ -1101,6 +1101,27 @@
 
   <script>
     var SHEET_URL = '__SHEET_URL__';
+
+    // Countdown to April 16 2026, 11:59 PM IST (18:29 UTC)
+    (function() {
+      var deadline = new Date('2026-04-16T18:29:00Z').getTime();
+      var el = document.getElementById('deadlineCountdown');
+      function tick() {
+        if (!el) return;
+        var diff = deadline - Date.now();
+        if (diff <= 0) {
+          el.textContent = '0d 0h 0m 0s';
+          return;
+        }
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor((diff % 86400000) / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        el.textContent = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
 
     // Treat a product as out of stock if its last column value explicitly
     // signals unavailability. Empty / missing values default to in-stock.
