@@ -1300,9 +1300,9 @@
           if (p.playTime) metaPills += '<span class="meta-pill">' + p.playTime + '</span>';
         }
 
-        var images = [p.image1, p.image2, p.image3].filter(function(img) { return img; });
+        var images = [p.image1, p.image2, p.image3].filter(function(img) { return img && img.trim(); });
         var carouselHtml = images.map(function(src) {
-          return '<img src="' + src + '" alt="' + p.name + '" loading="lazy">';
+          return '<img src="' + src + '" alt="' + p.name + '" loading="lazy" onerror="this.remove()">';
         }).join('');
 
         var detailMeta = '';
@@ -1321,7 +1321,7 @@
         var addBtnClass = cartItem ? 'add-cart-btn in-cart' : 'add-cart-btn';
 
         return '<div class="product-card" id="card-' + p.id + '" onclick="toggleCard(\'' + p.id + '\', event)">' +
-          '<img class="card-thumb" src="' + (p.image1 || '') + '" alt="' + p.name + '" loading="lazy">' +
+          (p.image1 && p.image1.trim() ? '<img class="card-thumb" src="' + p.image1 + '" alt="' + p.name + '" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
           '<div class="card-body">' +
             '<div class="card-publisher">' + p.publisher + '</div>' +
             '<div class="card-name">' + p.name + '</div>' +
