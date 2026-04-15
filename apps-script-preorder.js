@@ -239,7 +239,14 @@ function parseCsv(text) {
   for (var i = 1; i < rows.length; i++) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
-      obj[headers[j].trim()] = (rows[i][j] || '').trim();
+      var key = headers[j].trim();
+      if (!key) continue;
+      // Preserve first occurrence only — the registrations sheet has a
+      // duplicate "Phone" header from a side-table (WhatsAround/Swiggy
+      // manual entries). Without this guard, row['Phone'] silently
+      // returns the wrong (mostly-empty) column.
+      if (key in obj) continue;
+      obj[key] = (rows[i][j] || '').trim();
     }
     result.push(obj);
   }
