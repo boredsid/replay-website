@@ -1252,6 +1252,12 @@
       }
 
       renderProducts();
+
+      // Re-check any already-entered phone now that existingRegs is populated
+      var coPhoneEl = document.getElementById('coPhone');
+      if (coPhoneEl && normalizePhone(coPhoneEl.value).length === 10) {
+        checkRegistration();
+      }
     }
 
     function fetchData() {
@@ -1497,10 +1503,13 @@
     document.getElementById('coPhone').addEventListener('input', function() {
       this.classList.remove('error');
       document.getElementById('coPhoneError').classList.remove('visible');
-      var status = document.getElementById('regStatus');
-      status.classList.remove('visible');
-      isRegistered = false;
-      updateBuyBtn();
+      if (normalizePhone(this.value).length === 10) {
+        checkRegistration();
+      } else {
+        document.getElementById('regStatus').classList.remove('visible');
+        isRegistered = false;
+        updateBuyBtn();
+      }
     });
 
     document.getElementById('coName').addEventListener('input', function() {
@@ -1531,7 +1540,7 @@
         isRegistered = true;
       } else {
         status.className = 'reg-status not-registered visible';
-        status.innerHTML = 'Only REPLAY pass holders can place pre-orders. <a href="register.html">Register here</a> first!';
+        status.innerHTML = 'Only REPLAY pass holders can place pre-orders. <a href="register.html">Register here</a> first! <br><small>Just registered? Please wait a couple of minutes and try again.</small>';
         isRegistered = false;
       }
       updateBuyBtn();
