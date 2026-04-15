@@ -33,7 +33,12 @@
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vTHiksNCT0XRTczxBkQ5qBvOLqsW6iMpXihvhV8O3dYp_fwXyAaGfrSokBFhxFNJBQ7-aEmHdleoPn3/pub?gid=22445468&single=true&output=csv\")",
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(gh issue:*)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s \"https://replaycon.in/preorder.html\")",
+      "Bash(curl -s \"https://script.google.com/macros/s/AKfycbxLxLBgffOZv-9YZX9AWEJxgqL9OuGdYI7Ch8czBYuSLKggXJ0qmewm_QdwphrscOk/exec?action=getPreorderData&callback=cb\")",
+      "Bash(curl -sL \"https://script.google.com/macros/s/AKfycbxLxLBgffOZv-9YZX9AWEJxgqL9OuGdYI7Ch8czBYuSLKggXJ0qmewm_QdwphrscOk/exec?action=getPreorderData&callback=cb\")"
     ]
   }
 }
