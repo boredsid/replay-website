@@ -66,7 +66,7 @@ Lives in the inline `<script>` around lines 850–1100. Three tiers:
 
 ## Capacity gating (`register.html`)
 
-- `CAPACITY_PER_DAY = 60`. Counts are computed from the registrations CSV: a 2-day pass adds to both days.
+- `CAPACITY_PER_DAY = 65`. Counts are computed from the registrations CSV: a 2-day pass adds to both days.
 - `updateAvailability()` greys out the Campaign pass radio if **either** Sat or Sun is full (because a 2-day pass needs both). Oneshot is only fully disabled when **both** days are sold out; individual day radios are disabled per-day.
 - Changing these rules also means touching the disabled-state CSS `.sold-out` class.
 
