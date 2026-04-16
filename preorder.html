@@ -1087,6 +1087,14 @@
     <button class="pay-cancel" id="payCancel">Cancel</button>
   </div>
 
+  <!-- Store Closed Overlay -->
+  <div class="store-closed" id="storeClosed" style="display:none;">
+    <h1>Store is Closed</h1>
+    <div class="closed-sub">See you at the con!</div>
+    <p>Pre-orders have wrapped up. Come grab your favourites in person at the convention on April 18&ndash;19.</p>
+    <a href="index.html" class="btn btn-orange">Back to Home</a>
+  </div>
+
   <!-- Footer -->
   <footer>
     <img src="replay-logo.png" alt="REPLAY" class="footer-logo">
@@ -1102,17 +1110,31 @@
   <script>
     var SHEET_URL = '__SHEET_URL__';
 
-    // Countdown to April 16 2026, 11:59 PM IST (18:29 UTC)
+    // Countdown + autoclose at April 17 2026, 12:00 PM IST (06:30 UTC)
     (function() {
-      var deadline = new Date('2026-04-16T18:29:00Z').getTime();
+      var deadline = new Date('2026-04-17T06:30:00Z').getTime();
       var el = document.getElementById('deadlineCountdown');
+      var timer;
+
+      function closeStore() {
+        var selectors = ['#deadlineBanner', '.store-header', '.filter-bar', '#productGrid', '#cartBar'];
+        selectors.forEach(function(sel) {
+          var node = document.querySelector(sel);
+          if (node) node.style.display = 'none';
+        });
+        var closed = document.getElementById('storeClosed');
+        if (closed) closed.style.display = 'flex';
+        if (timer) { clearInterval(timer); timer = null; }
+      }
+
       function tick() {
-        if (!el) return;
         var diff = deadline - Date.now();
         if (diff <= 0) {
-          el.textContent = '0d 0h 0m 0s';
+          if (el) el.textContent = '0d 0h 0m 0s';
+          closeStore();
           return;
         }
+        if (!el) return;
         var d = Math.floor(diff / 86400000);
         var h = Math.floor((diff % 86400000) / 3600000);
         var m = Math.floor((diff % 3600000) / 60000);
@@ -1120,7 +1142,7 @@
         el.textContent = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
       }
       tick();
-      setInterval(tick, 1000);
+      timer = setInterval(tick, 1000);
     })();
 
     // Treat a product as out of stock if its last column value explicitly
