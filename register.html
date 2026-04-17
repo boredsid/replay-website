@@ -885,7 +885,8 @@
     var discountBlocked = false; // true if phone already registered
 
     // Capacity tracking
-    var CAPACITY_PER_DAY = 60;
+    var CAPACITY_SAT = 60;
+    var CAPACITY_SUN = 58;
     var saturdayCount = 0;
     var sundayCount = 0;
 
@@ -1040,8 +1041,8 @@
     var campaignSoldOut = false;
 
     function updateAvailability() {
-      satSoldOut = saturdayCount >= CAPACITY_PER_DAY;
-      sunSoldOut = sundayCount >= CAPACITY_PER_DAY;
+      satSoldOut = saturdayCount >= CAPACITY_SAT;
+      sunSoldOut = sundayCount >= CAPACITY_SUN;
       campaignSoldOut = satSoldOut || sunSoldOut;
 
       // Campaign pass
