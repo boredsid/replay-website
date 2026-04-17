@@ -107,6 +107,41 @@
       align-items: flex-start;
     }
 
+    /* ── Sold Out Overlay ── */
+    .register-closed {
+      flex: 1;
+      min-height: calc(100vh - 60px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+    }
+    .register-closed h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .register-closed .closed-sub {
+      font-family: 'Amatic SC', cursive;
+      font-size: 1.5rem;
+      color: var(--orange);
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+    .register-closed p {
+      font-size: 0.9rem;
+      opacity: 0.6;
+      line-height: 1.6;
+      max-width: 400px;
+    }
+    .register-closed .btn {
+      margin-top: 2rem;
+    }
+
     .form-card {
       background: var(--cream);
       color: var(--black);
@@ -812,6 +847,14 @@
     </div>
   </section>
 
+  <!-- Sold Out Overlay -->
+  <section class="register-closed" id="registerClosed" style="display:none;">
+    <h1>Sold Out</h1>
+    <div class="closed-sub">See you next time!</div>
+    <p>Both days of REPLAY are fully booked. Thanks for the overwhelming love &mdash; follow us on Instagram for the next edition.</p>
+    <a href="index.html" class="btn btn-orange">Back to Home</a>
+  </section>
+
   <!-- Payment Bottom Sheet -->
   <div class="sheet-backdrop" id="sheetBackdrop"></div>
   <div class="payment-sheet" id="paymentSheet">
@@ -1044,6 +1087,15 @@
       satSoldOut = saturdayCount >= CAPACITY_SAT;
       sunSoldOut = sundayCount >= CAPACITY_SUN;
       campaignSoldOut = satSoldOut || sunSoldOut;
+
+      // Full sold-out takeover when both days are gone
+      if (satSoldOut && sunSoldOut) {
+        var formSection = document.querySelector('.register-section');
+        var closed = document.getElementById('registerClosed');
+        if (formSection) formSection.style.display = 'none';
+        if (closed) closed.style.display = 'flex';
+        return;
+      }
 
       // Campaign pass
       var campaignOption = document.getElementById('passCampaign').closest('.radio-option');
