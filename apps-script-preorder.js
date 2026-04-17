@@ -41,7 +41,8 @@ function doGet(e) {
         phone: row['Phone'] || '',
         quantity: row['Quantity'] || '1',
         passType: row['Pass Type'] || '',
-        day: row['Day'] || ''
+        day: row['Day'] || '',
+        paymentStatus: row['Payment Status'] || ''
       };
     });
 

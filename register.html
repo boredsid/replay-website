@@ -885,7 +885,7 @@
     var discountBlocked = false; // true if phone already registered
 
     // Capacity tracking
-    var CAPACITY_PER_DAY = 65;
+    var CAPACITY_PER_DAY = 60;
     var saturdayCount = 0;
     var sundayCount = 0;
 
@@ -967,6 +967,14 @@
           if (phone) {
             existingRegs[phone] = true;
           }
+
+          // Capacity count excludes Cancelled, Pending, or empty Payment Status.
+          // Fraud check above still uses every row regardless of status.
+          var status = (row.paymentStatus || '').trim();
+          if (status === '' || status === 'Cancelled' || status === 'Pending') {
+            return;
+          }
+
           var qty = parseInt(row.quantity) || 1;
           var passType = row.passType || '';
           var day = row.day || '';

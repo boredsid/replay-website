@@ -66,7 +66,8 @@ Lives in the inline `<script>` around lines 850–1100. Three tiers:
 
 ## Capacity gating (`register.html`)
 
-- `CAPACITY_PER_DAY = 65`. Counts are computed from the registrations CSV: a 2-day pass adds to both days.
+- `CAPACITY_PER_DAY = 60`. Counts are computed from the registrations CSV: a 2-day pass adds to both days.
+- A row only counts toward capacity if its `Payment Status` (column J) is a non-empty value other than `Cancelled` or `Pending`. The Guild Path fraud check (`existingRegs`) still uses every registered phone regardless of status — split intentionally so a Cancelled/Pending row frees a seat but doesn't let the same member grab a second free day.
 - `updateAvailability()` greys out the Campaign pass radio if **either** Sat or Sun is full (because a 2-day pass needs both). Oneshot is only fully disabled when **both** days are sold out; individual day radios are disabled per-day.
 - Changing these rules also means touching the disabled-state CSS `.sold-out` class.
 
@@ -135,3 +136,4 @@ gh run watch
 
 <!-- Append entries below this line. Oldest first. -->
 - 2026-04-15 — Registrations sheet has a duplicate `Phone` column (side-table for manual WhatsAround/Swiggy entries, far right of the sheet). **Why it matters:** GAS `parseCsv` must keep the first occurrence of a duplicate header; otherwise `row['Phone']` returns the mostly-empty side-table column and every registered user looks unregistered to the pre-order gate and the register.html fraud check.
+- 2026-04-17 — Column J `Payment Status` added to the registrations sheet; capacity count in `register.html` now excludes rows where status is `Cancelled`, `Pending`, or empty. **Why it matters:** GAS `doGet` for `action=getData` must emit `paymentStatus` on each registration object — if it's missing, every row looks empty and is excluded, making the sold-out gate never trigger. The fraud-check (`existingRegs`) deliberately ignores status to keep the anti-split guard intact.
