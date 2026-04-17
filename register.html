@@ -107,6 +107,10 @@
       align-items: flex-start;
     }
 
+    /* ── Hard close kill switch (toggle <body class="registration-closed"> on/off) ── */
+    body.registration-closed .register-section { display: none !important; }
+    body.registration-closed #registerClosed { display: flex !important; }
+
     /* ── Sold Out Overlay ── */
     .register-closed {
       flex: 1;
@@ -734,7 +738,7 @@
     }
   </style>
 </head>
-<body>
+<body class="registration-closed">
 
   <!-- Nav -->
   <nav>
@@ -921,9 +925,9 @@
     var prices = { oneshot: 800, campaign: 1400 };
     var SHEET_URL = '__SHEET_URL__';
 
-    // Hard kill switch — set to false to reopen registration.
-    // When true, the Sold Out takeover shows regardless of capacity counts.
-    var REGISTRATION_CLOSED = true;
+    // Hard kill switch — reflects <body class="registration-closed"> in the HTML above.
+    // Add/remove that class to hide/show the form; CSS handles the takeover display.
+    var REGISTRATION_CLOSED = document.body.classList.contains('registration-closed');
 
     // Guild & registration data
     var guildMembers = {};   // phone -> { name, plan }
@@ -1046,14 +1050,7 @@
       document.body.appendChild(script);
     }
 
-    if (REGISTRATION_CLOSED) {
-      var formSection = document.querySelector('.register-section');
-      var closed = document.getElementById('registerClosed');
-      if (formSection) formSection.style.display = 'none';
-      if (closed) closed.style.display = 'flex';
-    } else {
-      fetchData();
-    }
+    if (!REGISTRATION_CLOSED) fetchData();
 
     // Check membership when phone changes
     function checkMembership() {
