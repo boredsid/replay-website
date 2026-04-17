@@ -921,6 +921,10 @@
     var prices = { oneshot: 800, campaign: 1400 };
     var SHEET_URL = '__SHEET_URL__';
 
+    // Hard kill switch — set to false to reopen registration.
+    // When true, the Sold Out takeover shows regardless of capacity counts.
+    var REGISTRATION_CLOSED = true;
+
     // Guild & registration data
     var guildMembers = {};   // phone -> { name, plan }
     var existingRegs = {};   // phone -> true
@@ -1042,7 +1046,14 @@
       document.body.appendChild(script);
     }
 
-    fetchData();
+    if (REGISTRATION_CLOSED) {
+      var formSection = document.querySelector('.register-section');
+      var closed = document.getElementById('registerClosed');
+      if (formSection) formSection.style.display = 'none';
+      if (closed) closed.style.display = 'flex';
+    } else {
+      fetchData();
+    }
 
     // Check membership when phone changes
     function checkMembership() {
