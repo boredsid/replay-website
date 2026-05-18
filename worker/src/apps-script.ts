@@ -25,7 +25,12 @@ async function hmacSha256Hex(secret: string, body: string): Promise<string> {
 export async function sendEmail(env: Env, payload: EmailPayload): Promise<void> {
   const body = JSON.stringify(payload);
   const signature = await hmacSha256Hex(env.APPS_SCRIPT_SECRET, body);
-  const res = await fetch(env.APPS_SCRIPT_URL, {
+  // Apps Script doPost cannot read custom request headers reliably,
+  // so we also pass the signature as a query param. The GAS handler
+  // verifies whichever it finds.
+  const url = new URL(env.APPS_SCRIPT_URL);
+  url.searchParams.set("X-Signature", signature);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
