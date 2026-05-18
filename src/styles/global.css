@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root {
+  --color-replay-orange: #F47B20;
+  --color-replay-bg: #FFF8F0;
+  --color-replay-ink: #1A1A1A;
+  --color-replay-accent: #4A9B8E;
+  --color-replay-highlight: #FFD166;
+}
