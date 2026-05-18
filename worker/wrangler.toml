@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
-SUPABASE_URL = "https://<ref>.supabase.co"   # replace <ref> with real project ref
+SUPABASE_URL = "https://qvkynwlmzeybdiapbcsy.supabase.co"
 REPLAY_SITE_URL = "https://replaycon.in"
 BGC_WORKER_URL = "https://api.boardgamecompany.in"
 UPI_ID = "suranjanadatta24-1@okaxis"
