@@ -1,0 +1,13 @@
+name = "replay-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+SUPABASE_URL = "https://<ref>.supabase.co"   # replace <ref> with real project ref
+REPLAY_SITE_URL = "https://replaycon.in"
+BGC_WORKER_URL = "https://api.boardgamecompany.in"
+UPI_ID = "suranjanadatta24-1@okaxis"
+CF_ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"   # filled in Task 13
+CF_ACCESS_AUD = ""                                       # filled in Task 13
