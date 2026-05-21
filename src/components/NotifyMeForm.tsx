@@ -1,4 +1,3 @@
-// src/components/NotifyMeForm.tsx
 import { useState } from 'react';
 import { captureLead } from '../lib/worker';
 import type { RegistrationStatus } from '../lib/types';
@@ -29,9 +28,11 @@ export function NotifyMeForm({ editionId, editionName, status }: NotifyMeFormPro
 
   if (submitted) {
     return (
-      <div className="px-6 py-12 max-w-md mx-auto text-center">
-        <h2 className="text-2xl font-bold mb-2">Got it.</h2>
-        <p className="text-gray-700">We'll be in touch.</p>
+      <div className="container-x section text-center max-w-md">
+        <div className="card-brutal card-brutal-lg p-10">
+          <h2 className="text-3xl mb-3">Got it.</h2>
+          <p className="text-gray-700">We'll be in touch.</p>
+        </div>
       </div>
     );
   }
@@ -48,28 +49,25 @@ export function NotifyMeForm({ editionId, editionName, status }: NotifyMeFormPro
   }
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto">
-      <h1 className="text-3xl font-bold mb-2">{heading}</h1>
-      <p className="text-gray-700 mb-6">{body}</p>
-      <form onSubmit={onSubmit} className="space-y-4">
+    <div className="container-x section max-w-xl">
+      <span className="pill pill-yellow mb-4">Notify me</span>
+      <h1 className="text-4xl md:text-5xl mb-3">{heading}</h1>
+      <p className="text-gray-700 mb-8 text-lg">{body}</p>
+      <form onSubmit={onSubmit} className="card-brutal p-8 space-y-4">
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone</label>
+          <label htmlFor="phone" className="label-brutal">Phone</label>
           <input
             id="phone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-[#F0E6D8] rounded px-3 py-2"
+            className="input-brutal"
             placeholder="9876543210"
             autoComplete="tel"
           />
-          {error && <p className="text-sm text-red-700 mt-1">{error}</p>}
+          {error && <p className="text-sm text-[var(--color-error)] mt-2">{error}</p>}
         </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-[var(--color-replay-orange)] text-white px-6 py-2 rounded font-bold disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className="btn btn-primary btn-block">
           {submitting ? 'Sending…' : 'Notify me'}
         </button>
       </form>
