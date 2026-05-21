@@ -1,4 +1,3 @@
-// src/components/LiveSpotsBadge.tsx
 import { useEffect, useState } from 'react';
 import { getEditionSpots } from '../lib/worker';
 import type { ApiEditionSpotsResponse } from '../lib/types';
@@ -23,9 +22,9 @@ export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   if (error) return null;
   if (loading) return <span className="text-sm text-gray-500">Loading…</span>;
   if (!spots) return null;
-  if (spots.both_sold_out) return <span className="text-sm font-medium text-red-700">Sold out</span>;
+  if (spots.both_sold_out) return <span className="pill pill-black">Sold out</span>;
   return (
-    <span className="text-sm text-gray-700">
+    <span className="pill">
       Day 1: {spots.day1.remaining} left · Day 2: {spots.day2.remaining} left
     </span>
   );
