@@ -3,26 +3,34 @@ import type { SponsorRow } from '../lib/types';
 export interface Props { sponsors: SponsorRow[] }
 const { sponsors } = Astro.props;
 if (sponsors.length === 0) return null;
-const tiers: Array<{ key: string; label: string }> = [
-  { key: 'title',   label: 'Title sponsor' },
-  { key: 'gold',    label: 'Gold sponsors' },
-  { key: 'silver',  label: 'Silver sponsors' },
-  { key: 'partner', label: 'Partners' },
+const tiers: Array<{ key: SponsorRow['tier']; label: string; pillClass: string }> = [
+  { key: 'title',   label: 'Title sponsor', pillClass: 'pill-accent' },
+  { key: 'gold',    label: 'Gold sponsors', pillClass: 'pill-yellow' },
+  { key: 'silver',  label: 'Silver sponsors', pillClass: 'pill-cream' },
+  { key: 'partner', label: 'Partners',      pillClass: 'pill' },
 ];
 const byTier = Object.fromEntries(tiers.map((t) => [t.key, sponsors.filter((s) => s.tier === t.key)]));
 ---
-<section class="px-6 py-12 max-w-3xl mx-auto">
-  <h2 class="text-2xl font-bold mb-6">Sponsors</h2>
-  {tiers.map((t) => byTier[t.key].length > 0 && (
-    <div class="mb-6">
-      <div class="text-sm uppercase tracking-widest text-gray-600 mb-2">{t.label}</div>
-      <div class="flex flex-wrap gap-4">
-        {byTier[t.key].map((s) => (
-          <a href={s.website_url ?? '#'} target={s.website_url ? '_blank' : undefined} rel="noopener" class="block">
-            <img src={s.logo_url} alt={s.name} class="h-12 object-contain" />
-          </a>
-        ))}
-      </div>
+<section class="section">
+  <div class="container-x">
+    <span class="pill pill-cream mb-4">Backers</span>
+    <h2 class="text-4xl md:text-5xl mb-8">Sponsors</h2>
+    <div class="flex flex-col gap-10">
+      {tiers.map((t) => byTier[t.key].length > 0 && (
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <span class={`pill ${t.pillClass}`}>{t.label}</span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {byTier[t.key].map((s) => (
+              <a href={s.website_url ?? '#'} target={s.website_url ? '_blank' : undefined} rel="noopener"
+                 class="card-brutal flex items-center justify-center p-6 h-32">
+                <img src={s.logo_url} alt={s.name} class="max-h-16 object-contain" />
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
-  ))}
+  </div>
 </section>
