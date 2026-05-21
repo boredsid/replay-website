@@ -149,87 +149,89 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const tierMsg = tierLabel(lookup?.guild.tier ?? null);
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Register for {edition.name}</h1>
-      <p className="text-gray-700 mb-6">{edition.start_date} – {edition.end_date} · {edition.venue}</p>
+    <div className="container-x section max-w-xl">
+      <span className="pill pill-yellow mb-4">Register</span>
+      <h1 className="text-4xl md:text-5xl mb-3">{edition.name}</h1>
+      <p className="text-gray-700 mb-8">{edition.start_date} – {edition.end_date} · {edition.venue}</p>
 
       {lookup?.user.found && lookup.user.name && (
-        <p className="mb-4 text-sm text-gray-700">Welcome back, {lookup.user.name}.</p>
+        <p className="mb-4"><span className="pill pill-teal">Welcome back, {lookup.user.name}</span></p>
       )}
       {lookup?.discount_blocked && (
-        <p className="mb-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded">
-          You've already registered for {edition.name}. Guild Path discount only applies to your first pass.
-        </p>
+        <div className="card-flat p-4 mb-4 border-[var(--color-violet)]" style={{ background: '#FFF6E0' }}>
+          <p className="text-sm font-medium">
+            You've already registered for {edition.name}. Guild Path discount only applies to your first pass.
+          </p>
+        </div>
       )}
       {tierMsg && !lookup?.discount_blocked && (
-        <p className="mb-4 text-sm text-green-800 bg-green-50 border border-green-200 p-3 rounded">
-          {tierMsg}
-        </p>
+        <div className="card-flat p-4 mb-4" style={{ background: '#E8F5F2', borderColor: 'var(--color-teal)' }}>
+          <p className="text-sm font-medium">{tierMsg}</p>
+        </div>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="card-brutal p-8 space-y-5">
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone</label>
+          <label htmlFor="phone" className="label-brutal">Phone</label>
           <input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-[#F0E6D8] rounded px-3 py-2" placeholder="9876543210" />
+            className="input-brutal" placeholder="9876543210" />
         </div>
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Name</label>
+          <label htmlFor="name" className="label-brutal">Name</label>
           <input id="name" type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
             onBlur={() => scheduleLead('name_entered')}
-            className="w-full border border-[#F0E6D8] rounded px-3 py-2" />
+            className="input-brutal" />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="email" className="label-brutal">Email</label>
           <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
             onBlur={() => scheduleLead('name_entered')}
-            className="w-full border border-[#F0E6D8] rounded px-3 py-2" />
+            className="input-brutal" />
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium mb-1">Pass type</legend>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} />
-            <span>Oneshot (one day · ₹{edition.pricing.oneshot.day1})</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={bothSoldOut} />
-            <span>Campaign (both days · ₹{edition.pricing.campaign})</span>
-          </label>
+        <fieldset>
+          <legend className="label-brutal">Pass type</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <label className={`btn ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
+              <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} className="sr-only" />
+              Oneshot ₹{edition.pricing.oneshot.day1}
+            </label>
+            <label className={`btn ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${bothSoldOut ? 'opacity-50 pointer-events-none' : ''}`}>
+              <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={bothSoldOut} className="sr-only" />
+              Campaign ₹{edition.pricing.campaign}
+            </label>
+          </div>
         </fieldset>
 
         {passType === 'oneshot' && (
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium mb-1">Day</legend>
-            <label className="flex items-center gap-2">
-              <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label="Saturday" />
-              <span>Saturday {day1SoldOut && <span className="text-red-700 text-xs">(sold out)</span>}</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label="Sunday" />
-              <span>Sunday {day2SoldOut && <span className="text-red-700 text-xs">(sold out)</span>}</span>
-            </label>
+          <fieldset>
+            <legend className="label-brutal">Day</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day1' ? 'pill-accent' : ''} ${day1SoldOut ? 'opacity-50' : ''}`}>
+                <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label="Saturday" className="sr-only" />
+                Saturday {day1SoldOut && <span className="text-xs">(sold out)</span>}
+              </label>
+              <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day2' ? 'pill-accent' : ''} ${day2SoldOut ? 'opacity-50' : ''}`}>
+                <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label="Sunday" className="sr-only" />
+                Sunday {day2SoldOut && <span className="text-xs">(sold out)</span>}
+              </label>
+            </div>
           </fieldset>
         )}
 
         {base > 0 && (
-          <div className="border border-[#F0E6D8] rounded p-3 text-sm">
-            <div className="flex justify-between"><span>Base price</span><span>₹{base}</span></div>
+          <div className="card-flat p-4 bg-[var(--color-cream-dark)] border-l-[6px] border-[var(--color-orange)]">
+            <div className="flex justify-between text-sm"><span>Base price</span><span>₹{base}</span></div>
             {discount > 0 && (
-              <>
-                <div className="flex justify-between text-green-800"><span>Discount</span><span>–₹{discount}</span></div>
-                <div className="flex justify-between font-bold border-t border-[#F0E6D8] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
-              </>
+              <div className="flex justify-between text-sm text-[var(--color-teal)] font-bold"><span>Discount</span><span>−₹{discount}</span></div>
             )}
-            {discount === 0 && (
-              <div className="flex justify-between font-bold border-t border-[#F0E6D8] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
-            )}
+            <div className="flex justify-between font-bold text-lg border-t-2 border-[var(--color-ink)] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
           </div>
         )}
 
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        {error && <p className="text-sm text-[var(--color-error)] font-medium">{error}</p>}
 
-        <button type="submit" disabled={submitting || bothSoldOut} className="w-full bg-[var(--color-replay-orange)] text-white py-3 rounded font-bold disabled:opacity-50">
+        <button type="submit" disabled={submitting || bothSoldOut} className="btn btn-primary btn-block">
           {submitting ? 'Submitting…' : 'Register'}
         </button>
       </form>
