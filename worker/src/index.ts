@@ -1,4 +1,10 @@
 // worker/src/index.ts
+import { jsonResponse, CORS_HEADERS } from './validation';
+import { handleLookupPhone } from './lookup-phone';
+import { handleRegister } from './register';
+import { handleEditionSpots } from './edition-spots';
+import { handleCancelRegistration } from './cancel-registration';
+import { handleLead } from './lead';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -16,30 +22,39 @@ export interface Env {
   CLOUDFLARE_PAGES_DEPLOY_HOOK: string;
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, Cf-Access-Jwt-Assertion",
-};
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
-}
-
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
 
     const url = new URL(req.url);
     const path = url.pathname;
 
-    if (path === "/api/health") {
-      return json({ ok: true, env: env.ENVIRONMENT });
+    try {
+      if (path === '/api/health') {
+        return jsonResponse({ ok: true, env: env.ENVIRONMENT });
+      }
+      if (path === '/api/lookup-phone' && req.method === 'POST') {
+        return await handleLookupPhone(req, env);
+      }
+      if (path === '/api/register' && req.method === 'POST') {
+        return await handleRegister(req, env);
+      }
+      if (path.startsWith('/api/edition-spots/') && req.method === 'GET') {
+        const editionId = path.split('/api/edition-spots/')[1];
+        return await handleEditionSpots(editionId, env);
+      }
+      if (path === '/api/cancel-registration' && req.method === 'POST') {
+        return await handleCancelRegistration(req, env);
+      }
+      if (path === '/api/lead' && req.method === 'POST') {
+        return await handleLead(req, env);
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    } catch (err) {
+      console.error('worker_error', err);
+      return jsonResponse({ error: 'internal' }, 500);
     }
-
-    return json({ error: "Not found" }, 404);
   },
 };
