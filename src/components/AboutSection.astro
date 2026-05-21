@@ -1,8 +1,9 @@
 ---
-import { getEntry, render } from 'astro:content';
-const about = await getEntry('landing', 'about');
+import { getCollection, render } from 'astro:content';
+const entries = await getCollection('landing');
+const about = entries.find((e) => e.id === 'about' || e.id.endsWith('about'));
 const Body = about ? (await render(about)).Content : null;
-const title = about?.data?.title ?? 'About REPLAY';
+const title = (about?.data as { title?: string } | undefined)?.title ?? 'About REPLAY';
 ---
 <section class="px-6 py-12 max-w-3xl mx-auto">
   <h2 class="text-2xl font-bold mb-4">{title}</h2>

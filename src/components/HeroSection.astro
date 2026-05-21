@@ -1,9 +1,10 @@
 ---
-import { getEntry, render } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import type { EditionRow } from '../lib/types';
 export interface Props { edition: EditionRow | null }
 const { edition } = Astro.props;
-const hero = await getEntry('landing', 'hero');
+const entries = await getCollection('landing');
+const hero = entries.find((e) => e.id === 'hero' || e.id.endsWith('hero'));
 const data = hero?.data ?? {};
 const Body = hero ? (await render(hero)).Content : null;
 ---

@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/boredsid/replay-website#readme",
   "dependencies": {
+    "@astrojs/mdx": "^5.0.6",
     "@astrojs/react": "^5.0.5",
     "@astrojs/sitemap": "^3.7.2",
     "@supabase/supabase-js": "^2.105.4",
