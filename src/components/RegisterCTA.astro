@@ -1,0 +1,23 @@
+---
+import type { EditionRow } from '../lib/types';
+export interface Props { edition: EditionRow | null }
+const { edition } = Astro.props;
+const ctaLabel = edition?.registration_status === 'open' ? 'Register now' :
+                 edition?.registration_status === 'sold_out' ? 'Sold out' :
+                 edition?.registration_status === 'closed' ? 'Registration closed' :
+                 'Get notified';
+---
+<section class="px-6 py-16 text-center max-w-3xl mx-auto">
+  {edition ? (
+    <>
+      <a href="/register" class="inline-block bg-[var(--color-replay-orange)] text-white px-8 py-3 rounded font-bold hover:opacity-90">
+        {ctaLabel}
+      </a>
+      <div class="mt-4">
+        <slot />
+      </div>
+    </>
+  ) : (
+    <p class="text-gray-600">No upcoming REPLAY right now. Follow on social for announcements.</p>
+  )}
+</section>

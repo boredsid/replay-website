@@ -1,0 +1,20 @@
+---
+import { getEntry, render } from 'astro:content';
+import type { EditionRow } from '../lib/types';
+export interface Props { edition: EditionRow | null }
+const { edition } = Astro.props;
+const hero = await getEntry('landing', 'hero');
+const data = hero?.data ?? {};
+const Body = hero ? (await render(hero)).Content : null;
+---
+<section class="px-6 py-16 max-w-3xl mx-auto">
+  {data.eyebrow && <div class="text-sm uppercase tracking-widest text-[var(--color-replay-orange)] mb-2">{data.eyebrow}</div>}
+  {data.title && <h1 class="text-4xl md:text-5xl font-bold mb-4">{data.title}</h1>}
+  {data.subtitle && <p class="text-lg text-gray-700 mb-4">{data.subtitle}</p>}
+  {edition && (
+    <p class="text-sm text-gray-600 mt-6">
+      <strong>{edition.name}</strong> · {edition.start_date} – {edition.end_date} · {edition.venue}
+    </p>
+  )}
+  {Body && <div class="prose mt-6"><Body /></div>}
+</section>

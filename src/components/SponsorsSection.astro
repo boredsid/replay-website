@@ -1,0 +1,28 @@
+---
+import type { SponsorRow } from '../lib/types';
+export interface Props { sponsors: SponsorRow[] }
+const { sponsors } = Astro.props;
+if (sponsors.length === 0) return null;
+const tiers: Array<{ key: string; label: string }> = [
+  { key: 'title',   label: 'Title sponsor' },
+  { key: 'gold',    label: 'Gold sponsors' },
+  { key: 'silver',  label: 'Silver sponsors' },
+  { key: 'partner', label: 'Partners' },
+];
+const byTier = Object.fromEntries(tiers.map((t) => [t.key, sponsors.filter((s) => s.tier === t.key)]));
+---
+<section class="px-6 py-12 max-w-3xl mx-auto">
+  <h2 class="text-2xl font-bold mb-6">Sponsors</h2>
+  {tiers.map((t) => byTier[t.key].length > 0 && (
+    <div class="mb-6">
+      <div class="text-sm uppercase tracking-widest text-gray-600 mb-2">{t.label}</div>
+      <div class="flex flex-wrap gap-4">
+        {byTier[t.key].map((s) => (
+          <a href={s.website_url ?? '#'} target={s.website_url ? '_blank' : undefined} rel="noopener" class="block">
+            <img src={s.logo_url} alt={s.name} class="h-12 object-contain" />
+          </a>
+        ))}
+      </div>
+    </div>
+  ))}
+</section>
