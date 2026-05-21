@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+const { title, description = "Bangalore's board game convention — meet, play, repeat.", ogImage = '/link-preview.png' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="/replay-logo.png" />
+  </head>
+  <body class="bg-[var(--color-replay-bg)] text-[var(--color-replay-ink)] font-sans antialiased">
+    <header class="border-b border-[#F0E6D8] px-6 py-4 flex items-center justify-between">
+      <a href="/" class="font-bold text-xl">REPLAY</a>
+      <nav class="flex gap-6 text-sm">
+        <a href="/schedule" class="hover:underline">Schedule</a>
+        <a href="/register" class="hover:underline">Register</a>
+      </nav>
+    </header>
+    <main class="min-h-[60vh]">
+      <slot />
+    </main>
+    <footer class="border-t border-[#F0E6D8] px-6 py-8 text-sm text-gray-600">
+      <p>&copy; REPLAY · Bangalore · <a href="mailto:hello@replaycon.in" class="hover:underline">hello@replaycon.in</a></p>
+    </footer>
+  </body>
+</html>
