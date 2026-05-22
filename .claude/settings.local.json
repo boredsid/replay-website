@@ -82,7 +82,8 @@
       "Bash(git pull *)",
       "Bash(file /Users/siddhantnarula/Projects/replay-website/public/carousel-photos/*.jpeg)",
       "Bash(cat)",
-      "Bash(open /tmp/photo-grid.html)"
+      "Bash(open /tmp/photo-grid.html)",
+      "Skill(frontend-design:frontend-design)"
     ]
   }
 }

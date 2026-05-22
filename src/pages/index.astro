@@ -35,38 +35,22 @@ import stripeGames from '../assets/landing/stripe-games.jpeg';
 import stripeCommunity from '../assets/landing/stripe-community.jpeg';
 import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
-import { getCurrentEdition, getSponsors } from '../lib/data';
+import { getCurrentEdition, getSponsors, editionOrdinal, shortDate, shortDateRange } from '../lib/data';
 
 const edition = await getCurrentEdition();
 const sponsors = edition ? await getSponsors(edition.id) : [];
 
-const title = edition
-  ? `${edition.name} — Bangalore's board game convention`
-  : 'REPLAY — Bangalore';
+const title = "REPLAY — Bangalore's gaming convention";
 
-// Dark hero CTAs — only when there's a live edition to point at.
+// Dark hero CTA — only when there's a live edition to point at. One CTA only.
 const heroPrimaryCta = edition
   ? edition.registration_status === 'open'
     ? { text: 'Register now →', href: '/register', variant: 'primary' as const }
     : { text: 'Get notified →', href: '/register', variant: 'primary' as const }
   : undefined;
 
-const heroSecondaryCta = edition
-  ? { text: 'See past photos', href: '#community', variant: 'outline-white' as const }
-  : undefined;
-
-// Friendly date range like "Sat 13 → Sun 14 Sep" without a date lib.
-function formatRange(start: string, end: string): string {
-  try {
-    const opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
-    const s = new Date(start);
-    const e = new Date(end);
-    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return `${start} – ${end}`;
-    return `${s.toLocaleDateString('en-IN', opts)} → ${e.toLocaleDateString('en-IN', opts)}`;
-  } catch {
-    return `${start} – ${end}`;
-  }
-}
+const editionOrdinalLabel = edition ? editionOrdinal(edition.slug) : '';
+const dateRange = edition ? shortDateRange(edition.start_date, edition.end_date) : '';
 
 const closingVenueTail =
   edition && edition.venue && edition.venue !== 'TBD' ? ` · ${edition.venue}` : '';
@@ -75,10 +59,9 @@ const closingVenueTail =
 <Layout title={title}>
   {/* ──────────────────────────────────────────────────────────── 1. Dark hero */}
   <DarkBand
-    heading="A weekend of board games."
-    body="Two days. Hundreds of players. 200+ games. Beginners welcome."
+    heading="A weekend to switch off."
+    body="Two days. Hundreds of players. 200+ games. Everyone welcome."
     cta={heroPrimaryCta}
-    cta2={heroSecondaryCta}
   />
 
   {/* ──────────────────────────────────────────────────────────── 2. Photo band */}
@@ -88,20 +71,12 @@ const closingVenueTail =
   {edition && (
     <section class="edition-meta">
       <div class="container-x edition-meta__inner">
-        <span class="section-tag edition-meta__tag">{edition.name}</span>
+        <span class="section-tag edition-meta__tag">{editionOrdinalLabel}</span>
 
         <p class="edition-meta__line">
-          <span class="edition-meta__dates">
-            <strong>{edition.start_date}</strong>
-            <span class="edition-meta__arrow" aria-hidden="true">—</span>
-            <strong>{edition.end_date}</strong>
-          </span>
+          <span class="edition-meta__dates"><strong>{dateRange}</strong></span>
           <span class="edition-meta__sep" aria-hidden="true">·</span>
           <span class="edition-meta__venue">{edition.venue}</span>
-        </p>
-
-        <p class="edition-meta__pretty" aria-hidden="true">
-          {formatRange(edition.start_date, edition.end_date)}
         </p>
 
         <div class="edition-meta__badge">
@@ -144,8 +119,8 @@ const closingVenueTail =
     <EditorialStripe
       number="03"
       label="COMMUNITY"
-      heading="Bangalore's board game crowd, all in one room."
-      body="3.5k+ players in the WhatsApp. A few hundred at every REPLAY. New faces every edition. No prior experience needed — pick a game, find a table, ask the room."
+      heading="The best of Bangalore, all in one room."
+      body="New faces every edition. No prior experience needed — pick a game, find a table, ask the room."
       ctaText="Join the WhatsApp →"
       ctaHref="https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp"
       ctaExternal
@@ -160,7 +135,7 @@ const closingVenueTail =
   <DarkBand
     eyebrow="▸ FOR REGULARS"
     eyebrowColor="var(--color-yellow)"
-    heading="Guild Path members get in free (or close to it)."
+    heading="Get heavy discounts as a Guild Path member."
     body="If you're on the BGC Guild Path, your tier carries to REPLAY. Adventurers get up to ₹1,000 off. Guildmasters: free pass."
     cta={{
       text: 'About Guild Path →',
@@ -198,9 +173,9 @@ const closingVenueTail =
         </h2>
 
         <p class="closing-cta__meta">
-          <strong>{edition.name}</strong>
+          <strong>{editionOrdinalLabel}</strong>
           <span class="closing-cta__bullet" aria-hidden="true">·</span>
-          {edition.start_date} – {edition.end_date}{closingVenueTail}
+          {dateRange}{closingVenueTail}
         </p>
 
         <div class="closing-cta__row">

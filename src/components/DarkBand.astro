@@ -41,8 +41,6 @@ const variantClass = (v: CtaVariant | undefined): string =>
 ---
 
 <section class="dark-band">
-  <span class="dark-band__accent" aria-hidden="true"></span>
-
   <div class="container-x dark-band__inner">
     {
       eyebrow && (
@@ -81,17 +79,6 @@ const variantClass = (v: CtaVariant | undefined): string =>
     background: var(--color-ink);
     color: #fff;
     overflow: hidden;
-  }
-
-  /* Vertical accent stripe — brutalist flourish */
-  .dark-band__accent {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 8px;
-    background: var(--color-orange);
-    pointer-events: none;
   }
 
   .dark-band__inner {
