@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  /* REPLAY palette — orange anchor + teal/yellow/violet accents */
+  /* REPLAY palette — fully matches bgc */
   --color-orange: #F47B20;
-  --color-orange-light: #FF8F3E;
   --color-orange-dark: #D96A15;
-  --color-teal: #4A9B8E;
+  --color-pink: #FF6B6B;
+  --color-blue: #4ECDC4;
+  --color-green: #A8E6CF;
+  --color-purple: #C3A6FF;
   --color-yellow: #FFD166;
-  --color-violet: #7C3AED;
-  --color-cream: #FFF8F0;
-  --color-cream-dark: #F0E6D8;
+  --color-cream: #FFF8E7;
+  --color-cream-dark: #FAFAF5;
   --color-ink: #1A1A1A;
   --color-paper: #FFFFFF;
   --color-error: #DC2626;
@@ -73,10 +74,15 @@ h1, h2, h3, h4 {
 .btn-primary:hover { background: #FF8F3E; box-shadow: var(--shadow-lg); }
 
 .btn-secondary { background: #FFFFFF; color: #1A1A1A; box-shadow: var(--shadow-sm); }
-.btn-secondary:hover { background: #4A9B8E; color: #FFFFFF; box-shadow: var(--shadow-lg); }
+.btn-secondary:hover { background: #FF6B6B; color: #1A1A1A; box-shadow: var(--shadow-lg); }
 
 .btn-black { background: #1A1A1A; color: #FFFFFF; box-shadow: var(--shadow-sm); }
 .btn-black:hover { box-shadow: var(--shadow-md); }
+
+.btn-outline-white {
+  background: transparent; color: #FFFFFF; border: 4px solid #FFFFFF;
+}
+.btn-outline-white:hover { background: #FFFFFF; color: #1A1A1A; }
 
 .btn-nav { padding: 10px 20px; font-size: 0.9rem; background: #F47B20; color: #FFFFFF; box-shadow: 3px 3px 0 #1A1A1A; }
 .btn-sm { padding: 8px 18px; font-size: 0.85rem; }
@@ -103,37 +109,27 @@ h1, h2, h3, h4 {
 
 /* ---------- Pills ---------- */
 .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 12px;
-  font-family: var(--font-heading);
-  font-size: 0.8rem;
-  font-weight: 700;
-  border: 2px solid #1A1A1A;
-  border-radius: 999px;
-  background: #FFFFFF;
-  color: #1A1A1A;
+  font-family: var(--font-heading); font-size: 0.8rem; font-weight: 700;
+  border: 2px solid #1A1A1A; border-radius: 999px;
+  background: #FFFFFF; color: #1A1A1A;
 }
 .pill-accent { background: #F47B20; color: #FFFFFF; }
 .pill-black  { background: #1A1A1A; color: #FFFFFF; }
 .pill-yellow { background: #FFD166; color: #1A1A1A; }
-.pill-teal   { background: #4A9B8E; color: #FFFFFF; }
-.pill-violet { background: #7C3AED; color: #FFFFFF; }
+.pill-pink   { background: #FF6B6B; color: #1A1A1A; }
+.pill-blue   { background: #4ECDC4; color: #1A1A1A; }
+.pill-green  { background: #A8E6CF; color: #1A1A1A; }
+.pill-purple { background: #C3A6FF; color: #1A1A1A; }
 .pill-cream  { background: #F0E6D8; color: #1A1A1A; }
 
 /* ---------- Inputs ---------- */
 .input-brutal {
-  width: 100%;
-  padding: 12px 14px;
-  border: var(--border);
-  border-radius: var(--radius-md);
-  background: #FFFFFF;
-  font-family: var(--font-body);
-  font-size: 1rem;
-  color: #1A1A1A;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s;
+  width: 100%; padding: 12px 14px;
+  border: var(--border); border-radius: var(--radius-md);
+  background: #FFFFFF; font-family: var(--font-body); font-size: 1rem; color: #1A1A1A;
+  box-shadow: var(--shadow-sm); transition: box-shadow 0.15s;
 }
 .input-brutal:focus { outline: none; box-shadow: var(--shadow-md); }
 .input-brutal::placeholder { color: #1A1A1A; opacity: 0.45; }
@@ -142,17 +138,29 @@ h1, h2, h3, h4 {
 /* ---------- Labels ---------- */
 .label-brutal {
   display: block;
-  font-family: var(--font-heading);
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-heading); font-size: 0.85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
   margin-bottom: 6px;
 }
 
 /* ---------- Section + container ---------- */
 .section { padding: 64px 24px; }
-.container-x { max-width: 1024px; margin: 0 auto; }
+.container-x { max-width: 1200px; margin: 0 auto; }
+
+/* ---------- Section tag (ported from bgc) ---------- */
+.section-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  background: #1A1A1A;
+  color: #FFFFFF;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
 
 /* ---------- REPLAY wordmark ---------- */
 .replay-wordmark {
