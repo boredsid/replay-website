@@ -1,0 +1,150 @@
+---
+/**
+ * DarkBand
+ * -----------------------------------------------------------------
+ * Full-width ink slab section. Reusable for the landing hero, the
+ * Guild Path teaser, the closing CTA, and anywhere else REPLAY needs
+ * a bold dark moment. Eyebrow + heading + body + up to two CTAs.
+ */
+
+type CtaVariant = 'primary' | 'outline-white';
+
+interface Cta {
+  text: string;
+  href: string;
+  variant?: CtaVariant;
+  external?: boolean;
+}
+
+export interface Props {
+  eyebrow?: string;
+  eyebrowColor?: string;
+  heading: string;
+  body?: string;
+  cta?: Cta;
+  cta2?: Cta;
+}
+
+const {
+  eyebrow,
+  eyebrowColor = '#FFFFFF',
+  heading,
+  body,
+  cta,
+  cta2,
+} = Astro.props;
+
+const ctas: Cta[] = [cta, cta2].filter((c): c is Cta => Boolean(c));
+
+const variantClass = (v: CtaVariant | undefined): string =>
+  v === 'outline-white' ? 'btn-outline-white' : 'btn-primary';
+---
+
+<section class="dark-band">
+  <span class="dark-band__accent" aria-hidden="true"></span>
+
+  <div class="container-x dark-band__inner">
+    {
+      eyebrow && (
+        <div class="dark-band__eyebrow" style={`color: ${eyebrowColor};`}>
+          {eyebrow}
+        </div>
+      )
+    }
+
+    <h2 class="dark-band__heading">{heading}</h2>
+
+    {body && <p class="dark-band__body">{body}</p>}
+
+    {
+      ctas.length > 0 && (
+        <div class="dark-band__cta-row">
+          {ctas.map((c) => (
+            <a
+              href={c.href}
+              target={c.external ? '_blank' : undefined}
+              rel={c.external ? 'noopener noreferrer' : undefined}
+              class:list={['btn', variantClass(c.variant)]}
+            >
+              {c.text}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .dark-band {
+    position: relative;
+    background: var(--color-ink);
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* Vertical accent stripe — brutalist flourish */
+  .dark-band__accent {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    background: var(--color-orange);
+    pointer-events: none;
+  }
+
+  .dark-band__inner {
+    position: relative;
+    padding: 64px 24px;
+    z-index: 1;
+  }
+
+  @media (min-width: 768px) {
+    .dark-band__inner {
+      padding: 96px 24px;
+    }
+  }
+
+  .dark-band__eyebrow {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+
+  .dark-band__heading {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    line-height: 1;
+    letter-spacing: -1.5px;
+    color: #fff;
+    margin: 0;
+  }
+
+  .dark-band__body {
+    margin-top: 16px;
+    max-width: 40rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  .dark-band__cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dark-band__cta-row .btn {
+      transition: none;
+    }
+  }
+</style>
