@@ -1,11 +1,7 @@
 {
   "name": "replay-website",
   "version": "1.0.0",
-  "description": "The official website for REPLAY, a gaming convention held in Bangalore. Built entirely with vanilla HTML, CSS, and JavaScript — no frameworks, no build tools.",
-  "main": "apps-script-preorder.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "Official website for REPLAY, Bangalore's board game convention. Astro 6 + React 19 + Cloudflare Pages + Supabase.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
