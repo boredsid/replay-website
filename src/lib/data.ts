@@ -4,6 +4,29 @@
 import { supabase } from './supabase';
 import type { EditionRow, SponsorRow, ScheduleItemRow } from './types';
 
+/** "replay-3" → "3rd edition", "replay-21" → "21st edition", etc. */
+export function editionOrdinal(slug: string): string {
+  const n = parseInt(slug.replace(/^replay-/, ''), 10);
+  if (!Number.isFinite(n)) return '';
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  const suffix = s[(v - 20) % 10] || s[v] || s[0];
+  return `${n}${suffix} edition`;
+}
+
+/** "2026-09-12" → "Sep 12" (no year, no locale weirdness). */
+export function shortDate(iso: string): string {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${months[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}`;
+}
+
+/** "2026-09-12" + "2026-09-13" → "Sep 12 – Sep 13". */
+export function shortDateRange(start: string, end: string): string {
+  return `${shortDate(start)} – ${shortDate(end)}`;
+}
+
 export async function getCurrentEdition(): Promise<EditionRow | null> {
   const { data, error } = await supabase
     .from('editions')

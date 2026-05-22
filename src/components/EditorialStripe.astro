@@ -1,0 +1,267 @@
+---
+/**
+ * EditorialStripe
+ * -----------------------------------------------------------------
+ * Full-width editorial section: 2-column grid (text + photo) on
+ * desktop, stacked (photo-first) on mobile. Background is driven by
+ * the `bgColor` prop. The photo carries a brutal 4px ink border and
+ * 8/8 offset shadow. Text column leads with a tracked "NN / LABEL"
+ * eyebrow over a tight Space Grotesk display headline.
+ *
+ * Slot `heading` overrides the `heading` prop for richer content.
+ */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+export interface Props {
+  number: string;
+  label: string;
+  heading?: string;
+  body: string;
+  ctaText: string;
+  ctaHref: string;
+  ctaExternal?: boolean;
+  bgColor: string;
+  photo: ImageMetadata;
+  photoAlt: string;
+  photoSide: 'left' | 'right';
+}
+
+const {
+  number,
+  label,
+  heading,
+  body,
+  ctaText,
+  ctaHref,
+  ctaExternal = false,
+  bgColor,
+  photo,
+  photoAlt,
+  photoSide = 'right',
+} = Astro.props;
+
+const photoFirst = photoSide === 'left';
+const headingSlotted = Astro.slots.has('heading');
+---
+
+<section
+  class:list={['editorial-stripe', photoFirst ? 'is-photo-left' : 'is-photo-right']}
+  style={`--stripe-bg: ${bgColor};`}
+>
+  <div class="container-x editorial-stripe__inner">
+    <div class="editorial-stripe__text">
+      <div class="editorial-stripe__eyebrow" aria-label={`${number} ${label}`}>
+        <span class="editorial-stripe__num">{number}</span>
+        <span class="editorial-stripe__bar" aria-hidden="true"></span>
+        <span class="editorial-stripe__label">{label}</span>
+      </div>
+
+      <span class="editorial-stripe__ghost" aria-hidden="true">{number}</span>
+
+      {
+        headingSlotted ? (
+          <slot name="heading" />
+        ) : (
+          <h2 class="editorial-stripe__heading">{heading}</h2>
+        )
+      }
+
+      <p class="editorial-stripe__body">{body}</p>
+
+      <a
+        href={ctaHref}
+        target={ctaExternal ? '_blank' : undefined}
+        rel={ctaExternal ? 'noopener noreferrer' : undefined}
+        class="btn btn-black editorial-stripe__cta"
+      >
+        {ctaText}
+      </a>
+    </div>
+
+    <figure class="editorial-stripe__media">
+      <Image
+        src={photo}
+        alt={photoAlt}
+        widths={[400, 800, 1200]}
+        sizes="(min-width: 768px) 40vw, 90vw"
+        loading="lazy"
+        decoding="async"
+        class="editorial-stripe__img"
+      />
+    </figure>
+  </div>
+</section>
+
+<style>
+  .editorial-stripe {
+    position: relative;
+    background: var(--stripe-bg);
+    border-top: 4px solid var(--color-ink);
+    border-bottom: 4px solid var(--color-ink);
+    overflow: hidden;
+  }
+
+  .editorial-stripe__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 64px 24px;
+    z-index: 1;
+  }
+
+  /* Text column ---------------------------------------------------- */
+  .editorial-stripe__text {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .editorial-stripe__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    line-height: 1;
+  }
+  .editorial-stripe__num {
+    font-variant-numeric: tabular-nums;
+  }
+  .editorial-stripe__bar {
+    width: 28px;
+    height: 2px;
+    background: var(--color-ink);
+    display: inline-block;
+  }
+
+  /* Oversized ghost numeral — anchors the column without shouting */
+  .editorial-stripe__ghost {
+    position: absolute;
+    top: -8px;
+    right: 0;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: clamp(8rem, 18vw, 16rem);
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    color: var(--color-ink);
+    opacity: 0.06;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+
+  .editorial-stripe__heading {
+    position: relative;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -1px;
+    color: var(--color-ink);
+    margin: 0;
+    z-index: 1;
+  }
+
+  .editorial-stripe__body {
+    position: relative;
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--color-ink);
+    max-width: 52ch;
+    margin: 0;
+    z-index: 1;
+  }
+
+  .editorial-stripe__cta {
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+
+  /* Media column --------------------------------------------------- */
+  .editorial-stripe__media {
+    position: relative;
+    margin: 0;
+    align-self: start;
+    width: 100%;
+  }
+  .editorial-stripe__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border: 4px solid var(--color-ink);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    background: var(--color-cream);
+    transition: transform 350ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 350ms ease;
+  }
+
+  @media (hover: hover) {
+    .editorial-stripe__media:hover .editorial-stripe__img {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-xl);
+    }
+  }
+
+  /* Desktop: 2-col grid; default photo right -------------------- */
+  @media (min-width: 768px) {
+    .editorial-stripe__inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      padding: 96px 24px;
+      align-items: center;
+    }
+    .editorial-stripe__img {
+      aspect-ratio: 4 / 5;
+    }
+    .editorial-stripe.is-photo-left .editorial-stripe__media {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .editorial-stripe.is-photo-left .editorial-stripe__text {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .editorial-stripe.is-photo-right .editorial-stripe__media {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .editorial-stripe.is-photo-right .editorial-stripe__text {
+      grid-column: 1;
+      grid-row: 1;
+    }
+  }
+
+  /* Mobile: photo first regardless of photoSide ----------------- */
+  @media (max-width: 767.98px) {
+    .editorial-stripe__media {
+      order: 0;
+    }
+    .editorial-stripe__text {
+      order: 1;
+    }
+  }
+
+  /* Reduced motion ---------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .editorial-stripe__img {
+      transition: none;
+    }
+    .editorial-stripe__media:hover .editorial-stripe__img {
+      transform: none;
+      box-shadow: var(--shadow-lg);
+    }
+  }
+</style>

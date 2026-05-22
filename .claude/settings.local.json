@@ -79,7 +79,11 @@
       "Bash(gh pr *)",
       "Bash(grep -rE \"\\(index\\\\.html|register\\\\.html|preorder\\\\.html|email-confirmation\\\\.html|preorder-confirmation-email\\\\.html|apps-script-preorder|^CNAME$\\)\" src/ astro.config.mjs package.json)",
       "Bash(git rm *)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(file /Users/siddhantnarula/Projects/replay-website/public/carousel-photos/*.jpeg)",
+      "Bash(cat)",
+      "Bash(open /tmp/photo-grid.html)",
+      "Skill(frontend-design:frontend-design)"
     ]
   }
 }

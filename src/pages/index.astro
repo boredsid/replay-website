@@ -1,21 +1,425 @@
 ---
+/**
+ * REPLAY — Landing page
+ * ---------------------------------------------------------------
+ * Nine-section editorial arc, composed from shared bgc-style
+ * components. Reads top to bottom as:
+ *
+ *   1. Dark hero slab          (DarkBand)
+ *   2. Hero photo band         (HeroPhotoBand)
+ *   3. Edition meta + spots    (inline, cream)
+ *   4. 01 / THE EVENT          (EditorialStripe, yellow)
+ *   5. 02 / 200+ GAMES         (EditorialStripe, blue)
+ *   6. 03 / COMMUNITY          (EditorialStripe, purple)   #community
+ *   7. Guild Path teaser       (DarkBand)
+ *   8. Sponsors                (SponsorsBand, self-hides)
+ *   9. Closing CTA finish      (inline, orange + photo backdrop)
+ *
+ * Only the orange finish is bespoke per-page; everything else is
+ * composition. Keep it that way.
+ */
+
 import Layout from '../layouts/Layout.astro';
-import HeroSection from '../components/HeroSection.astro';
-import AboutSection from '../components/AboutSection.astro';
-import SponsorsSection from '../components/SponsorsSection.astro';
-import RegisterCTA from '../components/RegisterCTA.astro';
+import DarkBand from '../components/DarkBand.astro';
+import HeroPhotoBand from '../components/HeroPhotoBand.astro';
+import EditorialStripe from '../components/EditorialStripe.astro';
+import SponsorsBand from '../components/SponsorsBand.astro';
 import LiveSpotsBadge from '../components/LiveSpotsBadge';
-import { getCurrentEdition, getSponsors } from '../lib/data';
+import { Image } from 'astro:assets';
+
+import hero1 from '../assets/landing/hero-band-1.jpeg';
+import hero2 from '../assets/landing/hero-band-2.jpeg';
+import hero3 from '../assets/landing/hero-band-3.jpeg';
+import stripeEvent from '../assets/landing/stripe-event.jpeg';
+import stripeGames from '../assets/landing/stripe-games.jpeg';
+import stripeCommunity from '../assets/landing/stripe-community.jpeg';
+import closingPhoto from '../assets/landing/closing-cta.jpeg';
+
+import { getCurrentEdition, getSponsors, editionOrdinal, shortDate, shortDateRange } from '../lib/data';
 
 const edition = await getCurrentEdition();
 const sponsors = edition ? await getSponsors(edition.id) : [];
-const title = edition ? `${edition.name} — Bangalore's board game convention` : 'REPLAY — Bangalore';
+
+const title = "REPLAY — Bangalore's gaming convention";
+
+// Dark hero CTA — only when there's a live edition to point at. One CTA only.
+const heroPrimaryCta = edition
+  ? edition.registration_status === 'open'
+    ? { text: 'Register now →', href: '/register', variant: 'primary' as const }
+    : { text: 'Get notified →', href: '/register', variant: 'primary' as const }
+  : undefined;
+
+const editionOrdinalLabel = edition ? editionOrdinal(edition.slug) : '';
+const dateRange = edition ? shortDateRange(edition.start_date, edition.end_date) : '';
+
+const closingVenueTail =
+  edition && edition.venue && edition.venue !== 'TBD' ? ` · ${edition.venue}` : '';
 ---
+
 <Layout title={title}>
-  <HeroSection edition={edition} />
-  <AboutSection />
-  <SponsorsSection sponsors={sponsors} />
-  <RegisterCTA edition={edition}>
-    {edition && <LiveSpotsBadge client:load editionId={edition.id} />}
-  </RegisterCTA>
+  {/* ──────────────────────────────────────────────────────────── 1. Dark hero */}
+  <DarkBand
+    heading="A weekend to switch off."
+    body="Two days. Hundreds of players. 200+ games. Everyone welcome."
+    cta={heroPrimaryCta}
+  />
+
+  {/* ──────────────────────────────────────────────────────────── 2. Photo band */}
+  <HeroPhotoBand photos={[hero1, hero2, hero3]} />
+
+  {/* ──────────────────────────────────────────────────────────── 3. Edition meta */}
+  {edition && (
+    <section class="edition-meta">
+      <div class="container-x edition-meta__inner">
+        <span class="section-tag edition-meta__tag">{editionOrdinalLabel}</span>
+
+        <p class="edition-meta__line">
+          <span class="edition-meta__dates"><strong>{dateRange}</strong></span>
+          <span class="edition-meta__sep" aria-hidden="true">·</span>
+          <span class="edition-meta__venue">{edition.venue}</span>
+        </p>
+
+        <div class="edition-meta__badge">
+          <LiveSpotsBadge client:load editionId={edition.id} />
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* ──────────────────────────────────────────────────────────── 4. 01 / EVENT */}
+  <EditorialStripe
+    number="01"
+    label="THE EVENT"
+    heading="Two days. One library. Hundreds of games in motion."
+    body="Show up Saturday, leave Sunday with three new friends and a list of games you want to buy. Demos, tournaments, open play — all day, both days."
+    ctaText="See the schedule →"
+    ctaHref="/schedule"
+    bgColor="#FFD166"
+    photo={stripeEvent}
+    photoAlt="REPLAY event floor"
+    photoSide="left"
+  />
+
+  {/* ──────────────────────────────────────────────────────────── 5. 02 / GAMES */}
+  <EditorialStripe
+    number="02"
+    label="200+ GAMES"
+    heading="From 10-minute fillers to 4-hour epics."
+    body="Bring your favorite. Borrow ours. Try something you've never heard of. Publishers and designers are on the floor doing demos all weekend."
+    ctaText="What to expect →"
+    ctaHref="/schedule"
+    bgColor="#4ECDC4"
+    photo={stripeGames}
+    photoAlt="Games at REPLAY"
+    photoSide="right"
+  />
+
+  {/* ──────────────────────────────────────────────────────────── 6. 03 / COMMUNITY */}
+  <div id="community">
+    <EditorialStripe
+      number="03"
+      label="COMMUNITY"
+      heading="The best of Bangalore, all in one room."
+      body="New faces every edition. No prior experience needed — pick a game, find a table, ask the room."
+      ctaText="Join the WhatsApp →"
+      ctaHref="https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp"
+      ctaExternal
+      bgColor="#C3A6FF"
+      photo={stripeCommunity}
+      photoAlt="REPLAY community"
+      photoSide="left"
+    />
+  </div>
+
+  {/* ──────────────────────────────────────────────────────────── 7. Guild Path */}
+  <DarkBand
+    eyebrow="▸ FOR REGULARS"
+    eyebrowColor="var(--color-yellow)"
+    heading="Get heavy discounts as a Guild Path member."
+    body="If you're on the BGC Guild Path, your tier carries to REPLAY. Adventurers get up to ₹1,000 off. Guildmasters: free pass."
+    cta={{
+      text: 'About Guild Path →',
+      href: 'https://boardgamecompany.in/guild-path',
+      external: true,
+      variant: 'primary',
+    }}
+  />
+
+  {/* ──────────────────────────────────────────────────────────── 8. Sponsors */}
+  <SponsorsBand sponsors={sponsors} />
+
+  {/* ──────────────────────────────────────────────────────────── 9. Orange CTA finish */}
+  {edition && (
+    <section class="closing-cta" aria-labelledby="closing-cta-heading">
+      <Image
+        src={closingPhoto}
+        alt=""
+        widths={[800, 1600]}
+        sizes="100vw"
+        loading="lazy"
+        class="closing-cta__bg"
+      />
+
+      <span class="closing-cta__monogram" aria-hidden="true">R/</span>
+
+      <div class="container-x closing-cta__inner">
+        <span class="closing-cta__eyebrow">
+          <span class="closing-cta__dot" aria-hidden="true"></span>
+          SAVE THE DATE
+        </span>
+
+        <h2 id="closing-cta-heading" class="closing-cta__heading">
+          See you in September.
+        </h2>
+
+        <p class="closing-cta__meta">
+          <strong>{editionOrdinalLabel}</strong>
+          <span class="closing-cta__bullet" aria-hidden="true">·</span>
+          {dateRange}{closingVenueTail}
+        </p>
+
+        <div class="closing-cta__row">
+          <a href="/register" class="btn btn-black">Register →</a>
+          <a href="/schedule" class="closing-cta__link">
+            Browse the schedule
+            <span aria-hidden="true" class="closing-cta__link-arrow">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
 </Layout>
+
+<style>
+  /* ───────────────────────────── Edition meta band ───────────────────────────── */
+  .edition-meta {
+    background: var(--color-cream);
+    border-bottom: 4px solid var(--color-ink);
+  }
+
+  .edition-meta__inner {
+    padding: 56px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  @media (min-width: 768px) {
+    .edition-meta__inner {
+      padding: 72px 24px;
+    }
+  }
+
+  .edition-meta__tag {
+    /* Slight rotation gives the tag a hand-placed feel against the dark band above. */
+    transform: rotate(-1.5deg);
+    transform-origin: center;
+    margin-bottom: 4px;
+  }
+
+  .edition-meta__line {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .edition-meta__line strong {
+    font-feature-settings: 'tnum' 1;
+    font-weight: 700;
+  }
+
+  .edition-meta__dates {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .edition-meta__arrow {
+    color: var(--color-orange);
+    font-weight: 700;
+  }
+
+  .edition-meta__sep {
+    color: rgba(26, 26, 26, 0.4);
+    padding: 0 4px;
+  }
+
+  .edition-meta__venue {
+    font-weight: 500;
+  }
+
+  .edition-meta__pretty {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(26, 26, 26, 0.55);
+    margin: 0;
+  }
+
+  .edition-meta__badge {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  /* ───────────────────────────── Closing CTA ───────────────────────────── */
+  .closing-cta {
+    position: relative;
+    background: var(--color-orange);
+    overflow: hidden;
+    border-top: 4px solid var(--color-ink);
+    isolation: isolate;
+  }
+
+  .closing-cta__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.18;
+    filter: contrast(1.05) saturate(0.9);
+    z-index: 0;
+  }
+
+  /* Decorative oversized monogram bleeding off the right edge. */
+  .closing-cta__monogram {
+    position: absolute;
+    right: -3vw;
+    bottom: -2vw;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(12rem, 28vw, 24rem);
+    line-height: 0.85;
+    color: rgba(255, 255, 255, 0.12);
+    letter-spacing: -0.06em;
+    pointer-events: none;
+    z-index: 1;
+    user-select: none;
+  }
+
+  .closing-cta__inner {
+    position: relative;
+    z-index: 2;
+    padding: 88px 24px 96px;
+  }
+
+  @media (min-width: 768px) {
+    .closing-cta__inner {
+      padding: 128px 24px 144px;
+    }
+  }
+
+  .closing-cta__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    color: var(--color-ink);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 6px 14px;
+    border: 2px solid var(--color-ink);
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+
+  .closing-cta__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    display: inline-block;
+  }
+
+  .closing-cta__heading {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: #ffffff;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 1;
+    letter-spacing: -2px;
+    margin: 0;
+    max-width: 16ch;
+    text-shadow: 0 2px 0 rgba(26, 26, 26, 0.18);
+  }
+
+  .closing-cta__meta {
+    margin-top: 24px;
+    max-width: 36rem;
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.9);
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .closing-cta__meta strong {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  .closing-cta__bullet {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .closing-cta__row {
+    margin-top: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .closing-cta__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #ffffff;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+    padding-bottom: 2px;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .closing-cta__link:hover {
+    border-bottom-color: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  .closing-cta__link-arrow {
+    font-size: 1.05em;
+    line-height: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .closing-cta__link {
+      transition: none;
+    }
+    .closing-cta__link:hover {
+      transform: none;
+    }
+    .edition-meta__tag {
+      transform: none;
+    }
+  }
+</style>

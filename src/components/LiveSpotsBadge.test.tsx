@@ -27,7 +27,7 @@ describe('LiveSpotsBadge', () => {
   it('renders sold-out message when both days are sold out', async () => {
     mockFetch(200, { day1: { capacity: 250, remaining: 0, sold_out: true }, day2: { capacity: 250, remaining: 0, sold_out: true }, both_sold_out: true });
     render(<LiveSpotsBadge editionId="e1" />);
-    await waitFor(() => expect(screen.getByText(/sold out/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/sold out/i).length).toBeGreaterThanOrEqual(2));
   });
 
   it('quietly renders nothing on fetch failure', async () => {

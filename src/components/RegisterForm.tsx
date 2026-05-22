@@ -155,17 +155,17 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
       <p className="text-gray-700 mb-8">{edition.start_date} – {edition.end_date} · {edition.venue}</p>
 
       {lookup?.user.found && lookup.user.name && (
-        <p className="mb-4"><span className="pill pill-teal">Welcome back, {lookup.user.name}</span></p>
+        <p className="mb-4"><span className="pill pill-green">Welcome back, {lookup.user.name}</span></p>
       )}
       {lookup?.discount_blocked && (
-        <div className="card-flat p-4 mb-4 border-[var(--color-violet)]" style={{ background: '#FFF6E0' }}>
+        <div className="card-flat p-4 mb-4 border-[var(--color-pink)]" style={{ background: '#FFF6E0' }}>
           <p className="text-sm font-medium">
             You've already registered for {edition.name}. Guild Path discount only applies to your first pass.
           </p>
         </div>
       )}
       {tierMsg && !lookup?.discount_blocked && (
-        <div className="card-flat p-4 mb-4" style={{ background: '#E8F5F2', borderColor: 'var(--color-teal)' }}>
+        <div className="card-flat p-4 mb-4" style={{ background: '#E8F5F2', borderColor: 'var(--color-green)' }}>
           <p className="text-sm font-medium">{tierMsg}</p>
         </div>
       )}
@@ -223,7 +223,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           <div className="card-flat p-4 bg-[var(--color-cream-dark)] border-l-[6px] border-[var(--color-orange)]">
             <div className="flex justify-between text-sm"><span>Base price</span><span>₹{base}</span></div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm text-[var(--color-teal)] font-bold"><span>Discount</span><span>−₹{discount}</span></div>
+              <div className="flex justify-between text-sm text-[var(--color-orange-dark)] font-bold"><span>Discount</span><span>−₹{discount}</span></div>
             )}
             <div className="flex justify-between font-bold text-lg border-t-2 border-[var(--color-ink)] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
           </div>

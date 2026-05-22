@@ -7,7 +7,6 @@ const landing = defineCollection({
     eyebrow: z.string().optional(),
     title: z.string().optional(),
     subtitle: z.string().optional(),
-    photo: z.string().optional(),
   }),
 });
 

@@ -6,6 +6,62 @@ export interface LiveSpotsBadgeProps {
   editionId: string;
 }
 
+function fillColor(remaining: number, capacity: number, soldOut: boolean): string {
+  if (soldOut || capacity === 0) return 'var(--color-pink)';
+  const pct = remaining / capacity;
+  if (pct <= 0) return 'var(--color-pink)';
+  if (pct < 0.25) return 'var(--color-orange)';
+  return 'var(--color-green)';
+}
+
+function DayBar({ label, capacity, remaining, soldOut }: { label: string; capacity: number; remaining: number; soldOut: boolean }) {
+  // Fill represents REMAINING capacity, not consumed
+  const filledPct = soldOut
+    ? 0
+    : capacity === 0
+      ? 0
+      : Math.max(0, Math.min(100, (remaining / capacity) * 100));
+  const color = fillColor(remaining, capacity, soldOut);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span
+          className="font-bold text-sm uppercase tracking-widest"
+          style={{ fontFamily: 'var(--font-heading)' }}
+        >
+          {label}
+        </span>
+        <span className="text-sm font-semibold" style={{ color }}>
+          {soldOut ? 'Sold out' : `${remaining} left`}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(filledPct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label} ${soldOut ? 'sold out' : `${remaining} spots remaining`}`}
+        className="w-full overflow-hidden"
+        style={{
+          height: '14px',
+          borderRadius: '999px',
+          border: '3px solid var(--color-ink)',
+          background: 'var(--color-ink)',
+        }}
+      >
+        <div
+          className="h-full"
+          style={{
+            width: `${filledPct}%`,
+            background: color,
+            transition: 'width 0.3s',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
   const [error, setError] = useState(false);
@@ -22,11 +78,12 @@ export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   if (error) return null;
   if (loading) return <span className="text-sm text-gray-500">Loading…</span>;
   if (!spots) return null;
-  if (spots.both_sold_out) return <span className="pill pill-black">Sold out</span>;
+
   return (
-    <span className="pill">
-      Day 1: {spots.day1.remaining} left · Day 2: {spots.day2.remaining} left
-    </span>
+    <div className="w-full max-w-md mx-auto flex flex-col gap-3 text-left">
+      <DayBar label="Sat" capacity={spots.day1.capacity} remaining={spots.day1.remaining} soldOut={spots.day1.sold_out} />
+      <DayBar label="Sun" capacity={spots.day2.capacity} remaining={spots.day2.remaining} soldOut={spots.day2.sold_out} />
+    </div>
   );
 }
 
