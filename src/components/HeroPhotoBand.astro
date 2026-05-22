@@ -35,7 +35,6 @@ const frames = photos.slice(0, 3);
             decoding="async"
             class="hero-photo-band__img"
           />
-          <span class="hero-photo-band__corner" aria-hidden="true" />
         </figure>
       ))
     }
@@ -94,29 +93,6 @@ const frames = photos.slice(0, 3);
     will-change: transform;
   }
 
-  /* Tiny brutalist corner notch — one per frame, alternates */
-  .hero-photo-band__corner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 28px;
-    height: 28px;
-    background: var(--color-ink);
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-    z-index: 2;
-    pointer-events: none;
-  }
-  .hero-photo-band__frame[data-index='2'] .hero-photo-band__corner {
-    left: auto;
-    right: 0;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-  }
-  .hero-photo-band__frame[data-index='3'] .hero-photo-band__corner {
-    top: auto;
-    bottom: 0;
-    clip-path: polygon(0 100%, 100% 100%, 0 0);
-  }
-
   /* Hover: settle to full color + slight zoom-out for life */
   @media (hover: hover) {
     .hero-photo-band__frame:hover .hero-photo-band__img {
@@ -137,10 +113,6 @@ const frames = photos.slice(0, 3);
     .hero-photo-band__frame {
       height: 360px;
       scroll-snap-align: none;
-    }
-    .hero-photo-band__corner {
-      width: 36px;
-      height: 36px;
     }
   }
 
