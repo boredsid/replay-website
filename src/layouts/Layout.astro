@@ -1,0 +1,56 @@
+---
+import '../styles/global.css';
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+const { title, description = "Bangalore's board game convention — meet, play, repeat.", ogImage = '/link-preview.png' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="/replay-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="sticky top-0 z-40 bg-[var(--color-cream)] border-b-4 border-[var(--color-ink)]">
+      <div class="container-x px-6 py-4 flex items-center justify-between">
+        <a href="/" class="replay-wordmark">REPLAY</a>
+        <nav class="flex gap-3">
+          <a href="/schedule" class="btn btn-nav">Schedule</a>
+          <a href="/register" class="btn btn-nav">Register</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="min-h-[60vh]">
+      <slot />
+    </main>
+
+    <footer class="border-t-4 border-[var(--color-ink)] bg-[var(--color-paper)]">
+      <div class="container-x px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm">
+        <a href="mailto:hello@boardgamecompany.in" class="hover:underline font-medium">hello@boardgamecompany.in</a>
+        <a href="https://www.instagram.com/replay.convention" target="_blank" rel="noopener" aria-label="REPLAY on Instagram" class="inline-flex items-center gap-2 hover:text-[var(--color-orange)]">
+          <img src="/instagram.svg" alt="" width="20" height="20" />
+          <span>@replay.convention</span>
+        </a>
+        <p class="text-gray-600">&copy; REPLAY · Bangalore</p>
+      </div>
+    </footer>
+  </body>
+</html>

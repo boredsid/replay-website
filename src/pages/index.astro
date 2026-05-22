@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+import AboutSection from '../components/AboutSection.astro';
+import SponsorsSection from '../components/SponsorsSection.astro';
+import RegisterCTA from '../components/RegisterCTA.astro';
+import LiveSpotsBadge from '../components/LiveSpotsBadge';
+import { getCurrentEdition, getSponsors } from '../lib/data';
+
+const edition = await getCurrentEdition();
+const sponsors = edition ? await getSponsors(edition.id) : [];
+const title = edition ? `${edition.name} — Bangalore's board game convention` : 'REPLAY — Bangalore';
+---
+<Layout title={title}>
+  <HeroSection edition={edition} />
+  <AboutSection />
+  <SponsorsSection sponsors={sponsors} />
+  <RegisterCTA edition={edition}>
+    {edition && <LiveSpotsBadge client:load editionId={edition.id} />}
+  </RegisterCTA>
+</Layout>

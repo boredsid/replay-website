@@ -1,0 +1,14 @@
+---
+import { getCollection, render } from 'astro:content';
+const entries = await getCollection('landing');
+const about = entries.find((e) => e.id === 'about' || e.id.endsWith('about'));
+const Body = about ? (await render(about)).Content : null;
+const title = (about?.data as { title?: string } | undefined)?.title ?? 'About REPLAY';
+---
+<section class="section bg-[var(--color-paper)] border-t-4 border-b-4 border-[var(--color-ink)]">
+  <div class="container-x">
+    <span class="pill pill-cream mb-4">About</span>
+    <h2 class="text-4xl md:text-5xl mb-6">{title}</h2>
+    {Body && <div class="prose max-w-none text-lg"><Body /></div>}
+  </div>
+</section>

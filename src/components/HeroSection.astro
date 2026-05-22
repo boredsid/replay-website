@@ -1,0 +1,37 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { EditionRow } from '../lib/types';
+export interface Props { edition: EditionRow | null }
+const { edition } = Astro.props;
+const entries = await getCollection('landing');
+const hero = entries.find((e) => e.id === 'hero' || e.id.endsWith('hero'));
+const data = (hero?.data ?? {}) as { eyebrow?: string; title?: string; subtitle?: string; photo?: string };
+const Body = hero ? (await render(hero)).Content : null;
+const ctaLabel = edition?.registration_status === 'open' ? 'Register now' :
+                 edition?.registration_status === 'sold_out' ? 'Sold out' :
+                 edition?.registration_status === 'closed' ? 'Registration closed' :
+                 'Get notified';
+---
+<section class="section">
+  <div class="container-x grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-12 items-center">
+    <div>
+      {data.eyebrow && <div class="text-sm uppercase tracking-[0.15em] text-[var(--color-orange)] font-bold mb-3">{data.eyebrow}</div>}
+      {data.title && <h1 class="text-5xl md:text-6xl font-bold mb-4">{data.title}</h1>}
+      {data.subtitle && <p class="text-lg text-gray-700 mb-4">{data.subtitle}</p>}
+      {edition && (
+        <p class="text-sm text-gray-600 mb-8">
+          <strong>{edition.name}</strong> · {edition.start_date} – {edition.end_date} · {edition.venue}
+        </p>
+      )}
+      {edition && (
+        <a href="/register" class="btn btn-primary">{ctaLabel}</a>
+      )}
+      {Body && <div class="mt-8 prose max-w-none"><Body /></div>}
+    </div>
+    {data.photo && (
+      <div class="card-brutal overflow-hidden order-first md:order-none">
+        <img src={data.photo} alt="REPLAY past edition" class="block w-full aspect-[4/5] object-cover" />
+      </div>
+    )}
+  </div>
+</section>

@@ -1,0 +1,17 @@
+name = "replay-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+SUPABASE_URL = "https://qvkynwlmzeybdiapbcsy.supabase.co"
+REPLAY_SITE_URL = "https://replaycon.in"
+BGC_WORKER_URL = "https://api.boardgamecompany.in"
+UPI_ID = "suranjanadatta24-1@okaxis"
+CF_ACCESS_TEAM_DOMAIN = "boardgamecompany.cloudflareaccess.com"
+CF_ACCESS_AUD = "0983cd2ae4c9939c15d1ebecabe9d57a9630e8b09ada408279a9b17d3ecf132f"
+
+[[routes]]
+pattern = "api.replaycon.in"
+custom_domain = true

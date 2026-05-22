@@ -1,0 +1,40 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ScheduleDay from '../components/ScheduleDay.astro';
+import { getCurrentEdition, getScheduleItems } from '../lib/data';
+
+const edition = await getCurrentEdition();
+const items = edition ? await getScheduleItems(edition.id) : [];
+const day1Items = edition ? items.filter((i) => i.day === edition.start_date) : [];
+const day2Items = edition ? items.filter((i) => i.day === edition.end_date) : [];
+const title = edition ? `Schedule — ${edition.name}` : 'Schedule — REPLAY';
+---
+<Layout title={title} description={edition ? `Schedule for ${edition.name}` : 'REPLAY schedule'}>
+  <section class="bg-[var(--color-cream-dark)] border-b-4 border-[var(--color-ink)]">
+    <div class="container-x section">
+      <span class="pill pill-cream mb-4">Schedule</span>
+      <h1 class="text-5xl md:text-6xl mb-4">When + where</h1>
+      {edition ? (
+        <p class="text-gray-700">
+          <strong>{edition.name}</strong> · {edition.start_date} – {edition.end_date} · {edition.venue}
+        </p>
+      ) : (
+        <p class="text-gray-600">No upcoming edition right now.</p>
+      )}
+    </div>
+  </section>
+
+  <div class="container-x section">
+    {edition && items.length === 0 ? (
+      <div class="card-brutal card-brutal-lg p-12 text-center max-w-2xl mx-auto">
+        <h2 class="text-3xl mb-2">Schedule coming soon</h2>
+        <p class="text-gray-600">Items appear here once the convention's agenda is locked in.</p>
+      </div>
+    ) : edition && (
+      <>
+        <ScheduleDay date={edition.start_date} label="Saturday" items={day1Items} />
+        <ScheduleDay date={edition.end_date} label="Sunday" items={day2Items} />
+      </>
+    )}
+  </div>
+</Layout>

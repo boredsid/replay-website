@@ -1,0 +1,48 @@
+{
+  "name": "replay-website",
+  "version": "1.0.0",
+  "description": "Official website for REPLAY, Bangalore's board game convention. Astro 6 + React 19 + Cloudflare Pages + Supabase.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boredsid/replay-website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/boredsid/replay-website/issues"
+  },
+  "homepage": "https://github.com/boredsid/replay-website#readme",
+  "dependencies": {
+    "@astrojs/mdx": "^5.0.6",
+    "@astrojs/react": "^5.0.5",
+    "@astrojs/sitemap": "^3.7.2",
+    "@supabase/supabase-js": "^2.105.4",
+    "astro": "^6.3.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@tailwindcss/vite": "4.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "4.2",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
+  }
+}

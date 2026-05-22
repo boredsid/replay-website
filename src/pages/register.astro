@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RegisterForm from '../components/RegisterForm';
+import NotifyMeForm from '../components/NotifyMeForm';
+import { getCurrentEdition } from '../lib/data';
+
+const edition = await getCurrentEdition();
+const upiId = import.meta.env.PUBLIC_UPI_ID ?? '';
+
+const title = edition ? `Register — ${edition.name}` : 'Register — REPLAY';
+---
+<Layout title={title}>
+  {!edition ? (
+    <div class="px-6 py-12 max-w-md mx-auto text-center">
+      <h1 class="text-2xl font-bold mb-2">No upcoming REPLAY right now</h1>
+      <p class="text-gray-700">Follow us on social for announcements.</p>
+    </div>
+  ) : edition.registration_status === 'open' ? (
+    <RegisterForm client:load edition={edition} upiId={upiId} />
+  ) : (
+    <NotifyMeForm client:load editionId={edition.id} editionName={edition.name} status={edition.registration_status} />
+  )}
+</Layout>
