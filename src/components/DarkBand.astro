@@ -2,12 +2,14 @@
 /**
  * DarkBand
  * -----------------------------------------------------------------
- * Full-width ink slab section. Reusable for the landing hero, the
- * Guild Path teaser, the closing CTA, and anywhere else REPLAY needs
- * a bold dark moment. Eyebrow + heading + body + up to two CTAs.
+ * Full-width slab section. Eyebrow + heading + body + up to two CTAs.
+ * Used for hero, Guild Path teaser, closing CTAs, etc. Defaults to a
+ * dark ink bg + white text; pass `bg="#FFF8E7"` (or any light hex) AND
+ * `tone="light"` for a light-bg variant.
  */
 
-type CtaVariant = 'primary' | 'outline-white';
+type CtaVariant = 'primary' | 'outline-white' | 'black';
+type Tone = 'dark' | 'light';
 
 interface Cta {
   text: string;
@@ -23,36 +25,50 @@ export interface Props {
   body?: string;
   cta?: Cta;
   cta2?: Cta;
+  bg?: string;
+  tone?: Tone;
 }
 
 const {
   eyebrow,
-  eyebrowColor = '#FFFFFF',
+  eyebrowColor,
   heading,
   body,
   cta,
   cta2,
+  bg = '#1A1A1A',
+  tone = 'dark',
 } = Astro.props;
 
 const ctas: Cta[] = [cta, cta2].filter((c): c is Cta => Boolean(c));
 
-const variantClass = (v: CtaVariant | undefined): string =>
-  v === 'outline-white' ? 'btn-outline-white' : 'btn-primary';
+const variantClass = (v: CtaVariant | undefined): string => {
+  if (v === 'outline-white') return 'btn-outline-white';
+  if (v === 'black') return 'btn-black';
+  return 'btn-primary';
+};
+
+// On dark bg: white text, slightly-faded body. On light bg: ink text + slightly faded body.
+const isLight = tone === 'light';
+const headingColor = isLight ? '#1A1A1A' : '#FFFFFF';
+const bodyColor = isLight ? 'rgba(26, 26, 26, 0.75)' : 'rgba(255, 255, 255, 0.7)';
+const eyebrowDefaultColor = isLight ? '#1A1A1A' : '#FFFFFF';
+const eyebrowStyle = `color: ${eyebrowColor ?? eyebrowDefaultColor};`;
 ---
 
-<section class="dark-band">
+<section class="dark-band" style={`background: ${bg};`}>
   <div class="container-x dark-band__inner">
     {
       eyebrow && (
-        <div class="dark-band__eyebrow" style={`color: ${eyebrowColor};`}>
+        <div class="dark-band__eyebrow" style={eyebrowStyle}>
           {eyebrow}
         </div>
       )
     }
 
-    <h2 class="dark-band__heading">{heading}</h2>
+    <h2 class="dark-band__heading" style={`color: ${headingColor};`}>{heading}</h2>
 
-    {body && <p class="dark-band__body">{body}</p>}
+    {body && <p class="dark-band__body" style={`color: ${bodyColor};`}>{body}</p>}
 
     {
       ctas.length > 0 && (
@@ -76,8 +92,6 @@ const variantClass = (v: CtaVariant | undefined): string =>
 <style>
   .dark-band {
     position: relative;
-    background: #1A0088;
-    color: #fff;
     overflow: hidden;
   }
 
@@ -109,14 +123,12 @@ const variantClass = (v: CtaVariant | undefined): string =>
     font-size: clamp(2.2rem, 7vw, 5rem);
     line-height: 1;
     letter-spacing: -1.5px;
-    color: #fff;
     margin: 0;
   }
 
   .dark-band__body {
     margin-top: 16px;
     max-width: 40rem;
-    color: rgba(255, 255, 255, 0.7);
     font-family: var(--font-body);
     font-size: 1.05rem;
     line-height: 1.6;

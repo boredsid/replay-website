@@ -59,6 +59,8 @@ const closingVenueTail =
 <Layout title={title}>
   {/* ──────────────────────────────────────────────────────────── 1. Dark hero */}
   <DarkBand
+    bg="#FFF8E7"
+    tone="light"
     heading="A weekend to switch off."
     body="Two days. Hundreds of players. 200+ games. Everyone welcome."
     cta={heroPrimaryCta}
@@ -67,20 +69,21 @@ const closingVenueTail =
   {/* ──────────────────────────────────────────────────────────── 2. Photo band */}
   <HeroPhotoBand photos={[hero1, hero2, hero3]} />
 
-  {/* ──────────────────────────────────────────────────────────── 3. Edition meta */}
+  {/* ──────────────────────────────────────────────────────────── 3. Event capacity (bgc-style yellow band) */}
   {edition && (
-    <section class="edition-meta">
-      <div class="container-x edition-meta__inner">
-        <span class="section-tag edition-meta__tag">{editionOrdinalLabel}</span>
-
-        <p class="edition-meta__line">
-          <span class="edition-meta__dates"><strong>{dateRange}</strong></span>
-          <span class="edition-meta__sep" aria-hidden="true">·</span>
-          <span class="edition-meta__venue">{edition.venue}</span>
-        </p>
-
-        <div class="edition-meta__badge">
+    <section class="event-capacity">
+      <div class="container-x event-capacity__inner">
+        <div class="event-capacity__eyebrow">▸ {editionOrdinalLabel.toUpperCase()}</div>
+        <h2 class="event-capacity__heading">{dateRange}</h2>
+        <p class="event-capacity__sub">Bangalore · {edition.venue}</p>
+        <div class="event-capacity__bar">
           <LiveSpotsBadge client:load editionId={edition.id} />
+        </div>
+        <div class="event-capacity__cta-row">
+          <a href="/register" class="btn btn-black">
+            {edition.registration_status === 'open' ? 'Register →' : 'Get notified →'}
+          </a>
+          <a href="/schedule" class="event-capacity__link">or see the schedule →</a>
         </div>
       </div>
     </section>
@@ -191,86 +194,81 @@ const closingVenueTail =
 </Layout>
 
 <style>
-  /* ───────────────────────────── Edition meta band ───────────────────────────── */
-  .edition-meta {
-    background: var(--color-cream);
+  /* ───────────────────────────── Event capacity band (bgc-style) ───────────────────────────── */
+  .event-capacity {
+    background: var(--color-yellow);
+    border-top: 4px solid var(--color-ink);
     border-bottom: 4px solid var(--color-ink);
   }
 
-  .edition-meta__inner {
-    padding: 56px 24px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+  .event-capacity__inner {
+    padding: 32px 24px;
   }
 
   @media (min-width: 768px) {
-    .edition-meta__inner {
-      padding: 72px 24px;
+    .event-capacity__inner {
+      padding: 48px 24px;
     }
   }
 
-  .edition-meta__tag {
-    /* Slight rotation gives the tag a hand-placed feel against the dark band above. */
-    transform: rotate(-1.5deg);
-    transform-origin: center;
-    margin-bottom: 4px;
-  }
-
-  .edition-meta__line {
+  .event-capacity__eyebrow {
     font-family: var(--font-heading);
-    font-weight: 500;
-    font-size: clamp(1.05rem, 2.2vw, 1.5rem);
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
     color: var(--color-ink);
-    display: inline-flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: baseline;
-    gap: 10px;
-    margin: 0;
   }
 
-  .edition-meta__line strong {
-    font-feature-settings: 'tnum' 1;
+  @media (min-width: 768px) {
+    .event-capacity__eyebrow {
+      font-size: 1rem;
+    }
+  }
+
+  .event-capacity__heading {
+    font-family: var(--font-heading);
     font-weight: 700;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -1px;
+    color: var(--color-ink);
+    margin: 4px 0 0;
   }
 
-  .edition-meta__dates {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-
-  .edition-meta__arrow {
-    color: var(--color-orange);
-    font-weight: 700;
-  }
-
-  .edition-meta__sep {
-    color: rgba(26, 26, 26, 0.4);
-    padding: 0 4px;
-  }
-
-  .edition-meta__venue {
-    font-weight: 500;
-  }
-
-  .edition-meta__pretty {
-    font-family: var(--font-body);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: rgba(26, 26, 26, 0.55);
-    margin: 0;
-  }
-
-  .edition-meta__badge {
-    display: flex;
-    justify-content: center;
+  .event-capacity__sub {
     margin-top: 12px;
+    font-size: 1rem;
+    color: rgba(26, 26, 26, 0.8);
+  }
+
+  @media (min-width: 768px) {
+    .event-capacity__sub {
+      font-size: 1.125rem;
+    }
+  }
+
+  .event-capacity__bar {
+    margin-top: 20px;
+  }
+
+  .event-capacity__cta-row {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .event-capacity__link {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .event-capacity__link:hover {
+    text-decoration-thickness: 2px;
   }
 
   /* ───────────────────────────── Closing CTA ───────────────────────────── */

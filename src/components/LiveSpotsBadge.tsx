@@ -6,62 +6,6 @@ export interface LiveSpotsBadgeProps {
   editionId: string;
 }
 
-function fillColor(remaining: number, capacity: number, soldOut: boolean): string {
-  if (soldOut || capacity === 0) return 'var(--color-pink)';
-  const pct = remaining / capacity;
-  if (pct <= 0) return 'var(--color-pink)';
-  if (pct < 0.25) return 'var(--color-orange)';
-  return 'var(--color-green)';
-}
-
-function DayBar({ label, capacity, remaining, soldOut }: { label: string; capacity: number; remaining: number; soldOut: boolean }) {
-  // Fill represents REMAINING capacity, not consumed
-  const filledPct = soldOut
-    ? 0
-    : capacity === 0
-      ? 0
-      : Math.max(0, Math.min(100, (remaining / capacity) * 100));
-  const color = fillColor(remaining, capacity, soldOut);
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span
-          className="font-bold text-sm uppercase tracking-widest"
-          style={{ fontFamily: 'var(--font-heading)' }}
-        >
-          {label}
-        </span>
-        <span className="text-sm font-semibold" style={{ color }}>
-          {soldOut ? 'Sold out' : `${remaining} left`}
-        </span>
-      </div>
-      <div
-        role="progressbar"
-        aria-valuenow={Math.round(filledPct)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${label} ${soldOut ? 'sold out' : `${remaining} spots remaining`}`}
-        className="w-full overflow-hidden"
-        style={{
-          height: '14px',
-          borderRadius: '999px',
-          border: '3px solid var(--color-ink)',
-          background: 'var(--color-ink)',
-        }}
-      >
-        <div
-          className="h-full"
-          style={{
-            width: `${filledPct}%`,
-            background: color,
-            transition: 'width 0.3s',
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
   const [error, setError] = useState(false);
@@ -76,13 +20,46 @@ export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   }, [editionId]);
 
   if (error) return null;
-  if (loading) return <span className="text-sm text-gray-500">Loading…</span>;
+  if (loading) return <span className="text-sm text-[#1A1A1A]/70">Loading…</span>;
   if (!spots) return null;
 
+  // Combined capacity across both days (matches bgc's single-event bar pattern)
+  const totalCapacity = spots.day1.capacity + spots.day2.capacity;
+  const totalRemaining = spots.day1.remaining + spots.day2.remaining;
+  const used = Math.max(0, totalCapacity - totalRemaining);
+  const fillPct = totalCapacity > 0 ? Math.min(100, (used / totalCapacity) * 100) : 0;
+
+  const bothSoldOut = spots.both_sold_out;
+  const almostFull = !bothSoldOut && totalRemaining > 0 && totalRemaining <= 5;
+  const barColor = bothSoldOut || almostFull ? '#DC2626' : '#1A1A1A';
+
+  let spotsText: string;
+  if (bothSoldOut) {
+    spotsText = 'Event full';
+  } else if (spots.day1.sold_out) {
+    spotsText = `Saturday full · ${spots.day2.remaining} Sunday spots left`;
+  } else if (spots.day2.sold_out) {
+    spotsText = `Sunday full · ${spots.day1.remaining} Saturday spots left`;
+  } else if (almostFull) {
+    spotsText = `Almost full — ${totalRemaining} ${totalRemaining === 1 ? 'spot' : 'spots'} left`;
+  } else {
+    spotsText = `${totalRemaining} of ${totalCapacity} spots left`;
+  }
+
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-3 text-left">
-      <DayBar label="Sat" capacity={spots.day1.capacity} remaining={spots.day1.remaining} soldOut={spots.day1.sold_out} />
-      <DayBar label="Sun" capacity={spots.day2.capacity} remaining={spots.day2.remaining} soldOut={spots.day2.sold_out} />
+    <div className="max-w-md">
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(fillPct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={spotsText}
+        className="w-full h-3 rounded-full overflow-hidden"
+        style={{ border: '2px solid #1A1A1A', background: '#FFFFFF' }}
+      >
+        <div className="h-full" style={{ width: `${fillPct}%`, background: barColor, transition: 'width 0.3s' }} />
+      </div>
+      <p className="mt-2 text-sm font-semibold" style={{ color: barColor }}>{spotsText}</p>
     </div>
   );
 }
