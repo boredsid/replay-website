@@ -1,0 +1,164 @@
+---
+/**
+ * HeroPhotoBand
+ * -----------------------------------------------------------------
+ * Edge-to-edge brutalist photo band of three frames sitting under the
+ * dark hero. Desktop renders an equal-width triptych at ~360px tall.
+ * Mobile rails the frames horizontally with scroll-snap at ~80vw / 280px
+ * tall. The band is decorative — alt="" + aria-hidden.
+ *
+ * Frames carry a subtle desaturation on idle, snap to color on hover,
+ * and respect prefers-reduced-motion.
+ */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+export interface Props {
+  photos: ImageMetadata[];
+}
+
+const { photos } = Astro.props;
+const frames = photos.slice(0, 3);
+---
+
+<div class="hero-photo-band" aria-hidden="true">
+  <div class="hero-photo-band__track" role="presentation">
+    {
+      frames.map((photo, index) => (
+        <figure class="hero-photo-band__frame" data-index={index + 1}>
+          <Image
+            src={photo}
+            alt=""
+            widths={[600, 1200]}
+            sizes="(min-width: 768px) 33vw, 80vw"
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            class="hero-photo-band__img"
+          />
+          <span class="hero-photo-band__corner" aria-hidden="true" />
+        </figure>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .hero-photo-band {
+    position: relative;
+    width: 100%;
+    background: var(--color-cream);
+    border-top: 4px solid var(--color-ink);
+    border-bottom: 4px solid var(--color-ink);
+    overflow: hidden;
+  }
+
+  /* Mobile: horizontal scroll-snap rail */
+  .hero-photo-band__track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 80vw;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hero-photo-band__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-photo-band__frame {
+    position: relative;
+    margin: 0;
+    height: 280px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    isolation: isolate;
+    border-right: 3px solid var(--color-ink);
+  }
+  .hero-photo-band__frame:last-child {
+    border-right: 0;
+  }
+
+  .hero-photo-band__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+    filter: saturate(0.92) contrast(1.04);
+    transition:
+      transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      filter 400ms ease;
+    will-change: transform;
+  }
+
+  /* Tiny brutalist corner notch — one per frame, alternates */
+  .hero-photo-band__corner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 28px;
+    background: var(--color-ink);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .hero-photo-band__frame[data-index='2'] .hero-photo-band__corner {
+    left: auto;
+    right: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+  .hero-photo-band__frame[data-index='3'] .hero-photo-band__corner {
+    top: auto;
+    bottom: 0;
+    clip-path: polygon(0 100%, 100% 100%, 0 0);
+  }
+
+  /* Hover: settle to full color + slight zoom-out for life */
+  @media (hover: hover) {
+    .hero-photo-band__frame:hover .hero-photo-band__img {
+      transform: scale(1.06);
+      filter: saturate(1.08) contrast(1.02);
+    }
+  }
+
+  /* Desktop: equal-width triptych */
+  @media (min-width: 768px) {
+    .hero-photo-band__track {
+      grid-auto-flow: row;
+      grid-auto-columns: initial;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      scroll-snap-type: none;
+    }
+    .hero-photo-band__frame {
+      height: 360px;
+      scroll-snap-align: none;
+    }
+    .hero-photo-band__corner {
+      width: 36px;
+      height: 36px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .hero-photo-band__frame {
+      height: 400px;
+    }
+  }
+
+  /* Accessibility: respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-photo-band__img {
+      transition: none;
+      transform: none;
+    }
+    .hero-photo-band__frame:hover .hero-photo-band__img {
+      transform: none;
+      filter: saturate(1);
+    }
+  }
+</style>
