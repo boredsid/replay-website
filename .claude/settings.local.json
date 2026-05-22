@@ -78,7 +78,8 @@
       "Bash(git mv *)",
       "Bash(gh pr *)",
       "Bash(grep -rE \"\\(index\\\\.html|register\\\\.html|preorder\\\\.html|email-confirmation\\\\.html|preorder-confirmation-email\\\\.html|apps-script-preorder|^CNAME$\\)\" src/ astro.config.mjs package.json)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git pull *)"
     ]
   }
 }
