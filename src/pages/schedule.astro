@@ -10,31 +10,35 @@ const day2Items = edition ? items.filter((i) => i.day === edition.end_date) : []
 const title = edition ? `Schedule — ${edition.name}` : 'Schedule — REPLAY';
 ---
 <Layout title={title} description={edition ? `Schedule for ${edition.name}` : 'REPLAY schedule'}>
-  <section class="bg-[var(--color-cream-dark)] border-b-4 border-[var(--color-ink)]">
-    <div class="container-x section">
-      <span class="pill pill-cream mb-4">Schedule</span>
-      <h1 class="text-5xl md:text-6xl mb-4">When + where</h1>
+  <section style="background: var(--color-cream); border-bottom: 4px solid var(--color-ink);">
+    <div class="container-x px-6 py-14 md:py-20 text-center">
+      <span class="section-tag">Schedule</span>
+      <h1 class="font-bold mt-2" style="font-family: var(--font-heading); font-size: clamp(2.4rem, 5vw, 3.8rem); letter-spacing: -1px;">
+        When + where
+      </h1>
       {edition ? (
-        <p class="text-gray-700">
-          <strong>{edition.name}</strong> · {edition.start_date} – {edition.end_date} · {edition.venue}
+        <p class="text-lg mt-3" style="color: rgba(26,26,26,0.7);">
+          <strong>{edition.name}</strong> · {edition.start_date} &ndash; {edition.end_date} · {edition.venue}
         </p>
       ) : (
-        <p class="text-gray-600">No upcoming edition right now.</p>
+        <p class="text-lg mt-3" style="color: rgba(26,26,26,0.7);">No upcoming edition right now.</p>
       )}
     </div>
   </section>
 
-  <div class="container-x section">
-    {edition && items.length === 0 ? (
-      <div class="card-brutal card-brutal-lg p-12 text-center max-w-2xl mx-auto">
-        <h2 class="text-3xl mb-2">Schedule coming soon</h2>
-        <p class="text-gray-600">Items appear here once the convention's agenda is locked in.</p>
-      </div>
-    ) : edition && (
-      <>
-        <ScheduleDay date={edition.start_date} label="Saturday" items={day1Items} />
-        <ScheduleDay date={edition.end_date} label="Sunday" items={day2Items} />
-      </>
-    )}
-  </div>
+  <section class="py-16" style="background: var(--color-cream);">
+    <div class="px-6" style="max-width: 920px; margin: 0 auto;">
+      {edition && items.length === 0 ? (
+        <div class="card-brutal card-brutal-lg p-12 text-center max-w-2xl mx-auto">
+          <h2 class="text-3xl mb-2">Schedule coming soon</h2>
+          <p style="color: rgba(26,26,26,0.6);">Items appear here once the convention's agenda is locked in.</p>
+        </div>
+      ) : edition && (
+        <>
+          <ScheduleDay date={edition.start_date} label="Saturday" items={day1Items} />
+          <ScheduleDay date={edition.end_date} label="Sunday" items={day2Items} />
+        </>
+      )}
+    </div>
+  </section>
 </Layout>
