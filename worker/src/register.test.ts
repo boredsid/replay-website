@@ -167,6 +167,17 @@ describe('handleRegister', () => {
     expect(cap.reg.payment_status).toBe('confirmed');
     expect(cap.reg.guild_tier_at_purchase).toBe('guildmaster');
     expect(sendEmail).toHaveBeenCalledTimes(1);
+
+    // New payload assertions for Phase 1F.
+    const call = (sendEmail as any).mock.calls[0][1];
+    expect(call.subject).toBe('REPLAY 3rd edition — registration confirmed');
+    expect(call.variables.edition_name).toBe('REPLAY 3rd edition');
+    expect(call.variables.calendar_google_url).toContain('calendar.google.com');
+    expect(call.variables.calendar_google_url).toContain('text=REPLAY%203rd%20edition');
+    expect(call.variables.calendar_ics_url).toBe('https://api.replaycon.in/api/ics/replay-3.ics');
+    expect(call.variables.schedule_url).toBe('https://replaycon.in/schedule');
+    expect(call.variables.instagram_url).toBe('https://instagram.com/replaycon');
+    expect(call.variables.whatsapp_share_url).toMatch(/^https:\/\/wa\.me\/\?text=/);
   });
 
   it('adventurer with cap=1000 against campaign 1400 => final=400 + pending status', async () => {

@@ -12,6 +12,8 @@ import {
 } from './validation';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
 import { getEditionById, getConfirmedSeatsByDay, dayLabel } from './editions';
+import { editionOrdinal } from './format';
+import { buildGoogleCalendarUrl, buildWhatsAppShareUrl } from './calendar';
 
 export async function handleRegister(req: Request, env: Env): Promise<Response> {
   let body: any;
@@ -121,13 +123,15 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
   // Email if zero-payment
   if (amountPaid === 0) {
     try {
+      const ord = editionOrdinal(edition.slug);
+      const editionDisplayName = (ord ? `REPLAY ${ord}` : 'REPLAY').trim();
       await sendEmail(env, {
         template: 'replay-registration',
         to: email,
-        subject: `REPLAY ${edition.name} — registration confirmed`,
+        subject: `${editionDisplayName} — registration confirmed`,
         variables: {
           name,
-          edition_name: edition.name,
+          edition_name: editionDisplayName,
           venue: edition.venue,
           start_date: edition.start_date,
           end_date: edition.end_date,
@@ -137,6 +141,11 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
           amount_paid: amountPaid,
           discount_applied: discount,
           guild_tier: tierStored ?? '',
+          calendar_google_url: buildGoogleCalendarUrl(edition),
+          calendar_ics_url: `https://api.replaycon.in/api/ics/${edition.slug}.ics`,
+          schedule_url: 'https://replaycon.in/schedule',
+          instagram_url: 'https://instagram.com/replaycon',
+          whatsapp_share_url: buildWhatsAppShareUrl(edition),
         },
       });
     } catch (e) {
