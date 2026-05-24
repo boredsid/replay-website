@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editionOrdinal } from './format';
+import { editionOrdinal, shortDate, shortDateRange, capitalize } from './format';
 
 describe('editionOrdinal', () => {
   it('returns "1st edition" for replay-1', () => {
@@ -29,5 +29,37 @@ describe('editionOrdinal', () => {
   it('returns empty string for malformed slug', () => {
     expect(editionOrdinal('bogus')).toBe('');
     expect(editionOrdinal('')).toBe('');
+  });
+});
+
+describe('shortDate', () => {
+  it('formats ISO date as Mmm d', () => {
+    expect(shortDate('2026-09-12')).toBe('Sep 12');
+    expect(shortDate('2026-01-05')).toBe('Jan 5');
+    expect(shortDate('2026-12-31')).toBe('Dec 31');
+  });
+  it('returns input unchanged for malformed input', () => {
+    expect(shortDate('not a date')).toBe('not a date');
+    expect(shortDate('')).toBe('');
+  });
+});
+
+describe('shortDateRange', () => {
+  it('joins two short dates with an en-dash', () => {
+    expect(shortDateRange('2026-09-12', '2026-09-13')).toBe('Sep 12 – Sep 13');
+  });
+});
+
+describe('capitalize', () => {
+  it('uppercases the first letter', () => {
+    expect(capitalize('guildmaster')).toBe('Guildmaster');
+    expect(capitalize('adventurer')).toBe('Adventurer');
+    expect(capitalize('initiate')).toBe('Initiate');
+  });
+  it('returns empty string for empty input', () => {
+    expect(capitalize('')).toBe('');
+  });
+  it('leaves already-capitalised input alone', () => {
+    expect(capitalize('REPLAY')).toBe('REPLAY');
   });
 });

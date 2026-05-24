@@ -12,7 +12,7 @@ import {
 } from './validation';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
 import { getEditionById, getConfirmedSeatsByDay, dayLabel } from './editions';
-import { editionOrdinal } from './format';
+import { editionOrdinal, shortDateRange, capitalize } from './format';
 import { buildGoogleCalendarUrl, buildWhatsAppShareUrl } from './calendar';
 
 export async function handleRegister(req: Request, env: Env): Promise<Response> {
@@ -133,14 +133,13 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
           name,
           edition_name: editionDisplayName,
           venue: edition.venue,
-          start_date: edition.start_date,
-          end_date: edition.end_date,
+          date_range: shortDateRange(edition.start_date, edition.end_date),
           pass_type: passType,
           days_label: dayLabel(days),
           seats: 1,
           amount_paid: amountPaid,
           discount_applied: discount,
-          guild_tier: tierStored ?? '',
+          guild_tier: capitalize(tierStored ?? ''),
           calendar_google_url: buildGoogleCalendarUrl(edition),
           calendar_ics_url: `https://api.replaycon.in/api/ics/${edition.slug}.ics`,
           schedule_url: 'https://replaycon.in/schedule',
