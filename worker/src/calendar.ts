@@ -12,7 +12,7 @@ interface EditionLike {
 
 // Convention runs 10:00–19:00 IST. IST is UTC+05:30, so:
 //   10:00 IST → 04:30 UTC, 19:00 IST → 13:30 UTC.
-function toUtcBasic(dateIso: string, time: 'start' | 'end'): string {
+export function toUtcBasic(dateIso: string, time: 'start' | 'end'): string {
   const t = time === 'start' ? '043000Z' : '133000Z';
   return `${dateIso.replace(/-/g, '')}T${t}`;
 }

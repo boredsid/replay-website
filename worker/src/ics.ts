@@ -4,6 +4,7 @@
 import type { Env } from './index';
 import { serviceClient } from './supabase';
 import { editionOrdinal } from './format';
+import { toUtcBasic } from './calendar';
 
 interface EditionRow {
   slug: string;
@@ -11,11 +12,6 @@ interface EditionRow {
   end_date: string;
   venue: string;
   is_published: boolean;
-}
-
-function toUtcBasic(dateIso: string, time: 'start' | 'end'): string {
-  const t = time === 'start' ? '043000Z' : '133000Z';
-  return `${dateIso.replace(/-/g, '')}T${t}`;
 }
 
 // iCalendar text values escape commas, semicolons, and backslashes.
