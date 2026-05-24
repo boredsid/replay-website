@@ -1,8 +1,8 @@
 # REPLAY rebuild — handoff
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-24
 **Current branch:** `main` (production)
-**Status:** Phase 1 shipped end-to-end. Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity.
+**Status:** Phase 1 shipped end-to-end (including 1F email rework). Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity.
 
 This doc orients a new session. For low-level patterns, gotchas, and discovered facts, read `CLAUDE.md` first — that's where durable learnings live. This doc is the higher-level "where are we, what's next."
 
@@ -43,17 +43,11 @@ All have a spec in `docs/superpowers/specs/` and a plan in `docs/superpowers/pla
 | **1C** | Initial design pass | Brutalist primitives ported from bgc — `.btn`, `.card-brutal`, `.pill`, `.input-brutal` in `src/styles/global.css`. Replay-distinct palette (orange + teal + violet). |
 | **1D** | Cutover | Apex DNS swapped from GitHub Pages → Cloudflare Pages. Legacy `*.html` deleted from `main`. `legacy-static` branch retained as safety. |
 | **1E** | Major visual redesign | 4 new shared components (`HeroPhotoBand`, `EditorialStripe`, `DarkBand`, `SponsorsBand`). Full bgc palette match. Yellow event-capacity band with bgc-style combined progress bar. Hero on cream, Guild Path on ink. |
+| **1F** | Email rework + edition_name fix | `src/emails/registration.html` reskinned to 1E identity, four new content blocks (what to expect / add to calendar / schedule + venue / share + social). Worker now formats `edition_name` as `"REPLAY 3rd edition"` (fix), dates as `"Sep 12 – Sep 13"`, and capitalises `guild_tier`. New helpers in `worker/src/format.ts` (`editionOrdinal`, `shortDate`, `shortDateRange`, `capitalize`) + `worker/src/calendar.ts` (Google + WhatsApp URL builders) + `worker/src/ics.ts` (`GET /api/ics/:slug.ics`). 90 worker tests. |
 
 ## Phases pending
 
 Roughly in order of dependency / value.
-
-### Phase 1F — email template visual rework
-
-- **Scope:** apply Phase 1E's bgc-aligned visual to `src/emails/registration.html`. Currently it has 1C's lighter polish. Email constraints — system fonts (no Google fonts in email), inline CSS, no JS, careful box-shadow.
-- **Effort:** ~2-3 hours. Single file.
-- **Dependencies:** none. Can start anytime.
-- **Reference:** bgc has no email template equivalent for direct port, but the brand palette + brutalist motif from 1E translates 1:1 to email (orange header strip + 2px ink borders + pill badges).
 
 ### "Open registration for REPLAY 3"
 
@@ -150,14 +144,16 @@ docs/superpowers/
 │   ├── 2026-05-21-replay-phase-1b-site-pages-design.md
 │   ├── 2026-05-22-replay-phase-1c-design-overhaul-design.md
 │   ├── 2026-05-22-replay-phase-1d-cutover-design.md
-│   └── 2026-05-22-replay-phase-1e-design-redesign.md
+│   ├── 2026-05-22-replay-phase-1e-design-redesign.md
+│   └── 2026-05-24-replay-phase-1f-email-rework-design.md
 └── plans/
     ├── 2026-05-18-replay-phase-0-infra.md
     ├── 2026-05-21-replay-phase-1a-worker.md
     ├── 2026-05-21-replay-phase-1b-site-pages.md
     ├── 2026-05-22-replay-phase-1c-design-overhaul.md
     ├── 2026-05-22-replay-phase-1d-cutover.md
-    └── 2026-05-22-replay-phase-1e-design-redesign.md
+    ├── 2026-05-22-replay-phase-1e-design-redesign.md
+    └── 2026-05-24-replay-phase-1f-email-rework.md
 
 src/
 ├── pages/                                  Astro routes
@@ -169,7 +165,7 @@ src/
 ├── emails/registration.html                Confirmation email template
 └── assets/landing/                         Hero photos (Astro Image optimized)
 
-worker/                                     Cloudflare Worker (66 tests)
+worker/                                     Cloudflare Worker (90 tests)
 admin/                                      Vite + React SPA shell (Phase 3 fills in)
 supabase/migrations/                        001 schema + RLS, 002 leads unique index
 supabase/seeds/                             replay-3 edition seed
