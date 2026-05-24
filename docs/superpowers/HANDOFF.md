@@ -57,35 +57,46 @@ Roughly in order of dependency / value.
 
 ### Pre-order checkout (1B-extra)
 
-- **Scope:** `/preorder` page + `preorder-checkout` worker endpoint + products seed for replay-3 + preorder confirmation email template.
+- **Scope:** `/preorder` page + `preorder-checkout` worker endpoint + products seed for replay-3 + preorder confirmation email template (`src/emails/preorder.html`).
 - **Effort:** ~2-3 days.
-- **Dependencies:** product catalog needs to exist. Bundle this with Phase 1F (email rework) if doing both.
-- **Reference:** legacy `preorder.html` flow shape; current Supabase has `products` and `orders` tables ready.
+- **Dependencies:** product catalog needs to exist (real product rows seeded into `products` table by edition).
+- **Reference shape:** legacy `preorder.html` flow on `legacy-static` branch — has cart, UPI bottom-sheet, hardcoded pass-holder gate. The new build replaces the JSONP/CSV + Apps Script flow with worker endpoints against Supabase.
+- **What's already wired:** `products` + `orders` tables exist; `apps-script.ts` already supports `template: 'replay-preorder'` (see `EmailPayload` type); GAS `Code.gs` already references `https://raw.githubusercontent.com/boredsid/replay-website/main/src/emails/preorder.html` — that file just doesn't exist yet.
+- **Email template reuse:** copy `src/emails/registration.html` as the starting point, swap pass-details for line items + cart total. The `worker/src/format.ts` helpers (`shortDateRange`, `capitalize`, `editionOrdinal`) plus `worker/src/calendar.ts` URL builders are ready to feed the same placeholder set.
 
 ### Phase 2 — historical edition import
 
-- **Scope:** import replay-1, replay-2 from the legacy Google Sheets into Supabase `users`, `registrations`, `orders` tagged by edition. Idempotent script at `scripts/import-historical.ts`.
+- **Scope:** import replay-1, replay-2 from the legacy Google Sheets into Supabase `users`, `registrations`, `orders` tagged by edition. Idempotent script at `scripts/import-historical.ts` (the `scripts/` dir is currently empty).
 - **Effort:** ~1-2 days. Most of the work is CSV parsing + dedup logic against existing replay-3 rows.
-- **Dependencies:** the legacy sheet CSV URLs (already documented in pre-rebuild `CLAUDE.md`). RLS bypass via service-role.
+- **Dependencies:** the legacy sheet CSV URLs. Find them in `git show legacy-static:CLAUDE.md | grep -A2 "gid"` — pre-rebuild CLAUDE.md documented the published CSV URLs for guild members and registrations (gid 581649392 and gid 0 respectively). RLS bypass via service-role secret.
+- **Approach:** seed replay-1 + replay-2 rows in `editions` table first (with `is_published=true`, `is_current=false`), then run import. Dedupe key: `(phone, edition_id)` for registrations. Use the existing `users` upsert pattern from `worker/src/register.ts` lines 80-110 as reference.
 - **Why now might matter:** unblocks the "Past editions" page below.
 
-### Past editions footer page (new final phase, replaces archive page)
+### Past editions footer page
 
-- **Scope:** new `/past-editions` (or similar) route linked from footer. Showcases prior REPLAY editions — photos, stats, "what happened."
-- **Effort:** ~1 day for the page itself. Design TBD.
-- **Dependencies:** Phase 2 (need imported data) OR seed with hardcoded MDX content for now.
+- **Scope:** new `/past-editions` route linked from footer. Showcases prior REPLAY editions — photos, stats ("X attendees · Y games played · Z tournaments"), "what happened" blurb.
+- **Effort:** ~1 day for the page itself.
+- **Dependencies:** Phase 2 (need imported data) OR seed with hardcoded MDX content for now. Hardcoded approach: add `src/content/editions/replay-1.mdx`, `replay-2.mdx` with frontmatter (date, attendee count, photos, blurb) and render via Astro Content Collection — same pattern as `src/content/landing/`.
+- **Design starting point:** use `EditorialStripe` + `HeroPhotoBand` components from Phase 1E. Each edition gets one editorial stripe.
 
 ### Phase 3 — full admin tool
 
-- **Scope:** Vite + React + shadcn SPA at `admin.replaycon.in` (shell already deployed, currently a placeholder). 9 CRUD screens — dashboard, editions, registrations, pre-orders, products, sponsors, schedule, users, leads. Audit log table already exists. Deploy-hook integration so admin saves rebuild the site.
-- **Effort:** multi-week. Mirror bgc admin structure (`/Users/siddhantnarula/Projects/bgc-website/admin/`).
+- **Scope:** Vite + React + shadcn SPA at `admin.replaycon.in` (shell already deployed at `admin/`, currently a placeholder). 9 CRUD screens — dashboard, editions, registrations, pre-orders, products, sponsors, schedule, users, leads. Audit log table already exists. Deploy-hook integration so admin saves rebuild the site (worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK` ready).
+- **Effort:** multi-week.
 - **Dependencies:** none architectural; everything's wired. CF Access already gates the domain.
+- **Starting moves:**
+  1. Mirror bgc admin structure — `/Users/siddhantnarula/Projects/bgc-website/admin/` has the working pattern (Vite + React + shadcn + react-router + CF Access JWT verification).
+  2. Worker side: add `/api/admin/*` routes to `worker/src/index.ts` gated by `access-auth.ts` (`verifyAccessJwt` already exists, used in `cancel-registration.ts` lines 17-25 as the reference pattern).
+  3. First screen: dashboard with edition-spots, recent registrations, recent leads. Worker has all the queries already (`getEditionById`, `getConfirmedSeatsByDay`).
+  4. Second screen: edition CRUD — flip `registration_status` from `upcoming` → `open` → `sold_out` → `closed` via admin instead of SQL.
+- **Note:** the old handoff referenced a "gated admin if/else chain" in `worker/src/index.ts` — that doesn't exist yet. The router currently has 6 public-ish routes (`/api/health`, `/api/lookup-phone`, `/api/register`, `/api/edition-spots/:id`, `/api/cancel-registration`, `/api/lead`, `/api/ics/:slug.ics`). Admin routes need to be added behind `verifyAccessJwt`.
 
 ### Playwright E2E (hardening phase)
 
 - **Scope:** cover happy paths through landing/register/schedule + worker integration tests. Originally scoped in Phase 1D, punted.
 - **Effort:** ~1 day for a meaningful suite.
 - **Dependencies:** none.
+- **Starting move:** `npx playwright install` (no existing config yet). Smallest meaningful suite: 3 happy-path specs (landing renders, register form submits, schedule lists items) + 1 worker contract test (`/api/edition-spots/:id` returns correct shape). Wire as a separate `npm run test:e2e` so it doesn't slow the unit suites.
 
 ## Operational facts
 
@@ -114,8 +125,8 @@ Stored via `wrangler secret put`. Visible via `cd worker && npx wrangler secret 
 
 ### Local dev
 - `.env.local` at repo root needs: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `PUBLIC_WORKER_URL=https://api.replaycon.in`, `PUBLIC_UPI_ID=suranjanadatta24-1@okaxis`. Without it, build pauses 30-50s/page on Supabase timeout against placeholder URL.
-- `npm run dev` (Astro on :4321), `cd worker && npm run dev` (Worker on :8787 — for endpoint dev only; production worker is what site fetches by default)
-- `npm test` at root (25 site tests), `cd worker && npm test` (66 worker tests)
+- `npm run dev` (Astro on :4321), `cd worker && npm run dev` (Worker on :8787 — for endpoint dev only; production worker is what site fetches by default). Worker local dev needs `worker/.dev.vars` with `SUPABASE_SERVICE_KEY` + any other secrets you want exercised; otherwise endpoints that query Supabase will fail.
+- `npm test` at root (25 site tests), `cd worker && npm test` (90 worker tests)
 
 ### Dev dep versions (pinned)
 Avoid `npm install --save-dev pkg@latest` for the following — Astro 6.3.3 internally uses vite 7; latest plugins want vite 8 and crash the build:
@@ -177,9 +188,18 @@ scripts/                                    Empty (Phase 2 will add import-histo
 
 ## How to pick up
 
-1. **If picking up Phase 1F (email rework):** brainstorm → spec → plan → implement. Tight scope, can use the `/frontend-design:frontend-design` skill since it's a single visual file.
-2. **If picking up Phase 2 (historical import):** check legacy CSV URLs in old `CLAUDE.md` content (pre-rebuild commits on `legacy-static`). Write the script as a one-off in `scripts/import-historical.ts`. Idempotent dedup by phone+edition.
-3. **If picking up Phase 3 (admin):** start with the dashboard screen + editions CRUD. Copy bgc admin patterns liberally. Worker has the `/api/admin/*` route shape ready — see `worker/src/index.ts`'s gated admin if/else chain (currently empty).
-4. **If just opening registration for REPLAY 3:** the SQL flip + deploy-hook recipe at top of this doc.
+For any non-trivial phase below, the established workflow is **brainstorm → spec → plan → implement** via superpowers skills, with subagent-driven execution. Past phases use this verbatim — read any spec under `docs/superpowers/specs/` for the shape (the 1F spec is the most recent reference).
+
+1. **Open registration for REPLAY 3** — SQL flip + deploy-hook recipe at the top of this doc. 5-min task, no brainstorming needed.
+
+2. **Pre-order checkout** — biggest scope-wise. Start by reading legacy `preorder.html` on `legacy-static` branch to understand UX expectations (cart, UPI bottom-sheet, pass-holder gate), then design fresh against the Supabase `products` + `orders` tables. New page `/preorder` + new worker endpoint + product seed + `src/emails/preorder.html`. Email template should start by copying `registration.html` (same brutalist shell) — swap pass details for line-item table + cart total.
+
+3. **Phase 2: historical import** — write the import script as a one-off in `scripts/import-historical.ts`. Read CSV URLs from `git show legacy-static:CLAUDE.md`. Idempotent dedup by `(phone, edition_id)`. Use service-role to bypass RLS. Will need to seed replay-1 and replay-2 rows in `editions` first.
+
+4. **Past editions page** — depends on Phase 2 OR seed with hardcoded MDX. Hardcoded path is faster and lets the page ship before historical import. Use Astro Content Collection mirroring `src/content/landing/` structure; render with `EditorialStripe` + `HeroPhotoBand` components.
+
+5. **Phase 3: admin** — multi-week. Mirror bgc admin (`/Users/siddhantnarula/Projects/bgc-website/admin/`). Worker side: add `/api/admin/*` routes gated by `verifyAccessJwt` (pattern in `worker/src/cancel-registration.ts`). Site side: build out `admin/` SPA starting with dashboard, then edition CRUD. Wire CF Pages deploy hook so admin saves rebuild the public site.
+
+6. **Playwright E2E** — punted from 1D. ~1 day for a meaningful suite. Keep separate from unit suites (`npm run test:e2e`).
 
 The next session can read `CLAUDE.md` + this file + the master spec at `docs/superpowers/specs/2026-05-18-replay-rebuild-design.md` and be fully oriented in ~10 minutes.
