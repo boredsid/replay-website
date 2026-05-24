@@ -5,6 +5,7 @@ import { handleRegister } from './register';
 import { handleEditionSpots } from './edition-spots';
 import { handleCancelRegistration } from './cancel-registration';
 import { handleLead } from './lead';
+import { handleIcsRequest } from './ics';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -50,6 +51,9 @@ export default {
       }
       if (path === '/api/lead' && req.method === 'POST') {
         return await handleLead(req, env);
+      }
+      if (path.startsWith('/api/ics/') && path.endsWith('.ics') && req.method === 'GET') {
+        return await handleIcsRequest(req, env);
       }
       return jsonResponse({ error: 'Not found' }, 404);
     } catch (err) {
