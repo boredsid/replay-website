@@ -79,6 +79,23 @@ Roughly in order of dependency / value.
 - **Dependencies:** Phase 2 (need imported data) OR seed with hardcoded MDX content for now. Hardcoded approach: add `src/content/editions/replay-1.mdx`, `replay-2.mdx` with frontmatter (date, attendee count, photos, blurb) and render via Astro Content Collection — same pattern as `src/content/landing/`.
 - **Design starting point:** use `EditorialStripe` + `HeroPhotoBand` components from Phase 1E. Each edition gets one editorial stripe.
 
+### BGC credit redemption at replay checkout
+
+- **Scope:** let a replay pass purchase apply the buyer's BGC store-credit balance, mirroring how bgc's own registration redeems credits. BGC keeps an append-only `user_credits` ledger (bgc `supabase/migrations/008_user_credits.sql` + `009_user_credits_idempotent.sql`; balance = `sum(amount)` per user). Replay worker cross-calls bgc (same bearer-token pattern as `guild-status`, secret `REPLAY_TO_BGC_SECRET`) for (a) balance lookup by phone→user_id and (b) an atomic redemption when a purchase is confirmed. Net price becomes `base − guild_discount − credits_applied`, floored at 0.
+- **Why it matters now:** replay-2's historical data already shows "X Credits Used" rows (see Phase 2 import) — credit usage is a real part of the flow, just not yet wired into the new stack.
+- **Dependencies:**
+  - bgc must expose credit endpoints behind the shared secret (`GET` balance + `POST` redeem). Today bgc credits are internal only (`bgc-website/worker/src/credits.ts`, `cancel.ts`) with no replay-facing API — that endpoint pair needs adding on the bgc side first.
+  - Redemption must be **idempotent and reversible**: a later replay-side cancellation has to post a credit reversal keyed by the replay registration id. bgc already enforces one-redeem / one-reversal per registration via the `user_credits_one_*_per_reg` unique indexes — replay must pass its registration id as that key.
+- **Schema:** add `credits_applied int not null default 0` to replay `registrations` (bgc added the equivalent on its side in migration 008).
+- **Note:** the Phase 2 historical import does **not** backfill credit usage — replay-2's "X Credits Used" rows are folded into the gross `discount_applied` number. This phase is forward-only.
+- **Reference shape:** bgc `worker/src/credits.ts`, `worker/src/cancel.ts`, `worker/src/guild-purchase.ts`, migrations 008/009.
+
+### Promo codes
+
+- **Scope:** percentage or fixed-amount promo codes applied at registration checkout (optionally pre-order too). New `promo_codes` table (`code`, `type` ∈ {percent, fixed}, `value`, `max_uses`, `used_count`, `valid_from`, `valid_until`, edition scope), worker validates + applies inside `worker/src/pricing.ts` / `register.ts`, and records the applied `promo_code` on the registration row.
+- **Dependencies:** none hard, but the **stacking precedence** with guild discount and credits must be defined. Recommended order: `base → guild discount → promo → credits`, floored at 0. Lock this before implementing so all three discount sources compose deterministically.
+- **Effort:** ~1–2 days (table + worker price-calc changes + an admin CRUD screen, which folds into Phase 3 admin).
+
 ### Phase 3 — full admin tool
 
 - **Scope:** Vite + React + shadcn SPA at `admin.replaycon.in` (shell already deployed at `admin/`, currently a placeholder). 9 CRUD screens — dashboard, editions, registrations, pre-orders, products, sponsors, schedule, users, leads. Audit log table already exists. Deploy-hook integration so admin saves rebuild the site (worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK` ready).
