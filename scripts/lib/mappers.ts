@@ -28,7 +28,7 @@ export interface RegistrationInsert {
   discount_applied: number;
   guild_tier_at_purchase: GuildTier | null;
   payment_status: PaymentStatus;
-  source: { channel: Channel };
+  source: { channel: Channel; guest_name?: string };
 }
 
 export interface OrderItem { name: string; qty: number; price: number; }
@@ -38,7 +38,7 @@ export interface OrderInsert {
   items: OrderItem[];
   total: number;
   payment_status: PaymentStatus;
-  source: { channel: Channel };
+  source: { channel: Channel; guest_name?: string };
 }
 
 // Ported from worker/src/validation.ts — strip non-digits, require >=10, take last 10.
@@ -47,6 +47,15 @@ export function sanitizePhone(input: unknown): string {
   const digits = input.replace(/\D/g, '');
   if (digits.length < 10) return '';
   return digits.slice(-10);
+}
+
+export const PLACEHOLDER_PHONE = '0000000000';
+
+// Blank/unparseable phone -> shared placeholder (organiser corrects later); the
+// row's real name is preserved separately in source.guest_name by the mappers.
+function resolvePhone(raw: string): { phone: string; isPlaceholder: boolean } {
+  const p = sanitizePhone(raw);
+  return p ? { phone: p, isPlaceholder: false } : { phone: PLACEHOLDER_PHONE, isPlaceholder: true };
 }
 
 export function parsePaymentStatus(raw: string): PaymentStatus {
@@ -117,10 +126,10 @@ function toAmount(raw: string): number {
 
 export function mapReplay1Registration(row: Record<string, string>):
   { user: UserUpsert; registration: RegistrationInsert } | null {
-  const phone = sanitizePhone(row['Phone Number']);
-  if (!phone) return null;
+  const { phone, isPlaceholder } = resolvePhone(row['Phone Number']);
+  const name = row['Name'] || null;
   return {
-    user: { phone, name: row['Name'] || null, email: null },
+    user: { phone, name: isPlaceholder ? null : name, email: null },
     registration: {
       user_phone: phone,
       pass_type: 'oneshot',
@@ -130,21 +139,22 @@ export function mapReplay1Registration(row: Record<string, string>):
       discount_applied: 0,
       guild_tier_at_purchase: null,
       payment_status: parsePaymentStatus(row['Status']),
-      source: { channel: 'website' },
+      source: isPlaceholder && name ? { channel: 'website', guest_name: name } : { channel: 'website' },
     },
   };
 }
 
 export function mapReplay2Registration(row: Record<string, string>, pricing: EditionPricing):
   { user: UserUpsert; registration: RegistrationInsert } | null {
-  const phone = sanitizePhone(row['Phone']);
-  if (!phone) return null;
+  const { phone, isPlaceholder } = resolvePhone(row['Phone']);
+  const name = row['Name'] || null;
   const { pass_type, days } = parsePassAndDays(row['Pass Type'], row['Day']);
   const seats = toInt(row['Quantity'], 1);
   const amount_paid = toAmount(row['Paid']);
   const base = expectedBase(pricing, pass_type, days, seats);
+  const channel = normalizeChannel(row['Source']);
   return {
-    user: { phone, name: row['Name'] || null, email: row['Email'] || null },
+    user: { phone, name: isPlaceholder ? null : name, email: isPlaceholder ? null : (row['Email'] || null) },
     registration: {
       user_phone: phone,
       pass_type,
@@ -154,24 +164,24 @@ export function mapReplay2Registration(row: Record<string, string>, pricing: Edi
       discount_applied: Math.max(0, base - amount_paid),
       guild_tier_at_purchase: parseGuildTier(row['Discount']),
       payment_status: parsePaymentStatus(row['Payment Status']),
-      source: { channel: normalizeChannel(row['Source']) },
+      source: isPlaceholder && name ? { channel, guest_name: name } : { channel },
     },
   };
 }
 
 export function mapReplay2Order(row: Record<string, string>):
   { user: UserUpsert; order: OrderInsert } | null {
-  const phone = sanitizePhone(row['Phone']);
-  if (!phone) return null;
+  const { phone, isPlaceholder } = resolvePhone(row['Phone']);
+  const name = row['Name'] || null;
   const items = parseOrderItems(row['Order Details']); // throws on malformed
   return {
-    user: { phone, name: row['Name'] || null, email: row['Email'] || null },
+    user: { phone, name: isPlaceholder ? null : name, email: isPlaceholder ? null : (row['Email'] || null) },
     order: {
       user_phone: phone,
       items,
       total: toAmount(row['Amount paid']),
       payment_status: parsePaymentStatus(row['Payment Status']),
-      source: { channel: 'website' },
+      source: isPlaceholder && name ? { channel: 'website', guest_name: name } : { channel: 'website' },
     },
   };
 }

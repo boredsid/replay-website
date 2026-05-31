@@ -97,8 +97,11 @@ describe('mapReplay1Registration', () => {
       payment_status: 'confirmed', source: { channel: 'website' },
     });
   });
-  it('returns null for an unparseable phone', () => {
-    expect(mapReplay1Registration({ 'Phone Number': 'NA', Name: 'x', Status: 'Paid', Seats: '1', Paid: '800' })).toBeNull();
+  it('uses placeholder phone and preserves guest_name when phone is blank', () => {
+    const out = mapReplay1Registration({ Timestamp: '2026-01-31 10:00:00', 'Phone Number': '', Name: 'Pragya', Status: 'Paid', Seats: '1', Paid: '800' })!;
+    expect(out.user).toEqual({ phone: '0000000000', name: null, email: null });
+    expect(out.registration.user_phone).toBe('0000000000');
+    expect(out.registration.source).toEqual({ channel: 'website', guest_name: 'Pragya' });
   });
 });
 
@@ -118,6 +121,16 @@ describe('mapReplay2Registration', () => {
     const out = mapReplay2Registration(row, R2_PRICING)!;
     expect(out.registration.seats).toBe(1);
     expect(out.registration.discount_applied).toBe(0);
+  });
+  it('uses placeholder phone and preserves guest_name for a phone-less walk-in', () => {
+    const row = { Name: 'Amandeep Singh', Phone: '', Email: '', 'Pass Type': 'One Shot (Day Pass)', Day: 'Saturday, Apr 18', Quantity: '1', Paid: '800', Discount: 'None', 'Payment Status': 'Paid', 'Seats used': '1', Source: 'Website' };
+    const out = mapReplay2Registration(row, R2_PRICING)!;
+    expect(out.user).toEqual({ phone: '0000000000', name: null, email: null });
+    expect(out.registration).toMatchObject({
+      user_phone: '0000000000', pass_type: 'oneshot', days: ['day1'], seats: 1,
+      amount_paid: 800, discount_applied: 0, payment_status: 'confirmed',
+      source: { channel: 'website', guest_name: 'Amandeep Singh' },
+    });
   });
 });
 
