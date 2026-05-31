@@ -1,8 +1,8 @@
 # REPLAY rebuild — handoff
 
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-31
 **Current branch:** `main` (production)
-**Status:** Phase 1 shipped end-to-end (including 1F email rework). Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity.
+**Status:** Phase 1 shipped end-to-end (including 1F email rework) and Phase 2 historical import shipped. Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity. Supabase now holds replay-1, replay-2, and replay-3 editions with replay-1/replay-2 registrations + orders imported.
 
 This doc orients a new session. For low-level patterns, gotchas, and discovered facts, read `CLAUDE.md` first — that's where durable learnings live. This doc is the higher-level "where are we, what's next."
 
@@ -44,6 +44,7 @@ All have a spec in `docs/superpowers/specs/` and a plan in `docs/superpowers/pla
 | **1D** | Cutover | Apex DNS swapped from GitHub Pages → Cloudflare Pages. Legacy `*.html` deleted from `main`. `legacy-static` branch retained as safety. |
 | **1E** | Major visual redesign | 4 new shared components (`HeroPhotoBand`, `EditorialStripe`, `DarkBand`, `SponsorsBand`). Full bgc palette match. Yellow event-capacity band with bgc-style combined progress bar. Hero on cream, Guild Path on ink. |
 | **1F** | Email rework + edition_name fix | `src/emails/registration.html` reskinned to 1E identity, four new content blocks (what to expect / add to calendar / schedule + venue / share + social). Worker now formats `edition_name` as `"REPLAY 3rd edition"` (fix), dates as `"Sep 12 – Sep 13"`, and capitalises `guild_tier`. New helpers in `worker/src/format.ts` (`editionOrdinal`, `shortDate`, `shortDateRange`, `capitalize`) + `worker/src/calendar.ts` (Google + WhatsApp URL builders) + `worker/src/ics.ts` (`GET /api/ics/:slug.ics`). 90 worker tests. |
+| **2** | Historical edition import | Idempotent `scripts/import-historical.ts` (`npm run import:historical [-- --dry-run]`, tsx) loads replay-1/replay-2 registrations + replay-2 orders from **gitignored** `scripts/data/*.csv` into Supabase. Pure parse/map in `scripts/lib/csv.ts` + `scripts/lib/mappers.ts` (35 unit tests). Editions seeded by `supabase/seeds/replay-1-2.sql`. Live data imported: replay-1 = 50 regs (44 confirmed), replay-2 = 103 regs (97 confirmed, incl. **21 phone-less walk-ins** under placeholder phone `0000000000`, real names kept in `registrations.source.guest_name` for later correction), 13 orders (₹58,513). Delete-by-edition + reinsert = idempotent; deletes scoped to the two historical slugs so replay-3 is never touched; users upserted by phone. |
 
 ## Phases pending
 
@@ -64,20 +65,19 @@ Roughly in order of dependency / value.
 - **What's already wired:** `products` + `orders` tables exist; `apps-script.ts` already supports `template: 'replay-preorder'` (see `EmailPayload` type); GAS `Code.gs` already references `https://raw.githubusercontent.com/boredsid/replay-website/main/src/emails/preorder.html` — that file just doesn't exist yet.
 - **Email template reuse:** copy `src/emails/registration.html` as the starting point, swap pass-details for line items + cart total. The `worker/src/format.ts` helpers (`shortDateRange`, `capitalize`, `editionOrdinal`) plus `worker/src/calendar.ts` URL builders are ready to feed the same placeholder set.
 
-### Phase 2 — historical edition import
-
-- **Scope:** import replay-1, replay-2 from the legacy Google Sheets into Supabase `users`, `registrations`, `orders` tagged by edition. Idempotent script at `scripts/import-historical.ts` (the `scripts/` dir is currently empty).
-- **Effort:** ~1-2 days. Most of the work is CSV parsing + dedup logic against existing replay-3 rows.
-- **Dependencies:** the legacy sheet CSV URLs. Find them in `git show legacy-static:CLAUDE.md | grep -A2 "gid"` — pre-rebuild CLAUDE.md documented the published CSV URLs for guild members and registrations (gid 581649392 and gid 0 respectively). RLS bypass via service-role secret.
-- **Approach:** seed replay-1 + replay-2 rows in `editions` table first (with `is_published=true`, `is_current=false`), then run import. Dedupe key: `(phone, edition_id)` for registrations. Use the existing `users` upsert pattern from `worker/src/register.ts` lines 80-110 as reference.
-- **Why now might matter:** unblocks the "Past editions" page below.
-
 ### Past editions footer page
 
 - **Scope:** new `/past-editions` route linked from footer. Showcases prior REPLAY editions — photos, stats ("X attendees · Y games played · Z tournaments"), "what happened" blurb.
 - **Effort:** ~1 day for the page itself.
-- **Dependencies:** Phase 2 (need imported data) OR seed with hardcoded MDX content for now. Hardcoded approach: add `src/content/editions/replay-1.mdx`, `replay-2.mdx` with frontmatter (date, attendee count, photos, blurb) and render via Astro Content Collection — same pattern as `src/content/landing/`.
+- **Dependencies:** Phase 2 data is now imported (replay-1/replay-2 registrations + orders in Supabase), so live stats are available — OR seed with hardcoded MDX content. Hardcoded approach: add `src/content/editions/replay-1.mdx`, `replay-2.mdx` with frontmatter (date, attendee count, photos, blurb) and render via Astro Content Collection — same pattern as `src/content/landing/`.
 - **Design starting point:** use `EditorialStripe` + `HeroPhotoBand` components from Phase 1E. Each edition gets one editorial stripe.
+- **Stat caveat:** replay-2 has 21 walk-in registrations under placeholder phone `0000000000` (names in `registrations.source.guest_name`). They count toward attendance totals but share one `users` row — don't compute "unique attendees" off distinct phones without accounting for this.
+
+### Correct replay-2 walk-in placeholder phones (small follow-up)
+
+- **Scope:** the 21 phone-less replay-2 walk-ins were imported under placeholder phone `0000000000`, with each person's real name preserved in `registrations.source ->> 'guest_name'`. When the organiser collects real phone numbers, update each registration's `user_phone` (and create/realign the `users` row) using `guest_name` to identify who's who.
+- **Effort:** minutes, manual — `select id, source->>'guest_name' from registrations where user_phone='0000000000'` then per-person `update`.
+- **Note:** re-running `npm run import:historical` will NOT fix these (the CSVs still have blank phones); corrections must be applied directly in the DB or by first fixing the source CSV.
 
 ### BGC credit redemption at replay checkout
 

@@ -197,6 +197,20 @@ supabase/seeds/
 - No DB integration test (one-off script); correctness of the write path is
   verified by a `--dry-run` against the real CSVs before the live run.
 
+## Implementation deviation (2026-05-31)
+
+The spec above said rows with an unparseable phone are **skipped**. During the
+dry-run, replay-2 turned out to have 21 real walk-in registrations (door
+sign-ups, names + pass + day + ₹ paid, status Paid) with blank phone/email —
+~22% of the edition. Per organiser decision these are **not** skipped: they
+import under a single placeholder `users.phone = '0000000000'` (name null), and
+each person's real name is preserved in `registrations.source ->> 'guest_name'`
+for later correction. Implemented as `resolvePhone()` in `scripts/lib/mappers.ts`
+(blank/unparseable phone → placeholder + `guest_name`; real-phone rows
+unchanged). Final live counts: replay-1 = 50 regs, replay-2 = 103 regs (97
+confirmed), 13 orders, 122 users. Idempotency verified by a second run. See the
+"Correct replay-2 walk-in placeholder phones" follow-up in HANDOFF.md.
+
 ## Out of scope (captured as future phases in HANDOFF.md)
 
 - BGC credit redemption at replay checkout (forward-only; this import folds
