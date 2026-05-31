@@ -2,6 +2,8 @@
 // One-off, idempotent import of replay-1 + replay-2 history into Supabase.
 // Run: npm run import:historical [-- --dry-run]
 // Requires scripts/.env (or process env) with SUPABASE_URL + SUPABASE_SERVICE_KEY.
+// Not transactional: on partial failure mid-write, just re-run — the per-edition
+// delete-then-insert reconverges to the same state.
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
