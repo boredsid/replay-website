@@ -10,7 +10,9 @@ import {
   mapReplay1Registration,
   mapReplay2Registration,
   mapReplay2Order,
+  assignWalkinPhones,
   type EditionPricing,
+  type UserUpsert,
 } from './mappers';
 
 const R2_PRICING: EditionPricing = {
@@ -143,5 +145,31 @@ describe('mapReplay2Order', () => {
       user_phone: '7742251441', total: 399, payment_status: 'confirmed', source: { channel: 'website' },
       items: [{ name: 'Forest Friends', qty: 1, price: 399 }],
     });
+  });
+});
+
+describe('assignWalkinPhones', () => {
+  const u = (phone: string, name: string | null = null, email: string | null = null): UserUpsert => ({ phone, name, email });
+
+  it('gives each walk-in its own sequential synthetic phone + named user, leaving real-phone rows untouched', () => {
+    const a = { user: u('0000000000'), target: { user_phone: '0000000000', source: { channel: 'website' as const, guest_name: 'Amandeep' } } };
+    const b = { user: u('9876543210', 'Real', 'r@x.com'), target: { user_phone: '9876543210', source: { channel: 'website' as const } } };
+    const c = { user: u('0000000000'), target: { user_phone: '0000000000', source: { channel: 'website' as const, guest_name: 'Avinash' } } };
+    const next = assignWalkinPhones([a, b, c], 0);
+    expect(next).toBe(2);
+    expect(a.user).toEqual({ phone: '0000000000', name: 'Amandeep', email: null });
+    expect(a.target.user_phone).toBe('0000000000');
+    expect(b.user).toEqual({ phone: '9876543210', name: 'Real', email: 'r@x.com' }); // untouched
+    expect(b.target.user_phone).toBe('9876543210');
+    expect(c.user).toEqual({ phone: '0000000001', name: 'Avinash', email: null });
+    expect(c.target.user_phone).toBe('0000000001');
+  });
+
+  it('continues numbering from the start argument (chaining across lists)', () => {
+    const a = { user: u('0000000000'), target: { user_phone: '0000000000', source: { channel: 'website' as const, guest_name: 'X' } } };
+    const next = assignWalkinPhones([a], 5);
+    expect(next).toBe(6);
+    expect(a.user.phone).toBe('0000000005');
+    expect(a.target.user_phone).toBe('0000000005');
   });
 });

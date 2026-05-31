@@ -13,6 +13,7 @@ import {
   mapReplay1Registration,
   mapReplay2Registration,
   mapReplay2Order,
+  assignWalkinPhones,
   type EditionPricing,
   type UserUpsert,
   type RegistrationInsert,
@@ -137,46 +138,50 @@ async function main(): Promise<void> {
   const users = new Map<string, UserUpsert>();
   const skipped: string[] = [];
 
-  // replay-1 registrations
-  const r1Regs: RegistrationInsert[] = [];
-  const r1Users: UserUpsert[] = [];
+  // Map each file to {user, registration|order} pairs, preserving file/row order.
+  const r1Pairs: { user: UserUpsert; registration: RegistrationInsert }[] = [];
   r1Rows.forEach((row, idx) => {
     const m = mapReplay1Registration(row);
     if (!m) { skipped.push(`replay-1 reg line ${idx + 2}: bad phone "${row['Phone Number']}"`); return; }
-    r1Users.push(m.user);
-    r1Regs.push(m.registration);
+    r1Pairs.push(m);
   });
-  mergeUsers(users, r1Users);
 
-  // replay-2 registrations
-  const r2Regs: RegistrationInsert[] = [];
-  const r2Users: UserUpsert[] = [];
+  const r2Pairs: { user: UserUpsert; registration: RegistrationInsert }[] = [];
   r2Rows.forEach((row, idx) => {
     const m = mapReplay2Registration(row, REPLAY2_PRICING);
     if (!m) { skipped.push(`replay-2 reg line ${idx + 2}: bad phone "${row['Phone']}"`); return; }
-    r2Users.push(m.user);
-    r2Regs.push(m.registration);
+    r2Pairs.push(m);
   });
-  mergeUsers(users, r2Users);
 
-  // replay-2 orders
-  const r2Orders: OrderInsert[] = [];
-  const r2OrderUsers: UserUpsert[] = [];
+  const r2OrderPairs: { user: UserUpsert; order: OrderInsert }[] = [];
   r2OrderRows.forEach((row, idx) => {
     try {
       const m = mapReplay2Order(row);
       if (!m) { skipped.push(`replay-2 order line ${idx + 2}: bad phone "${row['Phone']}"`); return; }
-      r2OrderUsers.push(m.user);
-      r2Orders.push(m.order);
+      r2OrderPairs.push(m);
     } catch (e) {
       skipped.push(`replay-2 order line ${idx + 2}: ${(e as Error).message}`);
     }
   });
-  mergeUsers(users, r2OrderUsers);
+
+  // Phone-less walk-ins (rows carrying source.guest_name) each get their own sequential
+  // synthetic phone + named user, deterministically by file/row order so re-runs are stable.
+  let walkinCount = 0;
+  walkinCount = assignWalkinPhones(r1Pairs.map((p) => ({ user: p.user, target: p.registration })), walkinCount);
+  walkinCount = assignWalkinPhones(r2Pairs.map((p) => ({ user: p.user, target: p.registration })), walkinCount);
+  walkinCount = assignWalkinPhones(r2OrderPairs.map((p) => ({ user: p.user, target: p.order })), walkinCount);
+
+  const r1Regs = r1Pairs.map((p) => p.registration);
+  const r2Regs = r2Pairs.map((p) => p.registration);
+  const r2Orders = r2OrderPairs.map((p) => p.order);
+  mergeUsers(users, r1Pairs.map((p) => p.user));
+  mergeUsers(users, r2Pairs.map((p) => p.user));
+  mergeUsers(users, r2OrderPairs.map((p) => p.user));
 
   // ---- Summary ----
   console.log(`\nParsed:`);
   console.log(`  users (deduped):        ${users.size}`);
+  console.log(`  walk-in synthetic users:${walkinCount} (phones 0000000000..)`);
   console.log(`  replay-1 registrations: ${r1Regs.length} (${statusSplit(r1Regs)})`);
   console.log(`  replay-2 registrations: ${r2Regs.length} (${statusSplit(r2Regs)})`);
   console.log(`  replay-2 orders:        ${r2Orders.length} (${statusSplit(r2Orders)})`);

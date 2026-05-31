@@ -202,14 +202,20 @@ supabase/seeds/
 The spec above said rows with an unparseable phone are **skipped**. During the
 dry-run, replay-2 turned out to have 21 real walk-in registrations (door
 sign-ups, names + pass + day + ₹ paid, status Paid) with blank phone/email —
-~22% of the edition. Per organiser decision these are **not** skipped: they
-import under a single placeholder `users.phone = '0000000000'` (name null), and
-each person's real name is preserved in `registrations.source ->> 'guest_name'`
-for later correction. Implemented as `resolvePhone()` in `scripts/lib/mappers.ts`
-(blank/unparseable phone → placeholder + `guest_name`; real-phone rows
-unchanged). Final live counts: replay-1 = 50 regs, replay-2 = 103 regs (97
-confirmed), 13 orders, 122 users. Idempotency verified by a second run. See the
-"Correct replay-2 walk-in placeholder phones" follow-up in HANDOFF.md.
+~22% of the edition. Per organiser decision these are **not** skipped, and (after
+an initial pass that collapsed them onto one shared `0000000000` user) each
+walk-in imports as **its own user** with a sequential synthetic phone
+`0000000000`, `0000000001`, … and `users.name` set to the walk-in's name.
+Implemented in `scripts/lib/mappers.ts`: `resolvePhone()` first tags blank/
+unparseable-phone rows with a placeholder + `source.guest_name`, then
+`assignWalkinPhones(pairs, start)` (called from the orchestrator, chaining the
+counter across replay-1 → replay-2 regs → orders in file/row order) hands each
+walk-in its own synthetic phone + named user. Real-phone rows are untouched.
+`source.guest_name` is retained as the placeholder marker. Final live counts:
+replay-1 = 50 regs, replay-2 = 103 regs (97 confirmed), 13 orders, 142 users
+(121 real + 21 synthetic). Idempotency verified by re-runs (synthetic phones are
+deterministic). See the "Correct replay-2 walk-in placeholder phones" follow-up
+in HANDOFF.md.
 
 ## Out of scope (captured as future phases in HANDOFF.md)
 

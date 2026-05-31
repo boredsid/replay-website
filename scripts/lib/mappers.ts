@@ -185,3 +185,32 @@ export function mapReplay2Order(row: Record<string, string>):
     },
   };
 }
+
+// A registration or order row, for synthetic-identity assignment.
+export interface WalkinCarrier {
+  user_phone: string;
+  source: { channel: Channel; guest_name?: string };
+}
+
+// Phone-less walk-ins arrive sharing the placeholder phone with a null-named user.
+// Give EACH walk-in (a row carrying source.guest_name) its own sequential synthetic
+// phone — '0000000000', '0000000001', … from `start` — and its own user named after
+// the guest, instead of collapsing them onto one shared row. Real-phone rows (no
+// guest_name) are left untouched. Mutates the paired user + target in place and returns
+// the next counter, so callers chain across multiple lists for stable, gap-free numbering.
+export function assignWalkinPhones(
+  pairs: Array<{ user: UserUpsert; target: WalkinCarrier }>,
+  start = 0,
+): number {
+  let seq = start;
+  for (const { user, target } of pairs) {
+    if (!target.source.guest_name) continue;
+    const phone = String(seq).padStart(10, '0');
+    seq += 1;
+    user.phone = phone;
+    user.name = target.source.guest_name;
+    user.email = null;
+    target.user_phone = phone;
+  }
+  return seq;
+}
