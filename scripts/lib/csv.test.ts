@@ -30,4 +30,9 @@ describe('parseCsv', () => {
   it('returns [] for empty input', () => {
     expect(parseCsv('')).toEqual([]);
   });
+
+  it('parses the last row when there is no trailing newline', () => {
+    const rows = parseCsv('a,b\n1,2');
+    expect(rows).toEqual([{ a: '1', b: '2' }]);
+  });
 });
