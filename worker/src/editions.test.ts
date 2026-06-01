@@ -89,8 +89,15 @@ describe('getEditionBySlug', () => {
     (serviceClient as any).mockReturnValue({
       from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e1', slug: 'replay-3' }, error: null }) }) }) }),
     });
-    const row = await getEditionBySlug({ SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x' } as any, 'replay-3');
+    const row = await getEditionBySlug({} as any, 'replay-3');
     expect(row?.id).toBe('e1');
+  });
+
+  it('returns null when not found', async () => {
+    (serviceClient as any).mockReturnValue({
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+    });
+    expect(await getEditionBySlug({} as any, 'nope')).toBeNull();
   });
 });
 
@@ -99,7 +106,14 @@ describe('getCurrentEdition', () => {
     (serviceClient as any).mockReturnValue({
       from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e1', is_current: true }, error: null }) }) }) }),
     });
-    const row = await getCurrentEdition({ SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x' } as any);
+    const row = await getCurrentEdition({} as any);
     expect(row?.id).toBe('e1');
+  });
+
+  it('returns null when not found', async () => {
+    (serviceClient as any).mockReturnValue({
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+    });
+    expect(await getCurrentEdition({} as any)).toBeNull();
   });
 });
