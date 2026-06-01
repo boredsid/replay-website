@@ -1,0 +1,11 @@
+import { it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn() }));
+import { fetchAdmin } from '@/lib/api';
+import Leads from './Leads';
+
+it('renders leads', async () => {
+  (fetchAdmin as any).mockResolvedValue({ leads: [{ id: 'l1', phone: '9876543210', name: 'Bo', email: 'b@x.com', created_at: '2026-06-01', converted_at: null }] });
+  render(<Leads />);
+  await waitFor(() => expect(screen.getByText('Bo')).toBeInTheDocument());
+});
