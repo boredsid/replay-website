@@ -2,18 +2,15 @@
 import type { Env } from './index';
 import { serviceClient } from './supabase';
 import { fetchGuildStatus } from './bgc-client';
-import { sendEmail } from './apps-script';
 import {
   sanitizePhone,
   parseDays,
   parsePassType,
   jsonResponse,
-  type Day,
 } from './validation';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
-import { getEditionById, getConfirmedSeatsByDay, dayLabel } from './editions';
-import { editionOrdinal, shortDateRange, capitalize } from './format';
-import { buildGoogleCalendarUrl, buildWhatsAppShareUrl } from './calendar';
+import { getEditionById, getConfirmedSeatsByDay } from './editions';
+import { sendRegistrationConfirmation } from './registration-email';
 
 export async function handleRegister(req: Request, env: Env): Promise<Response> {
   let body: any;
@@ -123,29 +120,8 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
   // Email if zero-payment
   if (amountPaid === 0) {
     try {
-      const ord = editionOrdinal(edition.slug);
-      const editionDisplayName = (ord ? `REPLAY ${ord}` : 'REPLAY').trim();
-      await sendEmail(env, {
-        template: 'replay-registration',
-        to: email,
-        subject: `${editionDisplayName} — registration confirmed`,
-        variables: {
-          name,
-          edition_name: editionDisplayName,
-          venue: edition.venue,
-          date_range: shortDateRange(edition.start_date, edition.end_date),
-          pass_type: passType,
-          days_label: dayLabel(days),
-          seats: 1,
-          amount_paid: amountPaid,
-          discount_applied: discount,
-          guild_tier: capitalize(tierStored ?? ''),
-          calendar_google_url: buildGoogleCalendarUrl(edition),
-          calendar_ics_url: `https://api.replaycon.in/api/ics/${edition.slug}.ics`,
-          schedule_url: 'https://replaycon.in/schedule',
-          instagram_url: 'https://instagram.com/replaycon',
-          whatsapp_share_url: buildWhatsAppShareUrl(edition),
-        },
+      await sendRegistrationConfirmation(env, edition, {
+        name, email, passType, days, amountPaid, discount, tier: tierStored,
       });
     } catch (e) {
       // Email failure should not break registration; log and continue.
