@@ -18,7 +18,7 @@ export interface LeadRow {
   id: string;
   phone: string;
   name: string | null;
-  email: string | null;
+  step_reached: string;
   created_at: string;
   converted_at: string | null;
 }

@@ -5,7 +5,8 @@ import { fetchAdmin } from '@/lib/api';
 import Leads from './Leads';
 
 it('renders leads', async () => {
-  (fetchAdmin as any).mockResolvedValue({ leads: [{ id: 'l1', phone: '9876543210', name: 'Bo', email: 'b@x.com', created_at: '2026-06-01', converted_at: null }] });
+  (fetchAdmin as any).mockResolvedValue({ leads: [{ id: 'l1', phone: '9876543210', name: 'Bo', step_reached: 'phone_entered', created_at: '2026-06-01', converted_at: null }] });
   render(<Leads />);
   await waitFor(() => expect(screen.getByText('Bo')).toBeInTheDocument());
+  expect(screen.getByText('phone_entered')).toBeInTheDocument();
 });
