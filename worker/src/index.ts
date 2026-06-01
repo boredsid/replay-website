@@ -6,6 +6,15 @@ import { handleEditionSpots } from './edition-spots';
 import { handleCancelRegistration } from './cancel-registration';
 import { handleLead } from './lead';
 import { handleIcsRequest } from './ics';
+import { verifyAccessJwt } from './access-auth';
+import { pickAdminOrigin, adminCorsHeaders, adminJson } from './admin/auth';
+import { serviceClient } from './supabase';
+import { handleWhoami } from './admin/whoami';
+import { handleRebuild } from './admin/rebuild';
+import { handleDashboard } from './admin/dashboard';
+import { handleRegList, handleRegGet, handleRegCreate, handleRegPatch } from './admin/registrations';
+import { handleLeadsList } from './admin/leads';
+import { handleAuditList } from './admin/audit';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -26,14 +35,40 @@ export interface Env {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
-    }
-
     const url = new URL(req.url);
     const path = url.pathname;
 
+    if (req.method === 'OPTIONS') {
+      if (path.startsWith('/api/admin/')) {
+        return new Response(null, { status: 204, headers: adminCorsHeaders(pickAdminOrigin(req, env)) });
+      }
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
     try {
+      if (path.startsWith('/api/admin/')) {
+        const origin = pickAdminOrigin(req, env);
+        const token = req.headers.get('Cf-Access-Jwt-Assertion') || '';
+        const auth = await verifyAccessJwt(token, env);
+        if (!auth.ok) return adminJson({ error: 'unauthorized', reason: auth.reason }, 401, origin);
+        const email = auth.email;
+        const sb = serviceClient(env);
+
+        if (path === '/api/admin/whoami' && req.method === 'GET') return handleWhoami(email, origin);
+        if (path === '/api/admin/rebuild' && req.method === 'POST') return await handleRebuild(env, sb, email, origin);
+        if (path === '/api/admin/dashboard' && req.method === 'GET') return await handleDashboard(req, env, sb, origin);
+        if (path === '/api/admin/leads' && req.method === 'GET') return await handleLeadsList(req, env, sb, origin);
+        if (path === '/api/admin/audit' && req.method === 'GET') return await handleAuditList(req, env, sb, origin);
+
+        if (path === '/api/admin/registrations' && req.method === 'GET') return await handleRegList(req, env, sb, origin);
+        if (path === '/api/admin/registrations' && req.method === 'POST') return await handleRegCreate(req, env, sb, email, origin);
+        const regMatch = path.match(/^\/api\/admin\/registrations\/([^/]+)$/);
+        if (regMatch && req.method === 'GET') return await handleRegGet(env, sb, regMatch[1], origin);
+        if (regMatch && req.method === 'PATCH') return await handleRegPatch(req, env, sb, regMatch[1], email, origin);
+
+        return adminJson({ error: 'not_found' }, 404, origin);
+      }
+
       if (path === '/api/health') {
         return jsonResponse({ ok: true, env: env.ENVIRONMENT });
       }

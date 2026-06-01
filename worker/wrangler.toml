@@ -11,6 +11,7 @@ BGC_WORKER_URL = "https://api.boardgamecompany.in"
 UPI_ID = "suranjanadatta24-1@okaxis"
 CF_ACCESS_TEAM_DOMAIN = "boardgamecompany.cloudflareaccess.com"
 CF_ACCESS_AUD = "0983cd2ae4c9939c15d1ebecabe9d57a9630e8b09ada408279a9b17d3ecf132f"
+ADMIN_ORIGIN = "https://admin.replaycon.in"
 
 [[routes]]
 pattern = "api.replaycon.in"
