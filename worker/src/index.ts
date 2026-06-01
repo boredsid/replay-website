@@ -21,6 +21,7 @@ export interface Env {
   CF_ACCESS_AUD: string;
   ADMIN_EMAILS: string;
   CLOUDFLARE_PAGES_DEPLOY_HOOK: string;
+  ADMIN_ORIGIN: string;
 }
 
 export default {
