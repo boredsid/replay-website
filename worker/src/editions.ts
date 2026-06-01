@@ -49,3 +49,17 @@ const DAY_NAMES: Record<Day, string> = { day1: 'Saturday', day2: 'Sunday' };
 export function dayLabel(days: Day[]): string {
   return days.map((d) => DAY_NAMES[d]).join(' + ');
 }
+
+export async function getEditionBySlug(env: Env, slug: string): Promise<EditionRow | null> {
+  const sb = serviceClient(env);
+  const { data, error } = await sb.from('editions').select('*').eq('slug', slug).maybeSingle();
+  if (error) throw new Error(`editions: ${error.message}`);
+  return (data as EditionRow) ?? null;
+}
+
+export async function getCurrentEdition(env: Env): Promise<EditionRow | null> {
+  const sb = serviceClient(env);
+  const { data, error } = await sb.from('editions').select('*').eq('is_current', true).maybeSingle();
+  if (error) throw new Error(`editions: ${error.message}`);
+  return (data as EditionRow) ?? null;
+}

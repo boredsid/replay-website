@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('./supabase', () => ({ serviceClient: vi.fn() }));
 
 import { serviceClient } from './supabase';
-import { getEditionById, getConfirmedSeatsByDay, dayLabel } from './editions';
+import { getEditionById, getConfirmedSeatsByDay, dayLabel, getEditionBySlug, getCurrentEdition } from './editions';
 
 describe('getEditionById', () => {
   it('returns the row when found', async () => {
@@ -81,5 +81,25 @@ describe('dayLabel', () => {
     expect(dayLabel(['day1'])).toBe('Saturday');
     expect(dayLabel(['day2'])).toBe('Sunday');
     expect(dayLabel(['day1', 'day2'])).toBe('Saturday + Sunday');
+  });
+});
+
+describe('getEditionBySlug', () => {
+  it('returns the row matched by slug', async () => {
+    (serviceClient as any).mockReturnValue({
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e1', slug: 'replay-3' }, error: null }) }) }) }),
+    });
+    const row = await getEditionBySlug({ SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x' } as any, 'replay-3');
+    expect(row?.id).toBe('e1');
+  });
+});
+
+describe('getCurrentEdition', () => {
+  it('returns the is_current row', async () => {
+    (serviceClient as any).mockReturnValue({
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e1', is_current: true }, error: null }) }) }) }),
+    });
+    const row = await getCurrentEdition({ SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x' } as any);
+    expect(row?.id).toBe('e1');
   });
 });
