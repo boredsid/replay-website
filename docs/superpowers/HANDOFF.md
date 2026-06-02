@@ -1,8 +1,8 @@
 # REPLAY rebuild — handoff
 
-**Last updated:** 2026-05-31
+**Last updated:** 2026-06-02
 **Current branch:** `main` (production)
-**Status:** Phase 1 shipped end-to-end (including 1F email rework) and Phase 2 historical import shipped. Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity. Supabase now holds replay-1, replay-2, and replay-3 editions with replay-1/replay-2 registrations + orders imported.
+**Status:** Phase 1 (incl. 1F email rework), Phase 2 historical import, and **Phase 3A admin foundation** all shipped. Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity. Supabase holds replay-1/replay-2/replay-3 editions with replay-1/replay-2 registrations + orders imported. The admin SPA (`admin.replaycon.in`) now has working Dashboard / Registrations (incl. manual add + confirm/cancel) / Leads / Audit screens, backed by `/api/admin/*` worker endpoints gated by CF Access. Phase 3B (editions CRUD, users, manual-reg pricing) and 3C (products/orders/sponsors/schedule) remain.
 
 This doc orients a new session. For low-level patterns, gotchas, and discovered facts, read `CLAUDE.md` first — that's where durable learnings live. This doc is the higher-level "where are we, what's next."
 
@@ -106,7 +106,7 @@ Roughly in order of dependency / value.
   2. Worker side: add `/api/admin/*` routes to `worker/src/index.ts` gated by `access-auth.ts` (`verifyAccessJwt` already exists, used in `cancel-registration.ts` lines 17-25 as the reference pattern).
   3. First screen: dashboard with edition-spots, recent registrations, recent leads. Worker has all the queries already (`getEditionById`, `getConfirmedSeatsByDay`).
   4. Second screen: edition CRUD — flip `registration_status` from `upcoming` → `open` → `sold_out` → `closed` via admin instead of SQL.
-- **Note:** the old handoff referenced a "gated admin if/else chain" in `worker/src/index.ts` — that doesn't exist yet. The router currently has 6 public-ish routes (`/api/health`, `/api/lookup-phone`, `/api/register`, `/api/edition-spots/:id`, `/api/cancel-registration`, `/api/lead`, `/api/ics/:slug.ics`). Admin routes need to be added behind `verifyAccessJwt`.
+- **Status — Phase 3A shipped (2026-06-02):** the `/api/admin/*` gate + dispatch now exists in `worker/src/index.ts` (handlers in `worker/src/admin/`), and the SPA screens (Dashboard, Registrations incl. manual add + confirm/cancel, Leads, Audit) are built in `admin/`. Auth: the existing `admin.replaycon.in` CF Access app was extended with a second Application Domain `api.replaycon.in/api/admin` (one app, one AUD `0983cd2a…132f` = worker `CF_ACCESS_AUD`), so Cloudflare injects `Cf-Access-Jwt-Assertion` on admin API calls. **Remaining for 3B/3C:** editions CRUD (flip `registration_status` from the UI), users screen, manual-reg pricing automation + explicit edition selector, products/orders/sponsors/schedule. See spec `docs/superpowers/specs/2026-06-01-replay-phase-3a-admin-foundation-design.md` + plan `docs/superpowers/plans/2026-06-01-replay-phase-3a-admin-foundation.md`. Deferred 3A follow-ups: dashboard recent-regs/leads lists not yet rendered; `RegistrationDrawer` `id`-undefined guard; debounce on registrations search.
 
 ### Playwright E2E (hardening phase)
 
@@ -198,7 +198,7 @@ admin/                                      Vite + React SPA shell (Phase 3 fill
 supabase/migrations/                        001 schema + RLS, 002 leads unique index
 supabase/seeds/                             replay-3 edition seed
 apps-script/Code.gs                         Paste-bait reference for the GAS project
-scripts/                                    Empty (Phase 2 will add import-historical.ts)
+scripts/                                    Phase 2 historical import (import-historical.ts + lib/ + data/ gitignored)
 ```
 
 `CLAUDE.md` at repo root has the durable session learnings — read it before assuming anything about why a thing is the way it is. Every gotcha I hit during Phase 1 is recorded there.
