@@ -16,3 +16,11 @@ ADMIN_ORIGIN = "https://admin.replaycon.in"
 [[routes]]
 pattern = "api.replaycon.in"
 custom_domain = true
+
+# Same-origin admin API: serve /api/admin/* on the admin host so the SPA makes
+# same-origin calls (no CORS/preflight). admin.replaycon.in is already behind the
+# CF Access app, so Cloudflare injects Cf-Access-Jwt-Assertion on these paths.
+# Worker routes take precedence over the Pages project for this path prefix.
+[[routes]]
+pattern = "admin.replaycon.in/api/admin/*"
+zone_name = "replaycon.in"

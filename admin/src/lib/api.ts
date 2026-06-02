@@ -1,6 +1,14 @@
 import { emitRevalidate } from './revalidate';
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
+// On the production admin host the worker is routed same-origin at
+// admin.replaycon.in/api/admin/* (see worker/wrangler.toml), so we force a
+// relative base there — this avoids cross-origin CORS/preflight entirely
+// (Cloudflare Access 403s unauthenticated OPTIONS preflights). Elsewhere
+// (local dev) fall back to VITE_API_BASE.
+const API_BASE =
+  typeof location !== 'undefined' && location.hostname === 'admin.replaycon.in'
+    ? ''
+    : ((import.meta.env.VITE_API_BASE as string | undefined) ?? '');
 
 export class ApiError extends Error {
   status: number;
