@@ -59,7 +59,14 @@ export async function getEditionBySlug(env: Env, slug: string): Promise<EditionR
 
 export async function getCurrentEdition(env: Env): Promise<EditionRow | null> {
   const sb = serviceClient(env);
-  const { data, error } = await sb.from('editions').select('*').eq('is_current', true).maybeSingle();
+  const { data, error } = await sb
+    .from('editions')
+    .select('*')
+    .eq('is_published', true)
+    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
   if (error) throw new Error(`editions: ${error.message}`);
-  return (data as EditionRow) ?? null;
+  const rows = (data as EditionRow[]) ?? [];
+  return rows[0] ?? null;
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('./supabase', () => ({ serviceClient: vi.fn() }));
 
@@ -102,18 +102,32 @@ describe('getEditionBySlug', () => {
 });
 
 describe('getCurrentEdition', () => {
-  it('returns the is_current row', async () => {
+  const limitMock = vi.fn();
+
+  beforeEach(() => {
+    limitMock.mockReset();
     (serviceClient as any).mockReturnValue({
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e1', is_current: true }, error: null }) }) }) }),
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              order: () => ({ limit: limitMock }),
+            }),
+          }),
+        }),
+      }),
     });
-    const row = await getCurrentEdition({} as any);
-    expect(row?.id).toBe('e1');
   });
 
-  it('returns null when not found', async () => {
-    (serviceClient as any).mockReturnValue({
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
-    });
-    expect(await getCurrentEdition({} as any)).toBeNull();
+  it('returns the latest-dated published edition', async () => {
+    limitMock.mockResolvedValue({ data: [{ id: 'e3', slug: 'replay-3', start_date: '2026-09-12' }], error: null });
+    const ed = await getCurrentEdition({} as any);
+    expect(ed?.slug).toBe('replay-3');
+  });
+
+  it('returns null when no published edition', async () => {
+    limitMock.mockResolvedValue({ data: [], error: null });
+    const ed = await getCurrentEdition({} as any);
+    expect(ed).toBeNull();
   });
 });
