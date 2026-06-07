@@ -41,3 +41,50 @@ export interface DashboardData {
   recent_leads: LeadRow[];
 }
 export interface SpotCount { capacity: number; confirmed: number; remaining: number; }
+
+export interface EditionPricing {
+  oneshot: { day1: number; day2: number };
+  campaign: number;
+  adventurer_cap: number;
+}
+
+export interface EditionRow {
+  id: string;
+  slug: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  venue: string;
+  capacity_per_day: { day1: number; day2: number };
+  pricing: EditionPricing;
+  registration_status: 'upcoming' | 'open' | 'sold_out' | 'closed';
+  is_current: boolean;
+  is_published: boolean;
+}
+
+export interface UserRow {
+  phone: string;
+  name: string | null;
+  email: string | null;
+  notes: string | null;
+  created_at: string;
+  registration_count: number;
+}
+
+export interface UserDetail {
+  phone: string;
+  name: string | null;
+  email: string | null;
+  notes: string | null;
+  created_at: string;
+  registrations: Array<{
+    id: string;
+    pass_type: string;
+    days: string[];
+    amount_paid: number;
+    payment_status: string;
+    created_at: string;
+    editions?: { slug: string; name: string } | null;
+  }>;
+  orders: Array<{ id: string; total: number; payment_status: string; created_at: string }>;
+}

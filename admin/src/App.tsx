@@ -8,6 +8,10 @@ import RegistrationDrawer from '@/pages/RegistrationDrawer';
 import ManualRegistrationDrawer from '@/pages/ManualRegistrationDrawer';
 import Leads from '@/pages/Leads';
 import AuditLog from '@/pages/AuditLog';
+import Editions from '@/pages/Editions';
+import EditionDrawer from '@/pages/EditionDrawer';
+import Users from '@/pages/Users';
+import UserDrawer from '@/pages/UserDrawer';
 
 export function App() {
   return (
@@ -26,6 +30,11 @@ export function App() {
                 path="/registrations/:id"
                 element={<><RegistrationsList /><RegistrationDrawer /></>}
               />
+              <Route path="/editions" element={<Editions />} />
+              <Route path="/editions/new" element={<><Editions /><EditionDrawer /></>} />
+              <Route path="/editions/:id" element={<><Editions /><EditionDrawer /></>} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/users/:phone" element={<><Users /><UserDrawer /></>} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/audit" element={<AuditLog />} />
               <Route path="*" element={<Navigate to="/" replace />} />
