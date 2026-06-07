@@ -9,8 +9,14 @@ const STATUSES = ['upcoming', 'open', 'sold_out', 'closed'];
 function readCapacity(input: unknown): { day1: number; day2: number } {
   if (!input || typeof input !== 'object') throw new Error('capacity: not an object');
   const c = input as any;
-  if (typeof c.day1 !== 'number' || typeof c.day2 !== 'number') throw new Error('capacity: day1/day2 required as numbers');
+  if (!Number.isFinite(c.day1) || !Number.isFinite(c.day2) || c.day1 < 0 || c.day2 < 0)
+    throw new Error('capacity: day1/day2 required as non-negative numbers');
   return { day1: c.day1, day2: c.day2 };
+}
+
+function assertFinitePricing(p: { oneshot: { day1: number; day2: number }; campaign: number; adventurer_cap: number }) {
+  const vals = [p.oneshot.day1, p.oneshot.day2, p.campaign, p.adventurer_cap];
+  if (vals.some((v) => !Number.isFinite(v) || v < 0)) throw new Error('pricing: all values must be finite, non-negative numbers');
 }
 
 export async function handleEdList(env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
@@ -31,7 +37,7 @@ export async function handleEdCreate(req: Request, env: Env, sb: SupabaseClient,
     return adminJson({ error: 'invalid_dates' }, 400, origin);
   const venue = typeof body.venue === 'string' ? body.venue.trim() : '';
   let pricing: unknown, capacity: unknown;
-  try { pricing = readPricing(body.pricing); capacity = readCapacity(body.capacity_per_day); }
+  try { pricing = readPricing(body.pricing); assertFinitePricing(pricing as any); capacity = readCapacity(body.capacity_per_day); }
   catch (e: any) { return adminJson({ error: e.message }, 400, origin); }
   const status = STATUSES.includes(body.registration_status) ? body.registration_status : 'upcoming';
 
@@ -72,7 +78,7 @@ export async function handleEdPatch(req: Request, env: Env, sb: SupabaseClient, 
   const ed = patch.end_date ?? prev.end_date;
   if (ed < sd) return adminJson({ error: 'invalid_dates' }, 400, origin);
   if (typeof body.venue === 'string') patch.venue = body.venue.trim();
-  if (body.pricing !== undefined) { try { patch.pricing = readPricing(body.pricing); } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
+  if (body.pricing !== undefined) { try { const pr = readPricing(body.pricing); assertFinitePricing(pr as any); patch.pricing = pr; } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
   if (body.capacity_per_day !== undefined) { try { patch.capacity_per_day = readCapacity(body.capacity_per_day); } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
   if (STATUSES.includes(body.registration_status)) patch.registration_status = body.registration_status;
   if (typeof body.is_current === 'boolean') patch.is_current = body.is_current;

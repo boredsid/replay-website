@@ -47,6 +47,20 @@ describe('handleEdCreate', () => {
     expect(inserted.registration_status).toBe('upcoming');
     expect(audit.row.action).toBe('edition.create');
   });
+
+  it('rejects a negative capacity', async () => {
+    const sb: any = { from: () => ({}) };
+    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', pricing: PRICING, capacity_per_day: { day1: -5, day2: 250 } }) });
+    const res = await handleEdCreate(req, {} as any, sb, 'sid@x.com', O);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a non-finite price', async () => {
+    const sb: any = { from: () => ({}) };
+    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: null }, capacity_per_day: CAP }) });
+    const res = await handleEdCreate(req, {} as any, sb, 'sid@x.com', O);
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('handleEdPatch', () => {
