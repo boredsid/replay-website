@@ -1,7 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { handleUserPatch, handleUserChangePhone } from './users';
+import { handleUserList, handleUserPatch, handleUserChangePhone } from './users';
 
 const O = 'https://admin.replaycon.in';
+
+describe('handleUserList', () => {
+  it('sanitizes the search query before building the PostgREST filter', async () => {
+    let orArg: string | null = null;
+    const sb: any = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: () => ({
+              or: (expr: string) => { orArg = expr; return Promise.resolve({ data: [], error: null }); },
+            }),
+          }),
+        }),
+      }),
+    };
+    const req = new Request('https://x/api/admin/users?q=' + encodeURIComponent('a,phone.eq.0000000000'));
+    const res = await handleUserList(req, {} as any, sb, 'https://admin.replaycon.in');
+    expect(res.status).toBe(200);
+    // special chars (comma, dots) stripped → no injected OR clause
+    expect(orArg).toBe('phone.ilike.%aphoneeq0000000000%,name.ilike.%aphoneeq0000000000%');
+  });
+});
 
 describe('handleUserPatch', () => {
   it('updates name/email/notes and writes audit', async () => {

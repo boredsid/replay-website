@@ -6,7 +6,9 @@ import { sanitizePhone } from '../validation';
 
 export async function handleUserList(req: Request, env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
   const params = new URL(req.url).searchParams;
-  const q = (params.get('q') || '').trim();
+  // Restrict to alphanumerics + spaces so q can't inject PostgREST .or() grammar
+  // (commas/parens/*) into the filter string below. Names are letters/spaces, phones digits.
+  const q = (params.get('q') || '').replace(/[^a-zA-Z0-9 ]/g, '').trim();
   const limit = Math.min(Number(params.get('limit')) || 50, 200);
   const offset = Number(params.get('offset')) || 0;
 
