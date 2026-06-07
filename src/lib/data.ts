@@ -31,14 +31,16 @@ export async function getCurrentEdition(): Promise<EditionRow | null> {
   const { data, error } = await supabase
     .from('editions')
     .select('*')
-    .eq('is_current', true)
     .eq('is_published', true)
-    .maybeSingle();
+    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
   if (error) {
     console.error('getCurrentEdition error:', error);
     return null;
   }
-  return (data as EditionRow) ?? null;
+  const rows = (data as EditionRow[]) ?? [];
+  return rows[0] ?? null;
 }
 
 export async function getSponsors(editionId: string): Promise<SponsorRow[]> {

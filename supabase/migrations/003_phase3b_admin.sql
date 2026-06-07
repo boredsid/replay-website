@@ -16,3 +16,7 @@ alter table orders
   add constraint orders_user_phone_fkey
   foreign key (user_phone) references users(phone)
   on update cascade on delete restrict;
+
+-- 3. admin_audit_log.target_id holds non-uuid targets too (e.g. users.phone),
+--    so widen it to text. Existing uuid values cast cleanly to text.
+alter table admin_audit_log alter column target_id type text using target_id::text;
