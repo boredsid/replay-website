@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
+import { onRevalidate } from '@/lib/revalidate';
 import type { UserRow } from '@/lib/types';
 
 export default function Users() {
@@ -19,6 +20,15 @@ export default function Users() {
   }
 
   useEffect(() => { load(''); }, []);
+
+  const qRef = useRef('');
+  useEffect(() => { qRef.current = q; }, [q]);
+  useEffect(() => {
+    const off = onRevalidate(() => load(qRef.current));
+    return () => { off(); };
+  }, []);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   function onSearch(v: string) {
     setQ(v);

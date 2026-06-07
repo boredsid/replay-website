@@ -29,6 +29,7 @@ export default function EditionDrawer() {
 
   useEffect(() => {
     if (isNew) return;
+    setLoaded(false);
     (async () => {
       try {
         const res = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
