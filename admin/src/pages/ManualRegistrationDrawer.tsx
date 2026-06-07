@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
+import type { EditionRow } from '@/lib/types';
 import { toast } from 'sonner';
 
 export default function ManualRegistrationDrawer() {
@@ -15,9 +16,29 @@ export default function ManualRegistrationDrawer() {
   const [sendEmail, setSendEmail] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const [editions, setEditions] = useState<EditionRow[]>([]);
+  const [edition, setEdition] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
+        setEditions(res.editions);
+        if (res.editions[0]) setEdition(res.editions[0].slug);
+      } catch { /* selector stays empty; worker falls back to current edition */ }
+    })();
+  }, []);
+
   const phoneDigits = phone.replace(/\D/g, '');
   const selectedDays = (['day1', 'day2'] as const).filter((d) => days[d]);
   const valid = phoneDigits.length >= 10 && selectedDays.length > 0;
+
+  const selectedEdition = editions.find((e) => e.slug === edition);
+  const baseHint = selectedEdition
+    ? passType === 'campaign'
+      ? selectedEdition.pricing.campaign
+      : selectedEdition.pricing.oneshot[selectedDays[0] ?? 'day1']
+    : null;
 
   async function submit() {
     if (!valid) { toast.error('Enter a valid phone and at least one day'); return; }
@@ -26,6 +47,7 @@ export default function ManualRegistrationDrawer() {
       await fetchAdmin('/api/admin/registrations', {
         method: 'POST',
         body: JSON.stringify({
+          edition,
           phone: phoneDigits,
           name,
           email,
@@ -46,6 +68,11 @@ export default function ManualRegistrationDrawer() {
       <button onClick={() => nav('/registrations')} className="mb-4 text-sm text-muted-foreground">← Close</button>
       <h2 className="mb-4 text-xl font-bold">Add registration</h2>
       <div className="space-y-3">
+        <L label="Edition">
+          <select aria-label="Edition" value={edition} onChange={(e) => setEdition(e.target.value)} className="w-full rounded-md border px-3 py-2">
+            {editions.map((e) => (<option key={e.id} value={e.slug}>{e.slug} — {e.name}</option>))}
+          </select>
+        </L>
         <L label="Phone">
           <input aria-label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </L>
@@ -74,6 +101,9 @@ export default function ManualRegistrationDrawer() {
         <L label="Amount (₹)">
           <input aria-label="Amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </L>
+        {baseHint != null && (
+          <div className="-mt-2 text-xs text-muted-foreground">Base for this pass: ₹{baseHint}</div>
+        )}
         <L label="Status">
           <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as 'confirmed' | 'pending')} className="w-full rounded-md border px-3 py-2">
             <option value="confirmed">Confirmed</option>

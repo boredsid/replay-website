@@ -13,6 +13,8 @@ import { handleWhoami } from './admin/whoami';
 import { handleRebuild } from './admin/rebuild';
 import { handleDashboard } from './admin/dashboard';
 import { handleRegList, handleRegGet, handleRegCreate, handleRegPatch } from './admin/registrations';
+import { handleEdList, handleEdCreate, handleEdPatch } from './admin/editions';
+import { handleUserList, handleUserGet, handleUserPatch, handleUserChangePhone } from './admin/users';
 import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
 
@@ -65,6 +67,18 @@ export default {
         const regMatch = path.match(/^\/api\/admin\/registrations\/([^/]+)$/);
         if (regMatch && req.method === 'GET') return await handleRegGet(env, sb, regMatch[1], origin);
         if (regMatch && req.method === 'PATCH') return await handleRegPatch(req, env, sb, regMatch[1], email, origin);
+
+        if (path === '/api/admin/editions' && req.method === 'GET') return await handleEdList(env, sb, origin);
+        if (path === '/api/admin/editions' && req.method === 'POST') return await handleEdCreate(req, env, sb, email, origin);
+        const edMatch = path.match(/^\/api\/admin\/editions\/([^/]+)$/);
+        if (edMatch && req.method === 'PATCH') return await handleEdPatch(req, env, sb, edMatch[1], email, origin);
+
+        if (path === '/api/admin/users' && req.method === 'GET') return await handleUserList(req, env, sb, origin);
+        const userChangePhone = path.match(/^\/api\/admin\/users\/([^/]+)\/change-phone$/);
+        if (userChangePhone && req.method === 'POST') return await handleUserChangePhone(req, env, sb, userChangePhone[1], email, origin);
+        const userMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+        if (userMatch && req.method === 'GET') return await handleUserGet(env, sb, userMatch[1], origin);
+        if (userMatch && req.method === 'PATCH') return await handleUserPatch(req, env, sb, userMatch[1], email, origin);
 
         return adminJson({ error: 'not_found' }, 404, origin);
       }
