@@ -43,8 +43,8 @@ export interface DashboardData {
 export interface SpotCount { capacity: number; confirmed: number; remaining: number; }
 
 export interface EditionPricing {
-  oneshot: { day1: number; day2: number };
-  campaign: number;
+  oneshot: Record<string, number>; // per-day prices keyed day1..dayN
+  campaign: number | null;         // null for single-day editions
   adventurer_cap: number;
 }
 
@@ -55,7 +55,7 @@ export interface EditionRow {
   start_date: string;
   end_date: string;
   venue: string;
-  capacity_per_day: { day1: number; day2: number };
+  capacity_per_day: Record<string, number>; // day1..dayN
   pricing: EditionPricing;
   registration_status: 'upcoming' | 'open' | 'sold_out' | 'closed';
   is_current: boolean;

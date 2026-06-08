@@ -2,20 +2,26 @@ import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { writeAudit, diffRows } from './audit';
-import { readPricing } from '../pricing';
+import { readPricing, type Pricing } from '../pricing';
 
 const STATUSES = ['upcoming', 'open', 'sold_out', 'closed'];
 
-function readCapacity(input: unknown): { day1: number; day2: number } {
+// Editions can be any number of days, so capacity is a variable day1..dayN map.
+function readCapacity(input: unknown): Record<string, number> {
   if (!input || typeof input !== 'object') throw new Error('capacity: not an object');
   const c = input as any;
-  if (!Number.isFinite(c.day1) || !Number.isFinite(c.day2) || c.day1 < 0 || c.day2 < 0)
-    throw new Error('capacity: day1/day2 required as non-negative numbers');
-  return { day1: c.day1, day2: c.day2 };
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(c)) {
+    if (!Number.isFinite(v) || (v as number) < 0) throw new Error(`capacity: ${k} must be a non-negative number`);
+    out[k] = v as number;
+  }
+  if (!Number.isFinite(out.day1)) throw new Error('capacity: day1 required as a non-negative number');
+  return out;
 }
 
-function assertFinitePricing(p: { oneshot: { day1: number; day2: number }; campaign: number; adventurer_cap: number }) {
-  const vals = [p.oneshot.day1, p.oneshot.day2, p.campaign, p.adventurer_cap];
+function assertFinitePricing(p: Pricing) {
+  const vals = [...Object.values(p.oneshot), p.adventurer_cap];
+  if (p.campaign !== null) vals.push(p.campaign);
   if (vals.some((v) => !Number.isFinite(v) || v < 0)) throw new Error('pricing: all values must be finite, non-negative numbers');
 }
 
