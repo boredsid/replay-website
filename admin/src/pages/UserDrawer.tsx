@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import type { UserDetail } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function UserDrawer() {
   const nav = useNavigate();
@@ -12,6 +13,9 @@ export default function UserDrawer() {
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [changing, setChanging] = useState(false);
 
   useEffect(() => {
     if (!phone) return;
@@ -35,15 +39,18 @@ export default function UserDrawer() {
     } catch (e) { showApiError(e); } finally { setBusy(false); }
   }
 
-  async function changePhone() {
-    const next = prompt('New phone number (10 digits):', '');
-    if (!next) return;
-    if (!confirm(`Change phone from ${phone} to ${next}? This moves all their registrations and orders.`)) return;
+  const newPhoneDigits = newPhone.replace(/\D/g, '');
+  const newPhoneValid = newPhoneDigits.length === 10;
+
+  async function confirmChangePhone() {
+    if (!newPhoneValid) { toast.error('Enter a 10-digit phone number'); return; }
+    setChanging(true);
     try {
-      await fetchAdmin(`/api/admin/users/${phone}/change-phone`, { method: 'POST', body: JSON.stringify({ phone: next }) });
+      await fetchAdmin(`/api/admin/users/${phone}/change-phone`, { method: 'POST', body: JSON.stringify({ phone: newPhoneDigits }) });
       toast.success('Phone changed');
+      setPhoneOpen(false);
       nav('/users');
-    } catch (e) { showApiError(e); }
+    } catch (e) { showApiError(e); } finally { setChanging(false); }
   }
 
   if (!user) return null;
@@ -61,7 +68,7 @@ export default function UserDrawer() {
         <button disabled={busy} onClick={saveDetails} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
           {busy ? 'Saving…' : 'Save details'}
         </button>
-        <button onClick={changePhone} className="w-full rounded-md border px-3 py-2 text-sm">Change phone number</button>
+        <button onClick={() => { setNewPhone(''); setPhoneOpen(true); }} className="w-full rounded-md border px-3 py-2 text-sm">Change phone number</button>
       </div>
 
       <div className="mt-6 border-t pt-4">
@@ -86,6 +93,35 @@ export default function UserDrawer() {
           </>
         )}
       </div>
+
+      <Dialog open={phoneOpen} onOpenChange={setPhoneOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change phone number</DialogTitle>
+            <DialogDescription>
+              This moves all of {user.name || user.phone}'s registrations and orders from {user.phone} to the new number.
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            aria-label="New phone"
+            inputMode="numeric"
+            placeholder="New 10-digit phone"
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
+            className="w-full rounded-md border px-3 py-2"
+          />
+          <DialogFooter>
+            <button onClick={() => setPhoneOpen(false)} className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto">Cancel</button>
+            <button
+              disabled={!newPhoneValid || changing}
+              onClick={confirmChangePhone}
+              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50 sm:w-auto"
+            >
+              {changing ? 'Changing…' : 'Change phone'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

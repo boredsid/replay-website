@@ -1,23 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import type { EditionRow } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 type Form = {
   slug: string; name: string; start_date: string; end_date: string; venue: string;
   registration_status: EditionRow['registration_status'];
   is_current: boolean; is_published: boolean;
-  oneshot_day1: string; oneshot_day2: string; campaign: string; adventurer_cap: string;
-  cap_day1: string; cap_day2: string;
+  oneshot: Record<string, string>; // day1..dayN price strings
+  caps: Record<string, string>;    // day1..dayN capacity strings
+  campaign: string; adventurer_cap: string;
 };
 
 const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
   registration_status: 'upcoming', is_current: false, is_published: false,
-  oneshot_day1: '800', oneshot_day2: '800', campaign: '1400', adventurer_cap: '1000',
-  cap_day1: '250', cap_day2: '250',
+  oneshot: { day1: '800' }, caps: { day1: '250' }, campaign: '1400', adventurer_cap: '1000',
 };
+
+// Inclusive day span between two ISO dates; falls back to 1 when dates are unset/invalid.
+function daySpan(start: string, end: string): number {
+  if (!start || !end) return 1;
+  const s = Date.parse(start + 'T00:00:00Z');
+  const e = Date.parse(end + 'T00:00:00Z');
+  if (Number.isNaN(s) || Number.isNaN(e) || e < s) return 1;
+  return Math.floor((e - s) / 86400000) + 1;
+}
 
 export default function EditionDrawer() {
   const nav = useNavigate();
@@ -26,6 +36,8 @@ export default function EditionDrawer() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(isNew);
+  const [showRebuild, setShowRebuild] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -35,12 +47,16 @@ export default function EditionDrawer() {
         const res = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
         const e = res.editions.find((x) => x.id === id);
         if (!e) { toast.error('Edition not found'); nav('/editions'); return; }
+        const oneshot: Record<string, string> = {};
+        for (const [k, v] of Object.entries(e.pricing.oneshot)) oneshot[k] = String(v);
+        const caps: Record<string, string> = {};
+        for (const [k, v] of Object.entries(e.capacity_per_day)) caps[k] = String(v);
         setForm({
           slug: e.slug, name: e.name, start_date: e.start_date, end_date: e.end_date, venue: e.venue,
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
-          oneshot_day1: String(e.pricing.oneshot.day1), oneshot_day2: String(e.pricing.oneshot.day2),
-          campaign: String(e.pricing.campaign), adventurer_cap: String(e.pricing.adventurer_cap),
-          cap_day1: String(e.capacity_per_day.day1), cap_day2: String(e.capacity_per_day.day2),
+          oneshot, caps,
+          campaign: e.pricing.campaign == null ? '' : String(e.pricing.campaign),
+          adventurer_cap: String(e.pricing.adventurer_cap),
         });
         setLoaded(true);
       } catch (e) { showApiError(e); }
@@ -48,28 +64,45 @@ export default function EditionDrawer() {
   }, [id, isNew, nav]);
 
   function set<K extends keyof Form>(k: K, v: Form[K]) { setForm((f) => ({ ...f, [k]: v })); }
+  function setDayPrice(key: string, v: string) { setForm((f) => ({ ...f, oneshot: { ...f.oneshot, [key]: v } })); }
+  function setDayCap(key: string, v: string) { setForm((f) => ({ ...f, caps: { ...f.caps, [key]: v } })); }
+
+  const dayCount = daySpan(form.start_date, form.end_date);
+  const dayKeys = useMemo(() => Array.from({ length: dayCount }, (_, i) => `day${i + 1}`), [dayCount]);
+  const isMultiDay = dayCount >= 2;
 
   async function save() {
     setBusy(true);
+    const oneshot: Record<string, number> = {};
+    for (const k of dayKeys) oneshot[k] = Number(form.oneshot[k] ?? '');
+    const capacity: Record<string, number> = {};
+    for (const k of dayKeys) capacity[k] = Number(form.caps[k] ?? '');
     const payload = {
       slug: form.slug.trim(), name: form.name, start_date: form.start_date, end_date: form.end_date, venue: form.venue,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
-      pricing: {
-        oneshot: { day1: Number(form.oneshot_day1), day2: Number(form.oneshot_day2) },
-        campaign: Number(form.campaign), adventurer_cap: Number(form.adventurer_cap),
-      },
-      capacity_per_day: { day1: Number(form.cap_day1), day2: Number(form.cap_day2) },
+      pricing: { oneshot, campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
+      capacity_per_day: capacity,
     };
     try {
       if (isNew) await fetchAdmin('/api/admin/editions', { method: 'POST', body: JSON.stringify(payload) });
       else await fetchAdmin(`/api/admin/editions/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       toast.success(isNew ? 'Edition created' : 'Edition saved');
-      if (confirm('Rebuild the public site now? (edition changes are baked in at build time, ~60s)')) {
-        try { await fetchAdmin('/api/admin/rebuild', { method: 'POST' }); toast.success('Site rebuilding…'); }
-        catch (e) { showApiError(e, 'Saved, but rebuild failed — use the Rebuild button.'); }
-      }
-      nav('/editions');
+      setShowRebuild(true);
     } catch (e) { showApiError(e); } finally { setBusy(false); }
+  }
+
+  async function doRebuild() {
+    setRebuilding(true);
+    try {
+      await fetchAdmin('/api/admin/rebuild', { method: 'POST' });
+      toast.success('Site rebuilding… (~60s)');
+    } catch (e) {
+      showApiError(e, 'Saved, but rebuild failed — try the Rebuild button later.');
+    } finally {
+      setRebuilding(false);
+      setShowRebuild(false);
+      nav('/editions');
+    }
   }
 
   if (!loaded) return null;
@@ -83,6 +116,7 @@ export default function EditionDrawer() {
         <F label="Name"><input aria-label="Name" value={form.name} onChange={(e) => set('name', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="Start date"><input aria-label="Start date" type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="End date"><input aria-label="End date" type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+        <div className="text-xs text-muted-foreground">{dayCount} day{dayCount === 1 ? '' : 's'} — set start &amp; end dates to change.</div>
         <F label="Venue"><input aria-label="Venue" value={form.venue} onChange={(e) => set('venue', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="Registration status">
           <select aria-label="Registration status" value={form.registration_status} onChange={(e) => set('registration_status', e.target.value as Form['registration_status'])} className="w-full rounded-md border px-3 py-2">
@@ -94,22 +128,60 @@ export default function EditionDrawer() {
         </F>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.is_current} onChange={(e) => set('is_current', e.target.checked)} /> Current edition</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.is_published} onChange={(e) => set('is_published', e.target.checked)} /> Published</label>
-        <div className="border-t pt-3 text-sm font-semibold">Pricing (₹)</div>
+
+        <div className="border-t pt-3 text-sm font-semibold">Day pass price (₹)</div>
         <div className="grid grid-cols-2 gap-2">
-          <F label="Oneshot Sat"><input aria-label="Oneshot Sat" type="number" value={form.oneshot_day1} onChange={(e) => set('oneshot_day1', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
-          <F label="Oneshot Sun"><input aria-label="Oneshot Sun" type="number" value={form.oneshot_day2} onChange={(e) => set('oneshot_day2', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
-          <F label="Campaign"><input aria-label="Campaign" type="number" value={form.campaign} onChange={(e) => set('campaign', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
-          <F label="Adventurer cap"><input aria-label="Adventurer cap" type="number" value={form.adventurer_cap} onChange={(e) => set('adventurer_cap', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+          {dayKeys.map((k, i) => (
+            <F key={k} label={`Day ${i + 1} price`}>
+              <input aria-label={`Day ${i + 1} price`} type="number" value={form.oneshot[k] ?? ''} onChange={(e) => setDayPrice(k, e.target.value)} className="w-full rounded-md border px-3 py-2" />
+            </F>
+          ))}
         </div>
+        {isMultiDay && (
+          <F label={`Campaign (all ${dayCount} days)`}>
+            <input aria-label="Campaign" type="number" value={form.campaign} onChange={(e) => set('campaign', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          </F>
+        )}
+        <F label="Adventurer cap"><input aria-label="Adventurer cap" type="number" value={form.adventurer_cap} onChange={(e) => set('adventurer_cap', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+
         <div className="border-t pt-3 text-sm font-semibold">Capacity / day</div>
         <div className="grid grid-cols-2 gap-2">
-          <F label="Capacity Sat"><input aria-label="Capacity Sat" type="number" value={form.cap_day1} onChange={(e) => set('cap_day1', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
-          <F label="Capacity Sun"><input aria-label="Capacity Sun" type="number" value={form.cap_day2} onChange={(e) => set('cap_day2', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+          {dayKeys.map((k, i) => (
+            <F key={k} label={`Day ${i + 1} capacity`}>
+              <input aria-label={`Day ${i + 1} capacity`} type="number" value={form.caps[k] ?? ''} onChange={(e) => setDayCap(k, e.target.value)} className="w-full rounded-md border px-3 py-2" />
+            </F>
+          ))}
         </div>
         <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
           {busy ? 'Saving…' : isNew ? 'Create edition' : 'Save edition'}
         </button>
       </div>
+
+      <Dialog open={showRebuild} onOpenChange={(o) => { if (!o) { setShowRebuild(false); nav('/editions'); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rebuild the site?</DialogTitle>
+            <DialogDescription>
+              Edition changes are baked into the public site at build time. Rebuild now to publish them (~60s), or do it later from the Rebuild button.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => { setShowRebuild(false); nav('/editions'); }}
+              className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
+            >
+              Do later
+            </button>
+            <button
+              disabled={rebuilding}
+              onClick={doRebuild}
+              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50 sm:w-auto"
+            >
+              {rebuilding ? 'Rebuilding…' : 'Rebuild now'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

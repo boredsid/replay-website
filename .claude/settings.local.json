@@ -83,7 +83,27 @@
       "Bash(file /Users/siddhantnarula/Projects/replay-website/public/carousel-photos/*.jpeg)",
       "Bash(cat)",
       "Bash(open /tmp/photo-grid.html)",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "Bash(npx vitest *)",
+      "mcp__plugin_context-mode_context-mode__ctx_search",
+      "WebSearch",
+      "Bash(git merge *)",
+      "Bash(git fetch *)",
+      "Bash(grep -v -E '^\\\\*|main$')",
+      "Bash(grep -vE 'origin/main$|HEAD')",
+      "Bash(grep -v '^$')",
+      "Bash(sed -n '1,40p' worker/src/admin/audit.ts)",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(sed -n '1,30p' src/admin/audit.ts)",
+      "Bash(sed -n '17,26p' src/validation.ts)",
+      "Bash(echo \"---EXIT $?---\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(sed -n '/create table admin_audit_log/,/\\);/p' supabase/migrations/001_initial_schema.sql)",
+      "Bash(sed -n '/export async function writeAudit/,/^}/p' worker/src/admin/audit.ts)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"tsc exit: $?\")"
     ]
   }
 }

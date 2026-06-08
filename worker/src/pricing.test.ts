@@ -15,9 +15,18 @@ describe('readPricing', () => {
     const p = { oneshot: { day1: 600, day2: 600 }, campaign: 999 };
     expect(readPricing(p).adventurer_cap).toBe(Infinity);
   });
-  it('throws when oneshot or campaign is missing', () => {
-    expect(() => readPricing({ oneshot: { day1: 1 } } as any)).toThrow();
+  it('parses a single-day edition (only day1, campaign null)', () => {
+    const p = { oneshot: { day1: 800 }, adventurer_cap: 1000 };
+    expect(readPricing(p)).toEqual({ oneshot: { day1: 800 }, campaign: null, adventurer_cap: 1000 });
+  });
+  it('parses a three-day edition (day1..day3)', () => {
+    const p = { oneshot: { day1: 800, day2: 800, day3: 800 }, campaign: 2000, adventurer_cap: 1000 };
+    expect(readPricing(p).oneshot).toEqual({ day1: 800, day2: 800, day3: 800 });
+  });
+  it('throws when oneshot is missing, has no day1, or has a non-number value', () => {
     expect(() => readPricing({ campaign: 1 } as any)).toThrow();
+    expect(() => readPricing({ oneshot: { day2: 800 } } as any)).toThrow(); // no day1
+    expect(() => readPricing({ oneshot: { day1: 'x' } } as any)).toThrow(); // non-number
     expect(() => readPricing(null as any)).toThrow();
   });
 });
