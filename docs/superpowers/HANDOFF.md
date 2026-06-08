@@ -86,6 +86,22 @@ Roughly in order of dependency / value.
 - **Blast radius:** `users`, `registrations`, `orders` schema; every worker file that selects/joins/inserts by `user_phone` (`register.ts`, `lookup-phone.ts`, `cancel-registration.ts`, `admin/registrations.ts`, `admin/users.ts`, `editions.ts` capacity queries); `scripts/lib/mappers.ts` + import orchestrator (dedup keys on phone); admin `RegistrationRow`/`UserRow` types. Medium-large; do it as its own spec → plan, not folded into a feature phase. Must run against the live production DB with imported replay-1/2/3 data, so back up + dry-run first.
 - **Note:** Phase 3B deliberately did NOT do this — it added `ON UPDATE CASCADE` to the two phone FKs as a cheap interim so the walk-in phone fix (and any phone edit) works today. This task supersedes that workaround.
 
+### Configurable event length — full N-day support (design later)
+
+- **Context:** Phase 3B shipped a STOPGAP (2026-06-08) so the admin can edit editions of any length and the worker validates a variable `day1..dayN` pricing/capacity map (unblocked editing replay-1, a real 1-day edition). But several surfaces still assume EXACTLY 2 days and need a proper redesign before a non-2-day edition can take live registrations:
+  - `worker/src/validation.ts` — `KNOWN_DAYS = ['day1','day2']`, `parseDays` only accepts day1/day2; `Day` type is `'day1'|'day2'`.
+  - `worker/src/register.ts` — campaign requires exactly day1+day2 (`days.length !== 2`).
+  - `worker/src/editions.ts` `getConfirmedSeatsByDay` + `edition-spots.ts` — hardcode `day1`/`day2`.
+  - `worker/src/editions.ts` `dayLabel` / `DAY_NAMES` — `day1=Saturday, day2=Sunday` (assumes a weekend).
+  - Public site: register form day selectors, capacity gating, and the schedule's Sat/Sun tabs (`ScheduleDay.astro`, schedule page) are 2-day.
+- **Scope:** generalize "days" to N (derive count from the edition's `start_date..end_date` span; key everything `day1..dayN`; label days by actual date, not Sat/Sun). Touches worker validation/register/spots/capacity + the public register + schedule UIs. Historical replay-1 (1-day) and replay-2/3 (2-day) data already fits the `day1..dayN` map.
+- **Dependencies:** none hard. Do it as its own brainstorm → spec → plan. The current edition (replay-3) is 2-day, so there's no live urgency until a 1-day or 3-day edition needs to open registration.
+
+### Fix the stale CF Pages deploy hook (small, needs CF dashboard)
+
+- **Problem:** the admin "Rebuild site" button + `POST /api/admin/rebuild` fail (`deploy_hook_failed`) because the deploy hook in worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK` (`01e9488c-…`) is bound to a branch that no longer exists → CF returns `400 "Unable to find a branch"`. Stale since the Phase-1D cutover (site now builds from `main`).
+- **Fix:** Cloudflare dashboard → Pages → `replay-website` → Settings → Builds & deployments → Deploy hooks → add one targeting branch `main`; copy its URL; then `cd worker && npx wrangler secret put CLOUDFLARE_PAGES_DEPLOY_HOOK` and paste the new URL. No code change. (The `replay-admin` Pages project rebuilds itself on push to `main`; this hook is only for the public site.)
+
 ### BGC credit redemption at replay checkout
 
 - **Scope:** let a replay pass purchase apply the buyer's BGC store-credit balance, mirroring how bgc's own registration redeems credits. BGC keeps an append-only `user_credits` ledger (bgc `supabase/migrations/008_user_credits.sql` + `009_user_credits_idempotent.sql`; balance = `sum(amount)` per user). Replay worker cross-calls bgc (same bearer-token pattern as `guild-status`, secret `REPLAY_TO_BGC_SECRET`) for (a) balance lookup by phone→user_id and (b) an atomic redemption when a purchase is confirmed. Net price becomes `base − guild_discount − credits_applied`, floored at 0.
