@@ -97,11 +97,6 @@ Roughly in order of dependency / value.
 - **Scope:** generalize "days" to N (derive count from the edition's `start_date..end_date` span; key everything `day1..dayN`; label days by actual date, not Sat/Sun). Touches worker validation/register/spots/capacity + the public register + schedule UIs. Historical replay-1 (1-day) and replay-2/3 (2-day) data already fits the `day1..dayN` map.
 - **Dependencies:** none hard. Do it as its own brainstorm → spec → plan. The current edition (replay-3) is 2-day, so there's no live urgency until a 1-day or 3-day edition needs to open registration.
 
-### Fix the stale CF Pages deploy hook (small, needs CF dashboard)
-
-- **Problem:** the admin "Rebuild site" button + `POST /api/admin/rebuild` fail (`deploy_hook_failed`) because the deploy hook in worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK` (`01e9488c-…`) is bound to a branch that no longer exists → CF returns `400 "Unable to find a branch"`. Stale since the Phase-1D cutover (site now builds from `main`).
-- **Fix:** Cloudflare dashboard → Pages → `replay-website` → Settings → Builds & deployments → Deploy hooks → add one targeting branch `main`; copy its URL; then `cd worker && npx wrangler secret put CLOUDFLARE_PAGES_DEPLOY_HOOK` and paste the new URL. No code change. (The `replay-admin` Pages project rebuilds itself on push to `main`; this hook is only for the public site.)
-
 ### BGC credit redemption at replay checkout
 
 - **Scope:** let a replay pass purchase apply the buyer's BGC store-credit balance, mirroring how bgc's own registration redeems credits. BGC keeps an append-only `user_credits` ledger (bgc `supabase/migrations/008_user_credits.sql` + `009_user_credits_idempotent.sql`; balance = `sum(amount)` per user). Replay worker cross-calls bgc (same bearer-token pattern as `guild-status`, secret `REPLAY_TO_BGC_SECRET`) for (a) balance lookup by phone→user_id and (b) an atomic redemption when a purchase is confirmed. Net price becomes `base − guild_discount − credits_applied`, floored at 0.
