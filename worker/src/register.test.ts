@@ -5,14 +5,14 @@ vi.mock('./bgc-client', () => ({ fetchGuildStatus: vi.fn() }));
 vi.mock('./apps-script', () => ({ sendEmail: vi.fn() }));
 vi.mock('./editions', () => ({
   getEditionById: vi.fn(),
-  getConfirmedSeatsByDay: vi.fn(),
+  getReservedSeatsByDay: vi.fn(),
   dayLabel: (days: string[]) => days.join('+'),
 }));
 
 import { serviceClient } from './supabase';
 import { fetchGuildStatus } from './bgc-client';
 import { sendEmail } from './apps-script';
-import { getEditionById, getConfirmedSeatsByDay } from './editions';
+import { getEditionById, getReservedSeatsByDay } from './editions';
 import { handleRegister } from './register';
 
 function mockEnv() {
@@ -26,6 +26,8 @@ function defaultEdition() {
     name: 'REPLAY 3',
     start_date: '2026-09-12',
     end_date: '2026-09-13',
+    daily_start_time: '10:00:00',
+    daily_end_time: '19:00:00',
     venue: 'TBD',
     capacity_per_day: { day1: 250, day2: 250 },
     pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 },
@@ -120,7 +122,7 @@ function validBody(overrides: Partial<any> = {}) {
 beforeEach(() => {
   vi.resetAllMocks();
   (getEditionById as any).mockResolvedValue(defaultEdition());
-  (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 0, day2: 0 });
+  (getReservedSeatsByDay as any).mockResolvedValue({ day1: 0, day2: 0 });
   (fetchGuildStatus as any).mockResolvedValue({ tier: null, active: false });
   (sendEmail as any).mockResolvedValue(undefined);
 });
@@ -144,7 +146,7 @@ describe('handleRegister', () => {
   });
 
   it('rejects when day capacity exceeded', async () => {
-    (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 0 });
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 0 });
     (serviceClient as any).mockReturnValue(mockSupabase({}));
     const req = new Request('http://x/api/register', { method: 'POST', body: validBody() });
     const res = await handleRegister(req, mockEnv());
@@ -225,5 +227,39 @@ describe('handleRegister', () => {
     const req = new Request('http://x/api/register', { method: 'POST', body: validBody({ pass_type: 'oneshot', days: ['day1', 'day2'] }) });
     const res = await handleRegister(req, mockEnv());
     expect(res.status).toBe(400);
+  });
+
+  it('fills only missing identity fields for a returning user', async () => {
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({
+      existingUser: { phone: '9876543210', name: 'Asha', email: null },
+      capture: cap,
+    }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({ name: 'Different name', email: 'new@example.com' }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(200);
+    expect(cap.user).toEqual({ email: 'new@example.com' });
+  });
+
+  it('preserves stored identity and emails the stored address', async () => {
+    (fetchGuildStatus as any).mockResolvedValue({ tier: 'guildmaster', active: true });
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({
+      existingUser: { phone: '9876543210', name: 'Asha', email: 'asha@example.com' },
+      capture: cap,
+    }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({ name: 'Different name', email: 'other@example.com' }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(200);
+    expect(cap.user).toBeUndefined();
+    const emailPayload = (sendEmail as any).mock.calls[0][1];
+    expect(emailPayload.to).toBe('asha@example.com');
+    expect(emailPayload.variables.name).toBe('Asha');
   });
 });

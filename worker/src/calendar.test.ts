@@ -6,6 +6,8 @@ const edition = {
   name: 'REPLAY',
   start_date: '2026-09-12',
   end_date: '2026-09-13',
+  daily_start_time: '10:00:00',
+  daily_end_time: '19:00:00',
   venue: 'The Foundry, Bangalore',
 };
 
@@ -13,6 +15,10 @@ describe('buildGoogleCalendarUrl', () => {
   it('encodes start and end in UTC ISO basic format', () => {
     const url = buildGoogleCalendarUrl(edition);
     expect(url).toContain('dates=20260912T043000Z%2F20260913T133000Z');
+  });
+  it('uses the edition times instead of a hard-coded event window', () => {
+    const url = buildGoogleCalendarUrl({ ...edition, daily_start_time: '09:15', daily_end_time: '20:30' });
+    expect(url).toContain('dates=20260912T034500Z%2F20260913T150000Z');
   });
   it('URL-encodes the title with ordinal label', () => {
     const url = buildGoogleCalendarUrl(edition);

@@ -1,14 +1,14 @@
 // worker/src/edition-spots.ts
 import type { Env } from './index';
 import { jsonResponse } from './validation';
-import { getEditionById, getConfirmedSeatsByDay } from './editions';
+import { getEditionById, getReservedSeatsByDay } from './editions';
 
 export async function handleEditionSpots(editionId: string, env: Env): Promise<Response> {
   if (!editionId) return jsonResponse({ error: 'invalid edition_id' }, 400);
   const edition = await getEditionById(env, editionId);
   if (!edition) return jsonResponse({ error: 'not_found' }, 404);
 
-  const seats = await getConfirmedSeatsByDay(env, editionId);
+  const seats = await getReservedSeatsByDay(env, editionId);
   const cap = edition.capacity_per_day;
   const day1Remaining = Math.max(0, cap.day1 - seats.day1);
   const day2Remaining = Math.max(0, cap.day2 - seats.day2);

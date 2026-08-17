@@ -5,35 +5,41 @@ import { onRevalidate } from '@/lib/revalidate';
 import type { UserRow } from '@/lib/types';
 
 export default function Users() {
+  const PAGE_SIZE = 50;
   const [users, setUsers] = useState<UserRow[]>([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function load(query: string) {
+  async function load(query: string, nextOffset = offset) {
     setLoading(true);
     try {
-      const qs = query ? `?q=${encodeURIComponent(query)}` : '';
-      const res = await fetchAdmin<{ users: UserRow[] }>(`/api/admin/users${qs}`);
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) });
+      if (query) params.set('q', query);
+      const res = await fetchAdmin<{ users: UserRow[]; has_more: boolean }>(`/api/admin/users?${params}`);
       setUsers(res.users);
+      setHasMore(res.has_more);
+      setOffset(nextOffset);
     } catch (e) { showApiError(e); } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(''); }, []);
+  useEffect(() => { load('', 0); }, []);
 
   const qRef = useRef('');
   useEffect(() => { qRef.current = q; }, [q]);
   useEffect(() => {
-    const off = onRevalidate(() => load(qRef.current));
+    const off = onRevalidate(() => load(qRef.current, offset));
     return () => { off(); };
-  }, []);
+  }, [offset]);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   function onSearch(v: string) {
     setQ(v);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => load(v.trim()), 300);
+    timer.current = setTimeout(() => load(v.trim(), 0), 300);
   }
 
   return (
@@ -60,6 +66,23 @@ export default function Users() {
             </Link>
           ))}
           {users.length === 0 && <div className="text-muted-foreground">No users found.</div>}
+          <div className="flex items-center justify-between pt-2">
+            <button
+              disabled={loading || offset === 0}
+              onClick={() => load(q.trim(), Math.max(0, offset - PAGE_SIZE))}
+              className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-muted-foreground">Showing {offset + 1}–{offset + users.length}</span>
+            <button
+              disabled={loading || !hasMore}
+              onClick={() => load(q.trim(), offset + PAGE_SIZE)}
+              className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

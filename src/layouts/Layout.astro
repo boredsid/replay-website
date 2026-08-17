@@ -1,12 +1,15 @@
 ---
 import '../styles/global.css';
+import '@fontsource-variable/inter/wght.css';
+import '@fontsource-variable/space-grotesk/wght.css';
 export interface Props {
   title: string;
   description?: string;
   ogImage?: string;
 }
-const { title, description = "Bangalore's gaming convention.", ogImage = '/link-preview.png' } = Astro.props;
+const { title, description = "REPLAY is Bangalore's two-day board-game convention: open play, demos, tournaments, and hundreds of games.", ogImage = '/link-preview.png' } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 ---
 <!doctype html>
 <html lang="en">
@@ -21,21 +24,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.i
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
+    <meta property="og:image:alt" content="REPLAY — Bangalore's board-game convention" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
     <link rel="icon" type="image/png" href="/replay-icon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="sticky top-0 z-40" style="background: #1A1A1A;">
-      <div class="container-x px-6 py-3 flex items-center justify-between">
+      <div class="container-x px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <a href="/" aria-label="REPLAY home" class="inline-flex items-center">
-          <img src="/replay-logo.png" alt="REPLAY" class="h-9 md:h-10 w-auto" />
+          <img src="/replay-logo.png" alt="REPLAY" class="h-7 sm:h-9 md:h-10 w-auto max-w-[108px] sm:max-w-none" />
         </a>
-        <nav class="flex gap-6 md:gap-8 items-center">
-          <a href="/schedule" class="nav-link">Schedule</a>
-          <a href="/register" class="btn btn-primary btn-sm">Register</a>
+        <nav aria-label="Main navigation" class="flex gap-3 sm:gap-6 md:gap-8 items-center">
+          <a href="/schedule" class:list={['nav-link', path === '/schedule' && 'active']} aria-current={path === '/schedule' ? 'page' : undefined}>Schedule</a>
+          <a href="/register" class="btn btn-primary btn-sm" aria-current={path === '/register' ? 'page' : undefined}>Register</a>
         </nav>
       </div>
     </header>
@@ -70,7 +75,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.i
       }
     </style>
 
-    <main class="min-h-[60vh]">
+    <main id="main-content" class="min-h-[60vh]" tabindex="-1">
       <slot />
     </main>
 

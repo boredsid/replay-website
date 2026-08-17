@@ -2,6 +2,7 @@
 import type { Env } from './index';
 import { serviceClient } from './supabase';
 import { sanitizePhone, jsonResponse } from './validation';
+import { publicRequestAllowed } from './rate-limit';
 
 export async function handleCancelRegistration(req: Request, env: Env): Promise<Response> {
   let body: any;
@@ -14,6 +15,9 @@ export async function handleCancelRegistration(req: Request, env: Env): Promise<
   const phone = sanitizePhone(body.phone);
   if (!registrationId) return jsonResponse({ error: 'invalid registration_id' }, 400);
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
+  if (!(await publicRequestAllowed(env, req, 'cancel-registration', phone))) {
+    return jsonResponse({ error: 'rate_limited' }, 429);
+  }
 
   const sb = serviceClient(env);
   const lookup = await sb
@@ -21,6 +25,7 @@ export async function handleCancelRegistration(req: Request, env: Env): Promise<
     .select('id, user_phone, payment_status')
     .eq('id', registrationId)
     .maybeSingle();
+  if (lookup.error) return jsonResponse({ error: 'lookup_failed' }, 500);
   const reg = lookup.data as { id: string; user_phone: string; payment_status: string } | null;
   if (!reg) return jsonResponse({ error: 'not_found' }, 404);
   if (reg.user_phone !== phone) return jsonResponse({ error: 'forbidden' }, 403);

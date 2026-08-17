@@ -36,10 +36,9 @@ describe('LiveSpotsBadge', () => {
     await waitFor(() => expect(screen.getByText(/saturday full.*100 sunday spots left/i)).toBeInTheDocument());
   });
 
-  it('quietly renders nothing on fetch failure', async () => {
+  it('shows a clear status on fetch failure', async () => {
     mockFetch(500, {});
-    const { container } = render(<LiveSpotsBadge editionId="e1" />);
-    await waitFor(() => expect(container.textContent).not.toMatch(/loading/i));
-    expect(container.textContent?.trim()).toBe('');
+    render(<LiveSpotsBadge editionId="e1" />);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/temporarily unavailable/i));
   });
 });

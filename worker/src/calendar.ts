@@ -7,14 +7,25 @@ interface EditionLike {
   name: string;
   start_date: string;
   end_date: string;
+  daily_start_time: string;
+  daily_end_time: string;
   venue: string;
 }
 
-// Convention runs 10:00–19:00 IST. IST is UTC+05:30, so:
-//   10:00 IST → 04:30 UTC, 19:00 IST → 13:30 UTC.
-export function toUtcBasic(dateIso: string, time: 'start' | 'end'): string {
-  const t = time === 'start' ? '043000Z' : '133000Z';
-  return `${dateIso.replace(/-/g, '')}T${t}`;
+// REPLAY's times are stored as India Standard Time (UTC+05:30). Calendar
+// providers need UTC basic format, including when a time crosses UTC midnight.
+export function toUtcBasic(dateIso: string, localTime: string): string {
+  const dateMatch = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = localTime.match(/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+  if (!dateMatch || !timeMatch) throw new Error('invalid calendar date or time');
+  const utc = new Date(Date.UTC(
+    Number(dateMatch[1]),
+    Number(dateMatch[2]) - 1,
+    Number(dateMatch[3]),
+    Number(timeMatch[1]) - 5,
+    Number(timeMatch[2]) - 30,
+  ));
+  return utc.toISOString().replace(/[-:]/g, '').replace(/\.000/, '');
 }
 
 function displayName(edition: EditionLike): string {
@@ -23,7 +34,7 @@ function displayName(edition: EditionLike): string {
 }
 
 export function buildGoogleCalendarUrl(edition: EditionLike): string {
-  const dates = `${toUtcBasic(edition.start_date, 'start')}/${toUtcBasic(edition.end_date, 'end')}`;
+  const dates = `${toUtcBasic(edition.start_date, edition.daily_start_time)}/${toUtcBasic(edition.end_date, edition.daily_end_time)}`;
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: displayName(edition),

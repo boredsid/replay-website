@@ -6,9 +6,13 @@ import { fetchAdmin } from '@/lib/api';
 import RegistrationsList from './RegistrationsList';
 
 it('renders registration rows (mobile cards + desktop table)', async () => {
-  (fetchAdmin as any).mockResolvedValue({
-    edition: { id: 'e1', slug: 'replay-3' },
-    registrations: [{ id: 'r1', user_phone: '9876543210', pass_type: 'oneshot', days: ['day1'], seats: 1, amount_paid: 800, payment_status: 'confirmed', created_at: '2026-06-01', users: { name: 'Asha' } }],
+  (fetchAdmin as any).mockImplementation((path: string) => {
+    if (path === '/api/admin/editions') return Promise.resolve({
+      editions: [{ id: 'e1', slug: 'replay-3', name: 'REPLAY', is_current: true }],
+    });
+    return Promise.resolve({
+      registrations: [{ id: 'r1', user_phone: '9876543210', pass_type: 'oneshot', days: ['day1'], seats: 1, amount_paid: 800, payment_status: 'confirmed', created_at: '2026-06-01', users: { name: 'Asha' } }],
+    });
   });
   render(<MemoryRouter><RegistrationsList /></MemoryRouter>);
   await waitFor(() => expect(screen.getAllByText('Asha').length).toBeGreaterThan(0));

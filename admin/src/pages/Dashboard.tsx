@@ -21,6 +21,32 @@ export default function Dashboard() {
         <SpotBar label="Saturday (day1)" s={data.spots_by_day.day1} />
         <SpotBar label="Sunday (day2)" s={data.spots_by_day.day2} />
       </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <section className="rounded-lg border p-4">
+          <h2 className="mb-3 font-semibold">Recent registrations</h2>
+          <div className="space-y-2 text-sm">
+            {data.recent_registrations.map((registration) => (
+              <div key={registration.id} className="flex items-center justify-between gap-3 border-b pb-2 last:border-0">
+                <span className="font-mono">{registration.user_phone}</span>
+                <span className="text-muted-foreground">{registration.pass_type} · {registration.payment_status}</span>
+              </div>
+            ))}
+            {data.recent_registrations.length === 0 && <p className="text-muted-foreground">No registrations yet.</p>}
+          </div>
+        </section>
+        <section className="rounded-lg border p-4">
+          <h2 className="mb-3 font-semibold">Recent leads</h2>
+          <div className="space-y-2 text-sm">
+            {data.recent_leads.map((lead) => (
+              <div key={lead.id} className="flex items-center justify-between gap-3 border-b pb-2 last:border-0">
+                <span>{lead.name || lead.phone}</span>
+                <span className="text-muted-foreground">{lead.step_reached}{lead.converted_at ? ' · converted' : ''}</span>
+              </div>
+            ))}
+            {data.recent_leads.length === 0 && <p className="text-muted-foreground">No leads yet.</p>}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -28,13 +54,13 @@ export default function Dashboard() {
 function Stat({ label, value }: { label: string; value: number | string }) {
   return <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">{label}</div><div className="text-2xl font-bold">{value}</div></div>;
 }
-function SpotBar({ label, s }: { label: string; s: { capacity: number; confirmed: number; remaining: number } }) {
-  const pct = Math.min(100, Math.round((s.confirmed / s.capacity) * 100));
+function SpotBar({ label, s }: { label: string; s: { capacity: number; reserved: number; remaining: number } }) {
+  const pct = s.capacity > 0 ? Math.min(100, Math.round((s.reserved / s.capacity) * 100)) : 0;
   return (
     <div className="rounded-lg border p-4">
       <div className="mb-2 flex justify-between text-sm"><span>{label}</span><span>{s.remaining} left</span></div>
       <div className="h-3 w-full rounded bg-muted"><div className="h-3 rounded bg-primary" style={{ width: pct + '%' }} /></div>
-      <div className="mt-1 text-xs text-muted-foreground">{s.confirmed} / {s.capacity}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{s.reserved} reserved / {s.capacity}</div>
     </div>
   );
 }

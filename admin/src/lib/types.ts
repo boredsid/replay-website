@@ -40,7 +40,7 @@ export interface DashboardData {
   recent_registrations: RegistrationRow[];
   recent_leads: LeadRow[];
 }
-export interface SpotCount { capacity: number; confirmed: number; remaining: number; }
+export interface SpotCount { capacity: number; reserved: number; remaining: number; }
 
 export interface EditionPricing {
   oneshot: Record<string, number>; // per-day prices keyed day1..dayN
@@ -54,6 +54,8 @@ export interface EditionRow {
   name: string;
   start_date: string;
   end_date: string;
+  daily_start_time: string;
+  daily_end_time: string;
   venue: string;
   capacity_per_day: Record<string, number>; // day1..dayN
   pricing: EditionPricing;

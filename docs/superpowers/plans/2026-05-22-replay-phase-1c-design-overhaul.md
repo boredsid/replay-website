@@ -1241,7 +1241,7 @@ update editions set registration_status = 'open' where slug = 'replay-3';
 Then fire the deploy hook to rebuild:
 
 ```javascript
-await fetch('https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/01e9488c-00cc-4c38-aa87-9be5820a51f7', { method: 'POST' });
+await fetch(process.env.CLOUDFLARE_PAGES_DEPLOY_HOOK, { method: 'POST' });
 ```
 
 Wait ~60s. Visit `/register` — should now show the styled form.

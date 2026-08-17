@@ -34,6 +34,8 @@ const replay3 = {
   name: 'REPLAY',
   start_date: '2026-09-12',
   end_date: '2026-09-13',
+  daily_start_time: '10:00:00',
+  daily_end_time: '19:00:00',
   venue: 'The Foundry, Bangalore',
 };
 

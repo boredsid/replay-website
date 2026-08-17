@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../editions', () => ({
   getEditionBySlug: vi.fn(async () => ({ id: 'e1', slug: 'replay-3', name: 'REPLAY', registration_status: 'open', capacity_per_day: { day1: 250, day2: 250 } })),
   getCurrentEdition: vi.fn(async () => ({ id: 'e1', slug: 'replay-3', name: 'REPLAY', registration_status: 'open', capacity_per_day: { day1: 250, day2: 250 } })),
-  getConfirmedSeatsByDay: vi.fn(async () => ({ day1: 10, day2: 8 })),
+  getReservedSeatsByDay: vi.fn(async () => ({ day1: 10, day2: 8 })),
 }));
 import { handleDashboard } from './dashboard';
 

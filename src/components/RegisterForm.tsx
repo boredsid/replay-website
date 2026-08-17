@@ -35,8 +35,16 @@ function computeDiscount(base: number, tier: string | null, cap: number): number
   return 0;
 }
 
+function formatDateRange(start: string, end: string): string {
+  const first = new Date(`${start}T00:00:00Z`);
+  const second = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(first.valueOf()) || Number.isNaN(second.valueOf())) return `${start} – ${end}`;
+  return `${first.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} – ${second.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
+}
+
 export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
+  const [availabilityError, setAvailabilityError] = useState(false);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -53,9 +61,19 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   // Fetch edition spots on mount
   useEffect(() => {
     let cancelled = false;
-    getEditionSpots(edition.id).then((r) => { if (!cancelled) setSpots(r); }).catch(() => {});
+    getEditionSpots(edition.id)
+      .then((r) => { if (!cancelled) { setSpots(r); setAvailabilityError(false); } })
+      .catch(() => { if (!cancelled) setAvailabilityError(true); });
     return () => { cancelled = true; };
   }, [edition.id]);
+
+  useEffect(() => {
+    const campaignUnavailable = spots?.day1.sold_out || spots?.day2.sold_out;
+    if (passType === 'campaign' && campaignUnavailable) {
+      setPassType('oneshot');
+      setDays([]);
+    }
+  }, [passType, spots]);
 
   // Debounced phone lookup
   useEffect(() => {
@@ -107,7 +125,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     scheduleLead('details_entered');
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const sanitized = sanitize(phone);
@@ -131,7 +149,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     } catch (err: any) {
       const body = err?.body ?? {};
       if (body.error === 'sold_out') {
-        setError(`Day ${body.day === 'day1' ? 'Saturday' : 'Sunday'} just sold out. Try the other day or campaign pass.`);
+        setError(`${body.day === 'day1' ? 'Saturday' : 'Sunday'} just sold out. Please choose the other day.`);
         try { setSpots(await getEditionSpots(edition.id)); } catch {}
       } else if (body.error === 'registration_closed') {
         setError('Registration just closed. Please refresh.');
@@ -146,13 +164,27 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const day1SoldOut = spots?.day1.sold_out ?? false;
   const day2SoldOut = spots?.day2.sold_out ?? false;
   const bothSoldOut = spots?.both_sold_out ?? false;
+  const campaignUnavailable = day1SoldOut || day2SoldOut;
   const tierMsg = tierLabel(lookup?.guild.tier ?? null);
+  const day1Price = edition.pricing.oneshot.day1;
+  const day2Price = edition.pricing.oneshot.day2;
+  const dayPricesDiffer = day1Price !== day2Price;
+  const dayPassPriceLabel = dayPricesDiffer
+    ? `from ₹${Math.min(day1Price, day2Price)}`
+    : `₹${day1Price}`;
+  const storedNameProtected = Boolean(lookup?.user.found && lookup.user.name);
+  const storedEmailProtected = Boolean(lookup?.user.found && lookup.user.email);
 
   return (
     <div className="container-x section max-w-xl">
       <span className="pill pill-yellow mb-4">Register</span>
-      <h1 className="text-4xl md:text-5xl mb-3">{edition.name}</h1>
-      <p className="text-gray-700 mb-8">{edition.start_date} – {edition.end_date} · {edition.venue}</p>
+      <h2 className="text-4xl md:text-5xl mb-3">{edition.name}</h2>
+      <p className="text-gray-700 mb-8">{formatDateRange(edition.start_date, edition.end_date)} · {edition.venue}</p>
+      {availabilityError && (
+        <p role="status" className="mb-4 text-sm font-medium text-[var(--color-error)]">
+          Live availability is temporarily unavailable. The form will still prevent overbooking when you submit.
+        </p>
+      )}
 
       {lookup?.user.found && lookup.user.name && (
         <p className="mb-4"><span className="pill pill-green">Welcome back, {lookup.user.name}</span></p>
@@ -173,20 +205,25 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
       <form onSubmit={onSubmit} className="card-brutal p-8 space-y-5">
         <div>
           <label htmlFor="phone" className="label-brutal">Phone</label>
-          <input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+          <input id="phone" type="tel" inputMode="numeric" autoComplete="tel" required maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)}
             className="input-brutal" placeholder="9876543210" />
         </div>
         <div>
           <label htmlFor="name" className="label-brutal">Name</label>
-          <input id="name" type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
+          <input id="name" type="text" autoComplete="name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} readOnly={storedNameProtected}
             onBlur={() => scheduleLead('name_entered')}
             className="input-brutal" />
         </div>
         <div>
           <label htmlFor="email" className="label-brutal">Email</label>
-          <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          <input id="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} readOnly={storedEmailProtected}
             onBlur={() => scheduleLead('name_entered')}
             className="input-brutal" />
+          {(storedNameProtected || storedEmailProtected) && (
+            <p className="mt-2 text-xs text-gray-600">
+              Existing details are protected. Contact the REPLAY team if they need correction.
+            </p>
+          )}
         </div>
 
         <fieldset>
@@ -194,10 +231,10 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           <div className="grid grid-cols-2 gap-3">
             <label className={`btn ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
               <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} className="sr-only" />
-              Oneshot ₹{edition.pricing.oneshot.day1}
+              Day pass — {dayPassPriceLabel}
             </label>
-            <label className={`btn ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${bothSoldOut ? 'opacity-50 pointer-events-none' : ''}`}>
-              <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={bothSoldOut} className="sr-only" />
+            <label className={`btn ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${campaignUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
+              <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={campaignUnavailable} className="sr-only" />
               Campaign ₹{edition.pricing.campaign}
             </label>
           </div>
@@ -209,11 +246,11 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
             <div className="grid grid-cols-2 gap-3">
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day1' ? 'pill-accent' : ''} ${day1SoldOut ? 'opacity-50' : ''}`}>
                 <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label="Saturday" className="sr-only" />
-                Saturday {day1SoldOut && <span className="text-xs">(sold out)</span>}
+                Saturday · ₹{day1Price} {day1SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day2' ? 'pill-accent' : ''} ${day2SoldOut ? 'opacity-50' : ''}`}>
                 <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label="Sunday" className="sr-only" />
-                Sunday {day2SoldOut && <span className="text-xs">(sold out)</span>}
+                Sunday · ₹{day2Price} {day2SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
             </div>
           </fieldset>
@@ -229,7 +266,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           </div>
         )}
 
-        {error && <p className="text-sm text-[var(--color-error)] font-medium">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[var(--color-error)] font-medium">{error}</p>}
 
         <button type="submit" disabled={submitting || bothSoldOut} className="btn btn-primary btn-block">
           {submitting ? 'Submitting…' : 'Register'}

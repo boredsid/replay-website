@@ -83,8 +83,12 @@ const headingSlotted = Astro.slots.has('heading');
       <Image
         src={photo}
         alt={photoAlt}
-        widths={[400, 800, 1200]}
+        layout="constrained"
+        width={1000}
+        widths={[400, 700, 1000]}
         sizes="(min-width: 768px) 40vw, 90vw"
+        format="avif"
+        quality={58}
         loading="lazy"
         decoding="async"
         class="editorial-stripe__img"

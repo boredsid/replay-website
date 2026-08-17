@@ -29,9 +29,14 @@ const frames = photos.slice(0, 3);
           <Image
             src={photo}
             alt=""
-            widths={[600, 1200]}
+            layout="constrained"
+            width={1000}
+            widths={[480, 800, 1000]}
             sizes="(min-width: 768px) 33vw, 80vw"
+            format="avif"
+            quality={58}
             loading={index === 0 ? 'eager' : 'lazy'}
+            fetchpriority={index === 0 ? 'high' : 'auto'}
             decoding="async"
             class="hero-photo-band__img"
           />
@@ -39,6 +44,7 @@ const frames = photos.slice(0, 3);
       ))
     }
   </div>
+  <span class="hero-photo-band__cue">Swipe for more →</span>
 </div>
 
 <style>
@@ -65,6 +71,20 @@ const frames = photos.slice(0, 3);
   }
   .hero-photo-band__track::-webkit-scrollbar {
     display: none;
+  }
+  .hero-photo-band__cue {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 2;
+    padding: 4px 9px;
+    border: 2px solid var(--color-ink);
+    border-radius: 999px;
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    font-weight: 700;
   }
 
   .hero-photo-band__frame {
@@ -103,6 +123,7 @@ const frames = photos.slice(0, 3);
 
   /* Desktop: equal-width triptych */
   @media (min-width: 768px) {
+    .hero-photo-band__cue { display: none; }
     .hero-photo-band__track {
       grid-auto-flow: row;
       grid-auto-columns: initial;

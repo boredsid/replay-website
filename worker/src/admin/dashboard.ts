@@ -1,21 +1,22 @@
 import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
-import { getEditionBySlug, getCurrentEdition, getConfirmedSeatsByDay } from '../editions';
+import { getEditionBySlug, getCurrentEdition, getReservedSeatsByDay } from '../editions';
 
 export async function handleDashboard(req: Request, env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
   const slug = new URL(req.url).searchParams.get('edition');
   const edition = slug ? await getEditionBySlug(env, slug) : await getCurrentEdition(env);
   if (!edition) return adminJson({ error: 'no_edition' }, 404, origin);
 
-  const seats = await getConfirmedSeatsByDay(env, edition.id);
+  const seats = await getReservedSeatsByDay(env, edition.id);
   const cap = edition.capacity_per_day;
   const spots_by_day = {
-    day1: { capacity: cap.day1, confirmed: seats.day1, remaining: Math.max(0, cap.day1 - seats.day1) },
-    day2: { capacity: cap.day2, confirmed: seats.day2, remaining: Math.max(0, cap.day2 - seats.day2) },
+    day1: { capacity: cap.day1, reserved: seats.day1, remaining: Math.max(0, cap.day1 - seats.day1) },
+    day2: { capacity: cap.day2, reserved: seats.day2, remaining: Math.max(0, cap.day2 - seats.day2) },
   };
 
   const allRes = await sb.from('registrations').select('payment_status, amount_paid').eq('edition_id', edition.id);
+  if (allRes.error) return adminJson({ error: 'registration_totals_failed' }, 500, origin);
   const all = (allRes.data ?? []) as { payment_status: string; amount_paid: number }[];
   const totals = {
     confirmed: all.filter((r) => r.payment_status === 'confirmed').length,
@@ -37,6 +38,7 @@ export async function handleDashboard(req: Request, env: Env, sb: SupabaseClient
     .eq('edition_id', edition.id)
     .order('created_at', { ascending: false })
     .limit(10);
+  if (recentRegsRes.error || recentLeadsRes.error) return adminJson({ error: 'recent_activity_failed' }, 500, origin);
 
   return adminJson(
     {

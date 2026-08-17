@@ -3,8 +3,11 @@ dist/
 .astro/
 .wrangler/
 .DS_Store
+.claude/settings.local.json
 .env
 .env.local
 *.local
 .superpowers/
+.tmp/
+audit-output/
 scripts/data/

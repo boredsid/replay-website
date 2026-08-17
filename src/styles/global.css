@@ -48,6 +48,26 @@ h1, h2, h3, h4 {
   letter-spacing: -0.02em;
 }
 
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  transform: translateY(-160%);
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-yellow);
+  color: var(--color-ink);
+  padding: 8px 12px;
+  font-weight: 700;
+}
+.skip-link:focus { transform: translateY(0); }
+
+:focus-visible {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 3px;
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex;
@@ -131,7 +151,7 @@ h1, h2, h3, h4 {
   background: #FFFFFF; font-family: var(--font-body); font-size: 1rem; color: #1A1A1A;
   box-shadow: var(--shadow-sm); transition: box-shadow 0.15s;
 }
-.input-brutal:focus { outline: none; box-shadow: var(--shadow-md); }
+.input-brutal:focus { box-shadow: var(--shadow-md); }
 .input-brutal::placeholder { color: #1A1A1A; opacity: 0.45; }
 .input-brutal:disabled { opacity: 0.5; cursor: not-allowed; }
 

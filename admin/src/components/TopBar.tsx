@@ -2,27 +2,49 @@ import { useState } from 'react';
 import { useWhoAmI } from '@/lib/whoami';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 function RebuildButton() {
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  async function rebuild() {
+    setBusy(true);
+    try {
+      await fetchAdmin('/api/admin/rebuild', { method: 'POST' });
+      toast.success('Site rebuilding (~60s)…');
+      setOpen(false);
+    } catch (e) {
+      showApiError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <button
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await fetchAdmin('/api/admin/rebuild', { method: 'POST' });
-          toast.success('Site rebuilding (~60s)…');
-        } catch (e) {
-          showApiError(e);
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-muted"
-    >
-      {busy ? 'Rebuilding…' : 'Rebuild site'}
-    </button>
+    <>
+      <button
+        disabled={busy}
+        onClick={() => setOpen(true)}
+        className="rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-muted"
+      >
+        {busy ? 'Rebuilding…' : 'Rebuild site'}
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rebuild the public site?</DialogTitle>
+            <DialogDescription>This publishes the latest edition, sponsor, and schedule data. A rebuild usually takes about a minute.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button onClick={() => setOpen(false)} className="rounded-md border px-3 py-2 text-sm">Cancel</button>
+            <button disabled={busy} onClick={rebuild} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+              {busy ? 'Rebuilding…' : 'Rebuild now'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

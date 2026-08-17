@@ -9,6 +9,8 @@ export interface EditionRow {
   name: string;
   start_date: string;
   end_date: string;
+  daily_start_time: string;
+  daily_end_time: string;
   venue: string;
   capacity_per_day: { day1: number; day2: number };
   pricing: unknown;
@@ -28,13 +30,17 @@ export async function getEditionById(env: Env, id: string): Promise<EditionRow |
   return (data as EditionRow) ?? null;
 }
 
-export async function getConfirmedSeatsByDay(env: Env, editionId: string): Promise<{ day1: number; day2: number }> {
+async function getSeatsByDay(
+  env: Env,
+  editionId: string,
+  statuses: Array<'pending' | 'confirmed'>,
+): Promise<{ day1: number; day2: number }> {
   const sb = serviceClient(env);
   const { data, error } = await sb
     .from('registrations')
     .select('days, seats')
     .eq('edition_id', editionId)
-    .eq('payment_status', 'confirmed');
+    .in('payment_status', statuses);
   if (error) throw new Error(`registrations: ${error.message}`);
   let day1 = 0;
   let day2 = 0;
@@ -43,6 +49,14 @@ export async function getConfirmedSeatsByDay(env: Env, editionId: string): Promi
     if (row.days.includes('day2')) day2 += row.seats;
   }
   return { day1, day2 };
+}
+
+export function getReservedSeatsByDay(env: Env, editionId: string): Promise<{ day1: number; day2: number }> {
+  return getSeatsByDay(env, editionId, ['pending', 'confirmed']);
+}
+
+export function getConfirmedSeatsByDay(env: Env, editionId: string): Promise<{ day1: number; day2: number }> {
+  return getSeatsByDay(env, editionId, ['confirmed']);
 }
 
 const DAY_NAMES: Record<Day, string> = { day1: 'Saturday', day2: 'Sunday' };
@@ -62,11 +76,9 @@ export async function getCurrentEdition(env: Env): Promise<EditionRow | null> {
   const { data, error } = await sb
     .from('editions')
     .select('*')
+    .eq('is_current', true)
     .eq('is_published', true)
-    .order('start_date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .maybeSingle();
   if (error) throw new Error(`editions: ${error.message}`);
-  const rows = (data as EditionRow[]) ?? [];
-  return rows[0] ?? null;
+  return (data as EditionRow) ?? null;
 }

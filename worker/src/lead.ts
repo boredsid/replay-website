@@ -2,13 +2,7 @@
 import type { Env } from './index';
 import { serviceClient } from './supabase';
 import { sanitizePhone, parseStepReached, jsonResponse } from './validation';
-
-const RATE_LIMIT_MS = 2000;
-let rateLimitMap = new Map<string, number>();
-
-export function _resetLeadRateLimit() {
-  rateLimitMap = new Map();
-}
+import { publicRequestAllowed } from './rate-limit';
 
 export async function handleLead(req: Request, env: Env): Promise<Response> {
   let body: any;
@@ -20,22 +14,18 @@ export async function handleLead(req: Request, env: Env): Promise<Response> {
   const phone = sanitizePhone(body.phone);
   const editionId = typeof body.edition_id === 'string' ? body.edition_id : '';
   const step = parseStepReached(body.step_reached);
-  const name = typeof body.name === 'string' ? body.name.trim() : null;
+  const name = typeof body.name === 'string' ? body.name.trim().slice(0, 120) : null;
 
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
   if (!editionId) return jsonResponse({ error: 'invalid edition_id' }, 400);
   if (!step) return jsonResponse({ error: 'invalid step_reached' }, 400);
-
-  const key = `${editionId}:${phone}`;
-  const now = Date.now();
-  const last = rateLimitMap.get(key);
-  if (last && now - last < RATE_LIMIT_MS) {
-    return jsonResponse({ ok: true });
+  if (!(await publicRequestAllowed(env, req, 'lead', phone))) {
+    return jsonResponse({ error: 'rate_limited' }, 429);
   }
-  rateLimitMap.set(key, now);
 
   const sb = serviceClient(env);
   const editionRow = await sb.from('editions').select('id').eq('id', editionId).maybeSingle();
+  if (editionRow.error) return jsonResponse({ error: 'edition_lookup_failed' }, 500);
   if (!editionRow.data) return jsonResponse({ error: 'edition not found' }, 400);
 
   const existing = await sb
@@ -44,6 +34,7 @@ export async function handleLead(req: Request, env: Env): Promise<Response> {
     .eq('edition_id', editionId)
     .eq('phone', phone)
     .maybeSingle();
+  if (existing.error) return jsonResponse({ error: 'lead_lookup_failed' }, 500);
   if ((existing.data as any)?.converted_at) {
     return jsonResponse({ ok: true });
   }

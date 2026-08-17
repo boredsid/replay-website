@@ -3,9 +3,9 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 vi.mock('./supabase', () => ({ supabase: {} as any }));
 
 import { supabase } from './supabase';
-import { getCurrentEdition, getSponsors, getScheduleItems } from './data';
+import { getCurrentEdition, getSponsors, getScheduleItems, publicDateRange } from './data';
 
-function mockChain(table: string, result: any) {
+function mockChain(result: any) {
   const order = vi.fn().mockReturnThis();
   const limit = vi.fn().mockResolvedValue(result);
   const maybeSingle = vi.fn().mockResolvedValue(result);
@@ -21,23 +21,31 @@ beforeEach(() => {
   vi.resetAllMocks();
 });
 
+describe('publicDateRange', () => {
+  it('formats a same-month range without locale artifacts', () => {
+    expect(publicDateRange('2026-09-12', '2026-09-13')).toBe('Sep 12–13, 2026');
+  });
+
+  it('formats cross-month and cross-year ranges', () => {
+    expect(publicDateRange('2026-09-30', '2026-10-01')).toBe('Sep 30–Oct 1, 2026');
+    expect(publicDateRange('2026-12-31', '2027-01-01')).toBe('Dec 31, 2026–Jan 1, 2027');
+  });
+});
+
 describe('getCurrentEdition', () => {
-  it('returns the latest-dated published edition (first row of the ordered/limited query)', async () => {
-    const rows = [
-      { id: 'e3', slug: 'replay-3', is_published: true, start_date: '2026-09-12' },
-      { id: 'e2', slug: 'replay-2', is_published: true, start_date: '2025-09-12' },
-    ];
-    const { from, builder } = mockChain('editions', { data: rows, error: null });
+  it('returns the explicitly current published edition', async () => {
+    const row = { id: 'e3', slug: 'replay-3', is_current: true, is_published: true, start_date: '2026-09-12' };
+    const { from, builder } = mockChain({ data: row, error: null });
     Object.assign(supabase, { from });
     const out = await getCurrentEdition();
-    expect(out).toEqual(rows[0]);
-    // resolver must filter to published editions and order by start_date desc
+    expect(out).toEqual(row);
+    expect(builder.eq).toHaveBeenCalledWith('is_current', true);
     expect(builder.eq).toHaveBeenCalledWith('is_published', true);
-    expect(builder.order).toHaveBeenCalledWith('start_date', { ascending: false });
+    expect(builder.maybeSingle).toHaveBeenCalled();
   });
 
   it('returns null when no published edition matches', async () => {
-    const { from } = mockChain('editions', { data: [], error: null });
+    const { from } = mockChain({ data: null, error: null });
     Object.assign(supabase, { from });
     const out = await getCurrentEdition();
     expect(out).toBeNull();
@@ -47,14 +55,14 @@ describe('getCurrentEdition', () => {
 describe('getSponsors', () => {
   it('returns ordered sponsors for the edition', async () => {
     const rows = [{ id: 's1', display_order: 0 }, { id: 's2', display_order: 1 }];
-    const { from } = mockChain('sponsors', { data: rows, error: null });
+    const { from } = mockChain({ data: rows, error: null });
     Object.assign(supabase, { from });
     const out = await getSponsors('e1');
     expect(out).toEqual(rows);
   });
 
   it('returns [] when no sponsors', async () => {
-    const { from } = mockChain('sponsors', { data: [], error: null });
+    const { from } = mockChain({ data: [], error: null });
     Object.assign(supabase, { from });
     const out = await getSponsors('e1');
     expect(out).toEqual([]);
@@ -64,7 +72,7 @@ describe('getSponsors', () => {
 describe('getScheduleItems', () => {
   it('returns ordered items', async () => {
     const rows = [{ id: 'i1', day: '2026-09-12', start_time: '10:00' }, { id: 'i2', day: '2026-09-12', start_time: '11:00' }];
-    const { from } = mockChain('schedule_items', { data: rows, error: null });
+    const { from } = mockChain({ data: rows, error: null });
     Object.assign(supabase, { from });
     const out = await getScheduleItems('e1');
     expect(out).toEqual(rows);

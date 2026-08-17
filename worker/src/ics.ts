@@ -10,6 +10,8 @@ interface EditionRow {
   slug: string;
   start_date: string;
   end_date: string;
+  daily_start_time: string;
+  daily_end_time: string;
   venue: string;
   is_published: boolean;
 }
@@ -38,7 +40,7 @@ export async function handleIcsRequest(req: Request, env: Env): Promise<Response
   const sb = serviceClient(env);
   const { data, error } = await sb
     .from('editions')
-    .select('slug, start_date, end_date, venue, is_published')
+    .select('slug, start_date, end_date, daily_start_time, daily_end_time, venue, is_published')
     .eq('slug', slug)
     .eq('is_published', true)
     .maybeSingle();
@@ -56,8 +58,8 @@ export async function handleIcsRequest(req: Request, env: Env): Promise<Response
     'BEGIN:VEVENT',
     `UID:replay-${edition.slug}@replaycon.in`,
     `DTSTAMP:${nowUtcBasic()}`,
-    `DTSTART:${toUtcBasic(edition.start_date, 'start')}`,
-    `DTEND:${toUtcBasic(edition.end_date, 'end')}`,
+    `DTSTART:${toUtcBasic(edition.start_date, edition.daily_start_time)}`,
+    `DTEND:${toUtcBasic(edition.end_date, edition.daily_end_time)}`,
     `SUMMARY:${escapeIcsText(summary)}`,
     `LOCATION:${escapeIcsText(edition.venue)}`,
     `DESCRIPTION:${escapeIcsText('Bangalore board-game convention. Tickets + schedule: https://replaycon.in')}`,

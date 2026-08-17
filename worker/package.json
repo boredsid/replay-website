@@ -12,13 +12,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.71",
-    "@cloudflare/workers-types": "^4.20260518.1",
+    "@cloudflare/vitest-pool-workers": "^0.21.3",
+    "@cloudflare/workers-types": "^5.20260816.1",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.92.0"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.123.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4"

@@ -19,7 +19,7 @@ export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
     return () => { cancelled = true; };
   }, [editionId]);
 
-  if (error) return null;
+  if (error) return <p role="status" className="text-sm font-medium">Live availability is temporarily unavailable.</p>;
   if (loading) return <span className="text-sm text-[#1A1A1A]/70">Loading…</span>;
   if (!spots) return null;
 

@@ -9,6 +9,7 @@ import EditionDrawer from './EditionDrawer';
 // replay-1 is a real single-day edition: only day1 pricing/capacity, campaign null.
 const ONE_DAY = {
   id: 'e1', slug: 'replay-1', name: 'REPLAY', start_date: '2026-01-31', end_date: '2026-01-31',
+  daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   venue: 'TBD', capacity_per_day: { day1: 50 },
   pricing: { oneshot: { day1: 800 }, campaign: null, adventurer_cap: 1000 },
   registration_status: 'closed', is_current: false, is_published: true,

@@ -13,6 +13,8 @@ export interface EditionRow {
   name: string;
   start_date: string;
   end_date: string;
+  daily_start_time: string;
+  daily_end_time: string;
   venue: string;
   capacity_per_day: { day1: number; day2: number };
   pricing: {

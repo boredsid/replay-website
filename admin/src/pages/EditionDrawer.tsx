@@ -4,9 +4,11 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import type { EditionRow } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type Form = {
   slug: string; name: string; start_date: string; end_date: string; venue: string;
+  daily_start_time: string; daily_end_time: string;
   registration_status: EditionRow['registration_status'];
   is_current: boolean; is_published: boolean;
   oneshot: Record<string, string>; // day1..dayN price strings
@@ -16,6 +18,7 @@ type Form = {
 
 const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
+  daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
   oneshot: { day1: '800' }, caps: { day1: '250' }, campaign: '1400', adventurer_cap: '1000',
 };
@@ -53,6 +56,7 @@ export default function EditionDrawer() {
         for (const [k, v] of Object.entries(e.capacity_per_day)) caps[k] = String(v);
         setForm({
           slug: e.slug, name: e.name, start_date: e.start_date, end_date: e.end_date, venue: e.venue,
+          daily_start_time: e.daily_start_time?.slice(0, 5) ?? '10:00', daily_end_time: e.daily_end_time?.slice(0, 5) ?? '19:00',
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
           oneshot, caps,
           campaign: e.pricing.campaign == null ? '' : String(e.pricing.campaign),
@@ -72,6 +76,10 @@ export default function EditionDrawer() {
   const isMultiDay = dayCount >= 2;
 
   async function save() {
+    if (form.registration_status !== 'closed' && dayCount !== 2) {
+      toast.error('Active editions must span exactly two consecutive days.');
+      return;
+    }
     setBusy(true);
     const oneshot: Record<string, number> = {};
     for (const k of dayKeys) oneshot[k] = Number(form.oneshot[k] ?? '');
@@ -79,6 +87,7 @@ export default function EditionDrawer() {
     for (const k of dayKeys) capacity[k] = Number(form.caps[k] ?? '');
     const payload = {
       slug: form.slug.trim(), name: form.name, start_date: form.start_date, end_date: form.end_date, venue: form.venue,
+      daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
       pricing: { oneshot, campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
       capacity_per_day: capacity,
@@ -108,15 +117,24 @@ export default function EditionDrawer() {
   if (!loaded) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l bg-background p-6 shadow-xl">
-      <button onClick={() => nav('/editions')} className="mb-4 text-sm text-muted-foreground">← Close</button>
-      <h2 className="mb-4 text-xl font-bold">{isNew ? 'New edition' : 'Edit edition'}</h2>
-      <div className="space-y-3">
+    <Sheet open onOpenChange={(open) => { if (!open && !showRebuild) nav('/editions'); }}>
+      <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
+        <SheetHeader className="p-0 pr-8">
+          <SheetTitle>{isNew ? 'New edition' : 'Edit edition'}</SheetTitle>
+          <SheetDescription>Active editions must cover exactly two consecutive days.</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-3">
         <F label="Slug"><input aria-label="Slug" value={form.slug} onChange={(e) => set('slug', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="Name"><input aria-label="Name" value={form.name} onChange={(e) => set('name', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="Start date"><input aria-label="Start date" type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="End date"><input aria-label="End date" type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
-        <div className="text-xs text-muted-foreground">{dayCount} day{dayCount === 1 ? '' : 's'} — set start &amp; end dates to change.</div>
+        <div className="grid grid-cols-2 gap-2">
+          <F label="Daily start time"><input aria-label="Daily start time" type="time" value={form.daily_start_time} onChange={(e) => set('daily_start_time', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+          <F label="Daily end time"><input aria-label="Daily end time" type="time" value={form.daily_end_time} onChange={(e) => set('daily_end_time', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {dayCount} day{dayCount === 1 ? '' : 's'}{form.registration_status !== 'closed' && dayCount !== 2 ? ' — active editions require exactly 2.' : ''}
+        </div>
         <F label="Venue"><input aria-label="Venue" value={form.venue} onChange={(e) => set('venue', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
         <F label="Registration status">
           <select aria-label="Registration status" value={form.registration_status} onChange={(e) => set('registration_status', e.target.value as Form['registration_status'])} className="w-full rounded-md border px-3 py-2">
@@ -152,10 +170,10 @@ export default function EditionDrawer() {
             </F>
           ))}
         </div>
-        <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
+        <button disabled={busy || (form.registration_status !== 'closed' && dayCount !== 2)} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
           {busy ? 'Saving…' : isNew ? 'Create edition' : 'Save edition'}
         </button>
-      </div>
+        </div>
 
       <Dialog open={showRebuild} onOpenChange={(o) => { if (!o) { setShowRebuild(false); nav('/editions'); } }}>
         <DialogContent>
@@ -181,8 +199,9 @@ export default function EditionDrawer() {
             </button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+        </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

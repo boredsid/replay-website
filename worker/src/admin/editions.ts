@@ -6,8 +6,7 @@ import { readPricing, type Pricing } from '../pricing';
 
 const STATUSES = ['upcoming', 'open', 'sold_out', 'closed'];
 
-// Editions can be any number of days, so capacity is a variable day1..dayN map.
-function readCapacity(input: unknown): Record<string, number> {
+function readCapacity(input: unknown, requireTwoDays: boolean): Record<string, number> {
   if (!input || typeof input !== 'object') throw new Error('capacity: not an object');
   const c = input as any;
   const out: Record<string, number> = {};
@@ -16,6 +15,12 @@ function readCapacity(input: unknown): Record<string, number> {
     out[k] = v as number;
   }
   if (!Number.isFinite(out.day1)) throw new Error('capacity: day1 required as a non-negative number');
+  if (requireTwoDays) {
+    const keys = Object.keys(out).sort();
+    if (keys.length !== 2 || keys[0] !== 'day1' || keys[1] !== 'day2') {
+      throw new Error('capacity: active editions require day1 and day2 only');
+    }
+  }
   return out;
 }
 
@@ -23,6 +28,28 @@ function assertFinitePricing(p: Pricing) {
   const vals = [...Object.values(p.oneshot), p.adventurer_cap];
   if (p.campaign !== null) vals.push(p.campaign);
   if (vals.some((v) => !Number.isFinite(v) || v < 0)) throw new Error('pricing: all values must be finite, non-negative numbers');
+}
+
+function isTwoConsecutiveDays(start: string, end: string): boolean {
+  const startMs = Date.parse(`${start}T00:00:00Z`);
+  const endMs = Date.parse(`${end}T00:00:00Z`);
+  return Number.isFinite(startMs) && Number.isFinite(endMs) && endMs - startMs === 86_400_000;
+}
+
+function readTime(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function assertActiveEditionShape(start: string, end: string, status: string, pricing: Pricing, capacity: Record<string, number>) {
+  if (status === 'closed') return;
+  if (!isTwoConsecutiveDays(start, end)) throw new Error('active editions require two consecutive days');
+  const priceKeys = Object.keys(pricing.oneshot).sort();
+  if (priceKeys.length !== 2 || priceKeys[0] !== 'day1' || priceKeys[1] !== 'day2' || pricing.campaign === null) {
+    throw new Error('active editions require day1, day2, and a campaign price');
+  }
+  readCapacity(capacity, true);
 }
 
 export async function handleEdList(env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
@@ -39,19 +66,33 @@ export async function handleEdCreate(req: Request, env: Env, sb: SupabaseClient,
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   if (!/^[a-z0-9-]+$/.test(slug)) return adminJson({ error: 'invalid_slug' }, 400, origin);
   if (!name) return adminJson({ error: 'invalid_name' }, 400, origin);
-  if (typeof body.start_date !== 'string' || typeof body.end_date !== 'string' || body.end_date < body.start_date)
+  if (typeof body.start_date !== 'string' || typeof body.end_date !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}$/.test(body.start_date) || !/^\d{4}-\d{2}-\d{2}$/.test(body.end_date)
+    || body.end_date < body.start_date)
     return adminJson({ error: 'invalid_dates' }, 400, origin);
   const venue = typeof body.venue === 'string' ? body.venue.trim() : '';
-  let pricing: unknown, capacity: unknown;
-  try { pricing = readPricing(body.pricing); assertFinitePricing(pricing as any); capacity = readCapacity(body.capacity_per_day); }
-  catch (e: any) { return adminJson({ error: e.message }, 400, origin); }
+  if (!venue) return adminJson({ error: 'invalid_venue' }, 400, origin);
+  const dailyStartTime = readTime(body.daily_start_time);
+  const dailyEndTime = readTime(body.daily_end_time);
+  if (!dailyStartTime || !dailyEndTime || dailyEndTime <= dailyStartTime) {
+    return adminJson({ error: 'invalid_daily_times' }, 400, origin);
+  }
   const status = STATUSES.includes(body.registration_status) ? body.registration_status : 'upcoming';
+  let pricing: Pricing, capacity: Record<string, number>;
+  try {
+    pricing = readPricing(body.pricing);
+    assertFinitePricing(pricing);
+    capacity = readCapacity(body.capacity_per_day, status !== 'closed');
+    assertActiveEditionShape(body.start_date, body.end_date, status, pricing, capacity);
+  }
+  catch (e: any) { return adminJson({ error: e.message }, 400, origin); }
 
   const taken = await sb.from('editions').select('id').eq('slug', slug).maybeSingle();
   if (taken.data) return adminJson({ error: 'slug_taken' }, 409, origin);
 
   const ins = await sb.from('editions').insert({
-    slug, name, start_date: body.start_date, end_date: body.end_date, venue,
+    slug, name, start_date: body.start_date, end_date: body.end_date,
+    daily_start_time: dailyStartTime, daily_end_time: dailyEndTime, venue,
     pricing, capacity_per_day: capacity, registration_status: status,
     is_current: body.is_current === true, is_published: body.is_published === true,
   }).select().single();
@@ -78,17 +119,51 @@ export async function handleEdPatch(req: Request, env: Env, sb: SupabaseClient, 
     if (taken.data && (taken.data as any).id !== id) return adminJson({ error: 'slug_taken' }, 409, origin);
     patch.slug = s;
   }
-  if (typeof body.start_date === 'string') patch.start_date = body.start_date;
-  if (typeof body.end_date === 'string') patch.end_date = body.end_date;
+  if (typeof body.start_date === 'string') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.start_date)) return adminJson({ error: 'invalid_start_date' }, 400, origin);
+    patch.start_date = body.start_date;
+  }
+  if (typeof body.end_date === 'string') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.end_date)) return adminJson({ error: 'invalid_end_date' }, 400, origin);
+    patch.end_date = body.end_date;
+  }
   const sd = patch.start_date ?? prev.start_date;
   const ed = patch.end_date ?? prev.end_date;
   if (ed < sd) return adminJson({ error: 'invalid_dates' }, 400, origin);
-  if (typeof body.venue === 'string') patch.venue = body.venue.trim();
+  if (body.daily_start_time !== undefined) {
+    const value = readTime(body.daily_start_time);
+    if (!value) return adminJson({ error: 'invalid_daily_start_time' }, 400, origin);
+    patch.daily_start_time = value;
+  }
+  if (body.daily_end_time !== undefined) {
+    const value = readTime(body.daily_end_time);
+    if (!value) return adminJson({ error: 'invalid_daily_end_time' }, 400, origin);
+    patch.daily_end_time = value;
+  }
+  if ((patch.daily_end_time ?? prev.daily_end_time) <= (patch.daily_start_time ?? prev.daily_start_time)) {
+    return adminJson({ error: 'invalid_daily_times' }, 400, origin);
+  }
+  if (typeof body.venue === 'string') {
+    if (!body.venue.trim()) return adminJson({ error: 'invalid_venue' }, 400, origin);
+    patch.venue = body.venue.trim();
+  }
   if (body.pricing !== undefined) { try { const pr = readPricing(body.pricing); assertFinitePricing(pr as any); patch.pricing = pr; } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
-  if (body.capacity_per_day !== undefined) { try { patch.capacity_per_day = readCapacity(body.capacity_per_day); } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
+  if (body.capacity_per_day !== undefined) { try { patch.capacity_per_day = readCapacity(body.capacity_per_day, false); } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
   if (STATUSES.includes(body.registration_status)) patch.registration_status = body.registration_status;
   if (typeof body.is_current === 'boolean') patch.is_current = body.is_current;
   if (typeof body.is_published === 'boolean') patch.is_published = body.is_published;
+
+  try {
+    assertActiveEditionShape(
+      sd,
+      ed,
+      patch.registration_status ?? prev.registration_status,
+      (patch.pricing ?? prev.pricing) as Pricing,
+      (patch.capacity_per_day ?? prev.capacity_per_day) as Record<string, number>,
+    );
+  } catch (e: any) {
+    return adminJson({ error: e.message }, 400, origin);
+  }
 
   if (Object.keys(patch).length === 0) return adminJson({ error: 'no_changes' }, 400, origin);
 

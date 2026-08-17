@@ -345,8 +345,8 @@ Critical: edit the existing deployment, don't create a new one. The `/exec` URL 
 Use `mcp__plugin_context-mode_context-mode__ctx_execute`:
 
 ```javascript
-const SECRET = 'fe09d9e815865d0e13f4eba344a98ddf4da68f05dd778d253bca06dc46660979';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyd2DLE_Ll8ekxwHfPod15LE49CrhlDQqUEHjo7rB-mOEQTNLya0A61hOUj9rAv9iATtQ/exec';
+const SECRET = process.env.APPS_SCRIPT_SECRET;
+const GAS_URL = process.env.APPS_SCRIPT_URL;
 
 const payload = {
   template: 'replay-registration',
@@ -607,4 +607,4 @@ git push
 - [ ] `admin.replaycon.in/` still CF-Access-gated (admin unaffected).
 - [ ] CLAUDE.md updated with cutover learnings.
 
-After this plan: opening registration (`registration_status='open'`) is a separate manual action whenever user is ready. Plan for that: `update editions set registration_status='open' where slug='replay-3';` + fire deploy hook (`https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/01e9488c-00cc-4c38-aa87-9be5820a51f7`) → site rebuilds with the live form.
+After this plan: opening registration (`registration_status='open'`) is a separate manual action whenever user is ready. Plan for that: `update editions set registration_status='open' where slug='replay-3';` + trigger the protected rebuild action → site rebuilds with the live form. Never store the raw deploy-hook URL in the repository.

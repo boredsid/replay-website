@@ -4,6 +4,7 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import type { UserDetail } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function UserDrawer() {
   const nav = useNavigate();
@@ -56,10 +57,12 @@ export default function UserDrawer() {
   if (!user) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l bg-background p-6 shadow-xl">
-      <button onClick={() => nav('/users')} className="mb-4 text-sm text-muted-foreground">← Close</button>
-      <h2 className="mb-1 text-xl font-bold">{user.name || '(no name)'}</h2>
-      <div className="mb-4 font-mono text-sm text-muted-foreground">{user.phone}</div>
+    <Sheet open onOpenChange={(open) => { if (!open && !phoneOpen) nav('/users'); }}>
+      <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
+        <SheetHeader className="p-0 pr-8">
+          <SheetTitle>{user.name || '(no name)'}</SheetTitle>
+          <SheetDescription>{user.phone}</SheetDescription>
+        </SheetHeader>
 
       <div className="space-y-3">
         <Field label="Name"><input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
@@ -121,8 +124,9 @@ export default function UserDrawer() {
             </button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+        </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -28,14 +28,18 @@ export function NotifyMeForm({ editionId }: NotifyMeFormProps) {
     );
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const sanitized = sanitize(phone);
     if (!sanitized) { setError('Enter a 10-digit phone number'); return; }
     setError(null);
     setSubmitting(true);
-    await captureLead(sanitized, editionId, 'phone_entered');
+    const captured = await captureLead(sanitized, editionId, 'phone_entered');
     setSubmitting(false);
+    if (!captured) {
+      setError('We could not save your number. Please try again.');
+      return;
+    }
     setSubmitted(true);
   }
 
@@ -46,13 +50,16 @@ export function NotifyMeForm({ editionId }: NotifyMeFormProps) {
         <input
           id="phone"
           type="tel"
+          inputMode="numeric"
+          required
+          maxLength={20}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           className="input-brutal"
           placeholder="9876543210"
           autoComplete="tel"
         />
-        {error && <p className="text-sm text-[var(--color-error)] mt-2">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[var(--color-error)] mt-2">{error}</p>}
       </div>
       <button type="submit" disabled={submitting} className="btn btn-primary btn-block">
         {submitting ? 'Sending…' : 'Notify me'}

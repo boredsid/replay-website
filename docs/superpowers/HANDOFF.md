@@ -2,9 +2,9 @@
 
 **Last updated:** 2026-06-02
 **Current branch:** `main` (production)
-**Status:** Phase 1 (incl. 1F email rework), Phase 2 historical import, **Phase 3A admin foundation**, and **Phase 3B (editions CRUD + users + manual-add edition selector)** all shipped. Apex `https://replaycon.in/` runs on the new Astro + Cloudflare Pages + Supabase + Worker stack with bgc-aligned visual identity. Supabase holds replay-1/replay-2/replay-3 editions with replay-1/replay-2 registrations + orders imported. The admin SPA (`admin.replaycon.in`) now has working Dashboard / Editions (list/create/edit) / Registrations (incl. manual add + confirm/cancel) / Users (list/search/edit/view/change-phone) / Leads / Audit screens, backed by `/api/admin/*` worker endpoints gated by CF Access. Phase 3C (products/orders/sponsors/schedule) remains; manual-reg pricing automation was deliberately deferred (manual amount + base-price hint kept).
+**Status:** Phase 1 (incl. 1F email rework), Phase 2 historical import, **Phase 3A admin foundation**, and **Phase 3B (editions CRUD + users + manual-add edition selector)** all shipped. The 2026-08-17 fundamentals hardening added registration/payment integrity, current-edition enforcement, capacity serialization, accessibility/SEO/security improvements, dependency upgrades, data-sanity tooling, and a signed replacement email webhook. Apex `https://replaycon.in/` runs on the Astro + Cloudflare Pages + Supabase + Worker stack. Phase 3C (products/orders/sponsors/schedule) and the dedicated live-event-readiness/privacy session remain intentionally deferred.
 
-This doc orients a new session. For low-level patterns, gotchas, and discovered facts, read `CLAUDE.md` first — that's where durable learnings live. This doc is the higher-level "where are we, what's next."
+This doc orients a new session. For low-level patterns, gotchas, and discovered facts, read `AGENTS.md` first — that's where durable learnings live. This doc is the higher-level "where are we, what's next."
 
 ## Live state
 
@@ -13,10 +13,10 @@ This doc orients a new session. For low-level patterns, gotchas, and discovered 
 | Public site | `https://replaycon.in/` | Astro 6, deployed from `main` via Cloudflare Pages |
 | Public site (www) | `https://www.replaycon.in/` | Same Pages project, same DNS |
 | Worker API | `https://api.replaycon.in/api/health` | Cloudflare Worker, deployed manually via `cd worker && npx wrangler deploy` |
-| Admin (placeholder) | `https://admin.replaycon.in/` | CF Access gated; SPA shell only — Phase 3 fills it in |
-| Supabase project | ref `qvkynwlmzeybdiapbcsy` | 9 tables, RLS, migration 002 applied |
+| Admin | `https://admin.replaycon.in/` | CF Access gated; working operations console |
+| Supabase project | ref `qvkynwlmzeybdiapbcsy` | RLS enabled; migrations through `advisor_hardening` applied |
 | bgc worker (cross-call) | `https://api.boardgamecompany.in/api/guild-status` | Used by replay worker for Guild Path lookup |
-| Replay Apps Script | `Replay Email Webhook` GAS project | URL hardcoded in `APPS_SCRIPT_URL` worker secret. Reads templates from `main` branch raw.githubusercontent |
+| Replay Apps Script | `REPLAY Email Webhook` GAS project | Deployment replaced and signature-tested on 2026-08-17. URL and HMAC key live only in the Worker `APPS_SCRIPT_URL` / `APPS_SCRIPT_SECRET` bindings; `WEBHOOK_SECRET` is the matching GAS Script Property. Reads templates from `main` on raw.githubusercontent.com |
 
 **Production edition state (replay-3):**
 - `slug='replay-3'`, `name='REPLAY'`, dates `2026-09-12 → 2026-09-13`, venue `'TBD'`
@@ -29,7 +29,7 @@ This doc orients a new session. For low-level patterns, gotchas, and discovered 
 ```sql
 update editions set registration_status='open' where slug='replay-3';
 ```
-Then fire the CF Pages deploy hook (worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK` — also at this raw URL: `https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/01e9488c-00cc-4c38-aa87-9be5820a51f7`). Wait ~60s for rebuild.
+Then trigger the rebuild from the admin or use the worker secret `CLOUDFLARE_PAGES_DEPLOY_HOOK`. Never store the raw hook URL in the repository. Wait about 60 seconds for the rebuild.
 
 ## Phases shipped
 
@@ -124,8 +124,8 @@ Roughly in order of dependency / value.
   2. Worker side: add `/api/admin/*` routes to `worker/src/index.ts` gated by `access-auth.ts` (`verifyAccessJwt` already exists, used in `cancel-registration.ts` lines 17-25 as the reference pattern).
   3. First screen: dashboard with edition-spots, recent registrations, recent leads. Worker has all the queries already (`getEditionById`, `getConfirmedSeatsByDay`).
   4. Second screen: edition CRUD — flip `registration_status` from `upcoming` → `open` → `sold_out` → `closed` via admin instead of SQL.
-- **Status — Phase 3A shipped (2026-06-02):** the `/api/admin/*` gate + dispatch now exists in `worker/src/index.ts` (handlers in `worker/src/admin/`), and the SPA screens (Dashboard, Registrations incl. manual add + confirm/cancel, Leads, Audit) are built in `admin/`. Auth transport is **same-origin**: the SPA calls relative `/api/admin/*` on `admin.replaycon.in`, served by a Workers route `admin.replaycon.in/api/admin/*` (the admin host is already behind the CF Access app, AUD `0983cd2a…132f` = worker `CF_ACCESS_AUD`, so CF injects `Cf-Access-Jwt-Assertion`). Cross-origin to `api.replaycon.in/api/admin` was abandoned because CF Access 403s cookie-less CORS preflights — do not reintroduce it (see CLAUDE.md learning). Deferred 3A follow-ups: dashboard recent-regs/leads lists not yet rendered; `RegistrationDrawer` `id`-undefined guard; debounce on registrations search.
-- **Status — Phase 3B shipped (2026-06-07):** Editions screen (list/create/edit — flip `registration_status`/`is_published`/`is_current`, edit dates/venue/pricing/capacity, create new editions; "Rebuild site now?" confirm after save), Users screen (list/search, edit name/email/notes, view a user's registrations+orders, guarded change-phone), and an edition selector + non-binding base-price hint on manual-add. Worker handlers in `worker/src/admin/editions.ts` + `users.ts`; SPA pages in `admin/src/pages/Editions*.tsx`/`EditionDrawer.tsx`/`Users*.tsx`/`UserDrawer.tsx`. **Migration 003** (applied to prod) dropped the single-current index → `getCurrentEdition` resolves latest-published in BOTH `worker/src/editions.ts` and `src/lib/data.ts` (keep them in sync); added `on update cascade` to the phone FKs; widened `admin_audit_log.target_id` to `text` (without which user audits silently never persisted). Spec `docs/superpowers/specs/2026-06-07-replay-phase-3b-editions-users-design.md` + plan `.../plans/2026-06-07-replay-phase-3b-editions-users.md`. **Remaining (3C):** products, orders, sponsors, schedule screens. Manual-reg pricing automation was deliberately NOT built (organiser chose to keep amount manual; selector + base-price hint only). Deferred 3B follow-ups: no dedicated tests for the 4 drawers (consistent with existing thin drawer-test coverage); client-side phone-format validation on change-phone (worker validates).
+- **Status — Phase 3A shipped (2026-06-02):** the `/api/admin/*` gate + dispatch now exists in `worker/src/index.ts` (handlers in `worker/src/admin/`), and the SPA screens (Dashboard, Registrations incl. manual add + confirm/cancel, Leads, Audit) are built in `admin/`. Auth transport is **same-origin**: the SPA calls relative `/api/admin/*` on `admin.replaycon.in`, served by a Workers route `admin.replaycon.in/api/admin/*` (the admin host is already behind the CF Access app, AUD `0983cd2a…132f` = worker `CF_ACCESS_AUD`, so CF injects `Cf-Access-Jwt-Assertion`). Cross-origin to `api.replaycon.in/api/admin` was abandoned because CF Access 403s cookie-less CORS preflights — do not reintroduce it (see the `AGENTS.md` learning). Deferred 3A follow-ups: dashboard recent-regs/leads lists not yet rendered; `RegistrationDrawer` `id`-undefined guard; debounce on registrations search.
+- **Status — Phase 3B shipped (2026-06-07):** Editions screen (list/create/edit — flip `registration_status`/`is_published`/`is_current`, edit dates/venue/pricing/capacity, create new editions; "Rebuild site now?" confirm after save), Users screen (list/search, edit name/email/notes, view a user's registrations+orders, guarded change-phone), and an edition selector + non-binding base-price hint on manual-add. Worker handlers in `worker/src/admin/editions.ts` + `users.ts`; SPA pages in `admin/src/pages/Editions*.tsx`/`EditionDrawer.tsx`/`Users*.tsx`/`UserDrawer.tsx`. **Migration 003** added `on update cascade` to the phone FKs and widened `admin_audit_log.target_id` to `text`. **Migration 004** later restored a database-enforced single current edition, and both public/Worker current-edition lookups now require `is_current=true`. Spec `docs/superpowers/specs/2026-06-07-replay-phase-3b-editions-users-design.md` + plan `.../plans/2026-06-07-replay-phase-3b-editions-users.md`. **Remaining (3C):** products, orders, sponsors, schedule screens. Manual-reg pricing automation was deliberately NOT built (organiser chose to keep amount manual; selector + base-price hint only).
 
 ### Playwright E2E (hardening phase)
 
@@ -172,7 +172,7 @@ Avoid `npm install --save-dev pkg@latest` for the following — Astro 6.3.3 inte
 - `tailwindcss@4.2`
 
 ### Cloudflare Pages quirks
-- Pages dedupes file uploads by hash. If a build is broken at the edge (500), an `--allow-empty` commit will NOT force re-upload — needs a real file change. Adding a comment to a CSS file or appending to CLAUDE.md works.
+- Pages dedupes file uploads by hash. If a build is broken at the edge (500), an `--allow-empty` commit will NOT force re-upload — needs a real file change. Adding a comment to a CSS file or appending to AGENTS.md works.
 - Branch deploy URL format: `<branch-slug>.replay-website.pages.dev` (e.g. `redesign-phase-1e.replay-website.pages.dev`). Aliases can get stuck post-outage even when individual deployment URLs work.
 - Need `dist/404.html` for real 404s; without it Pages falls back to serving index content at 200.
 - Static assets referenced by absolute path (`/replay-logo.png`) MUST live in `public/`, not repo root. Legacy GitHub Pages served whatever was at root — that's gone now.
@@ -220,7 +220,7 @@ apps-script/Code.gs                         Paste-bait reference for the GAS pro
 scripts/                                    Phase 2 historical import (import-historical.ts + lib/ + data/ gitignored)
 ```
 
-`CLAUDE.md` at repo root has the durable session learnings — read it before assuming anything about why a thing is the way it is. Every gotcha I hit during Phase 1 is recorded there.
+`AGENTS.md` at repo root has the durable session learnings — read it before assuming anything about why a thing is the way it is. Every gotcha I hit during Phase 1 is recorded there.
 
 ## How to pick up
 
@@ -238,4 +238,4 @@ For any non-trivial phase below, the established workflow is **brainstorm → sp
 
 6. **Playwright E2E** — punted from 1D. ~1 day for a meaningful suite. Keep separate from unit suites (`npm run test:e2e`).
 
-The next session can read `CLAUDE.md` + this file + the master spec at `docs/superpowers/specs/2026-05-18-replay-rebuild-design.md` and be fully oriented in ~10 minutes.
+The next session can read `AGENTS.md` + this file + the master spec at `docs/superpowers/specs/2026-05-18-replay-rebuild-design.md` and be fully oriented in ~10 minutes.

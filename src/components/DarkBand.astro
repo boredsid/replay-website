@@ -27,6 +27,7 @@ export interface Props {
   cta2?: Cta;
   bg?: string;
   tone?: Tone;
+  headingLevel?: 'h1' | 'h2';
 }
 
 const {
@@ -38,6 +39,7 @@ const {
   cta2,
   bg = '#1A1A1A',
   tone = 'dark',
+  headingLevel = 'h2',
 } = Astro.props;
 
 const ctas: Cta[] = [cta, cta2].filter((c): c is Cta => Boolean(c));
@@ -66,7 +68,11 @@ const eyebrowStyle = `color: ${eyebrowColor ?? eyebrowDefaultColor};`;
       )
     }
 
-    <h2 class="dark-band__heading" style={`color: ${headingColor};`}>{heading}</h2>
+    {
+      headingLevel === 'h1'
+        ? <h1 class="dark-band__heading" style={`color: ${headingColor};`}>{heading}</h1>
+        : <h2 class="dark-band__heading" style={`color: ${headingColor};`}>{heading}</h2>
+    }
 
     {body && <p class="dark-band__body" style={`color: ${bodyColor};`}>{body}</p>}
 

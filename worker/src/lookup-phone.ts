@@ -3,6 +3,7 @@ import type { Env } from './index';
 import { serviceClient } from './supabase';
 import { fetchGuildStatus } from './bgc-client';
 import { sanitizePhone, jsonResponse } from './validation';
+import { publicRequestAllowed } from './rate-limit';
 
 export async function handleLookupPhone(req: Request, env: Env): Promise<Response> {
   let phone = '';
@@ -17,6 +18,9 @@ export async function handleLookupPhone(req: Request, env: Env): Promise<Respons
 
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
   if (!editionId) return jsonResponse({ error: 'invalid edition_id' }, 400);
+  if (!(await publicRequestAllowed(env, req, 'lookup-phone', phone))) {
+    return jsonResponse({ error: 'rate_limited' }, 429);
+  }
 
   const sb = serviceClient(env);
   const [userRes, guildRes, regsRes] = await Promise.all([
@@ -29,6 +33,7 @@ export async function handleLookupPhone(req: Request, env: Env): Promise<Respons
       .eq('user_phone', phone)
       .neq('payment_status', 'cancelled'),
   ]);
+  if (userRes.error || regsRes.error) return jsonResponse({ error: 'lookup_failed' }, 500);
 
   const user = userRes.data as { phone: string; name: string | null; email: string | null } | null;
   const regs = (regsRes.data ?? []) as Array<{ payment_status: string }>;

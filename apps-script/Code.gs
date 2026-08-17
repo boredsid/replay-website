@@ -39,7 +39,16 @@ function renderTemplate(template, vars) {
   if (!url) throw new Error('unknown template: ' + template);
   let html = UrlFetchApp.fetch(url).getContentText();
   Object.keys(vars || {}).forEach(function (k) {
-    html = html.split('{{' + k + '}}').join(String(vars[k]));
+    html = html.split('{{' + k + '}}').join(escapeHtml(vars[k]));
   });
   return html;
+}
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

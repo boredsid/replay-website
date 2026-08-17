@@ -2,10 +2,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('./editions', () => ({
   getEditionById: vi.fn(),
-  getConfirmedSeatsByDay: vi.fn(),
+  getReservedSeatsByDay: vi.fn(),
 }));
 
-import { getEditionById, getConfirmedSeatsByDay } from './editions';
+import { getEditionById, getReservedSeatsByDay } from './editions';
 import { handleEditionSpots } from './edition-spots';
 
 function env() { return {} as any; }
@@ -23,7 +23,7 @@ describe('handleEditionSpots', () => {
 
   it('zero registrations => remaining equals capacity', async () => {
     (getEditionById as any).mockResolvedValue({ id: 'e1', capacity_per_day: { day1: 250, day2: 250 } });
-    (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 0, day2: 0 });
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 0, day2: 0 });
     const res = await handleEditionSpots('e1', env());
     const body: any = await res.json();
     expect(body).toEqual({
@@ -35,7 +35,7 @@ describe('handleEditionSpots', () => {
 
   it('mixed: day1 sold out, day2 partial', async () => {
     (getEditionById as any).mockResolvedValue({ id: 'e1', capacity_per_day: { day1: 250, day2: 250 } });
-    (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 100 });
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 100 });
     const res = await handleEditionSpots('e1', env());
     const body: any = await res.json();
     expect(body.day1).toEqual({ capacity: 250, remaining: 0, sold_out: true });
@@ -45,7 +45,7 @@ describe('handleEditionSpots', () => {
 
   it('both sold out', async () => {
     (getEditionById as any).mockResolvedValue({ id: 'e1', capacity_per_day: { day1: 250, day2: 250 } });
-    (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 250 });
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 250, day2: 250 });
     const res = await handleEditionSpots('e1', env());
     const body: any = await res.json();
     expect(body.both_sold_out).toBe(true);
@@ -53,7 +53,7 @@ describe('handleEditionSpots', () => {
 
   it('clamps remaining to 0 when seats exceed capacity (overshoot safety)', async () => {
     (getEditionById as any).mockResolvedValue({ id: 'e1', capacity_per_day: { day1: 250, day2: 250 } });
-    (getConfirmedSeatsByDay as any).mockResolvedValue({ day1: 280, day2: 0 });
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 280, day2: 0 });
     const res = await handleEditionSpots('e1', env());
     const body: any = await res.json();
     expect(body.day1.remaining).toBe(0);

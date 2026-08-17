@@ -47,9 +47,7 @@ describe('getConfirmedSeatsByDay', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            eq: () => ({
-              then: (cb: any) => cb({ data: rows, error: null }),
-            }),
+            in: async () => ({ data: rows, error: null }),
           }),
         }),
       }),
@@ -64,9 +62,7 @@ describe('getConfirmedSeatsByDay', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            eq: () => ({
-              then: (cb: any) => cb({ data: [], error: null }),
-            }),
+            in: async () => ({ data: [], error: null }),
           }),
         }),
       }),
@@ -102,31 +98,29 @@ describe('getEditionBySlug', () => {
 });
 
 describe('getCurrentEdition', () => {
-  const limitMock = vi.fn();
+  const maybeSingleMock = vi.fn();
 
   beforeEach(() => {
-    limitMock.mockReset();
+    maybeSingleMock.mockReset();
     (serviceClient as any).mockReturnValue({
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: () => ({
-              order: () => ({ limit: limitMock }),
-            }),
+            eq: () => ({ maybeSingle: maybeSingleMock }),
           }),
         }),
       }),
     });
   });
 
-  it('returns the latest-dated published edition', async () => {
-    limitMock.mockResolvedValue({ data: [{ id: 'e3', slug: 'replay-3', start_date: '2026-09-12' }], error: null });
+  it('returns the explicitly current published edition', async () => {
+    maybeSingleMock.mockResolvedValue({ data: { id: 'e3', slug: 'replay-3', start_date: '2026-09-12' }, error: null });
     const ed = await getCurrentEdition({} as any);
     expect(ed?.slug).toBe('replay-3');
   });
 
   it('returns null when no published edition', async () => {
-    limitMock.mockResolvedValue({ data: [], error: null });
+    maybeSingleMock.mockResolvedValue({ data: null, error: null });
     const ed = await getCurrentEdition({} as any);
     expect(ed).toBeNull();
   });

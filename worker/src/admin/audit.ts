@@ -22,7 +22,7 @@ export function diffRows(before: Record<string, unknown>, after: Record<string, 
 
 export async function writeAudit(sb: SupabaseClient, entry: AuditEntry): Promise<void> {
   const { error } = await sb.from('admin_audit_log').insert(entry);
-  if (error) console.error('audit_write_failed', error.message);
+  if (error) throw new Error(`audit_write_failed: ${error.message}`);
 }
 
 export async function handleAuditList(req: Request, env: Env, sb: SupabaseClient, origin: string): Promise<Response> {

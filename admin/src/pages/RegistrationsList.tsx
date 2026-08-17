@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
-import type { RegistrationRow, PaymentStatus } from '@/lib/types';
+import type { RegistrationRow, PaymentStatus, EditionRow } from '@/lib/types';
 import { onRevalidate } from '@/lib/revalidate';
 import { Loading } from '@/components/Loading';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -12,17 +12,40 @@ const inr = (n: number) => '₹' + Number(n).toLocaleString('en-IN');
 export default function RegistrationsList() {
   const [rows, setRows] = useState<RegistrationRow[] | null>(null);
   const [status, setStatus] = useState<PaymentStatus | 'all'>('all');
+  const [editions, setEditions] = useState<EditionRow[]>([]);
+  const [edition, setEdition] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [q, setQ] = useState('');
   const nav = useNavigate();
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions')
+      .then((result) => {
+        const availableEditions = result.editions ?? [];
+        setEditions(availableEditions);
+        const initial = availableEditions.find((item) => item.is_current) ?? availableEditions[0];
+        if (initial) setEdition(initial.slug);
+      })
+      .catch(showApiError);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, []);
+
+  function updateSearch(value: string) {
+    setSearchInput(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setQ(value.trim()), 300);
+  }
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
     if (status !== 'all') params.set('status', status);
     if (q) params.set('q', q);
+    if (edition) params.set('edition', edition);
     fetchAdmin<{ registrations: RegistrationRow[] }>(`/api/admin/registrations?${params}`)
       .then((d) => setRows(d.registrations))
       .catch(showApiError);
-  }, [status, q]);
+  }, [status, q, edition]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const off = onRevalidate(load); return () => { off(); }; }, [load]);
@@ -41,12 +64,22 @@ export default function RegistrationsList() {
 
       <div className="flex flex-wrap gap-2">
         <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          aria-label="Search registrations"
+          value={searchInput}
+          onChange={(e) => updateSearch(e.target.value)}
           placeholder="Search name / phone"
           className="rounded-md border px-3 py-1.5 text-sm"
         />
         <select
+          aria-label="Edition"
+          value={edition}
+          onChange={(e) => setEdition(e.target.value)}
+          className="rounded-md border px-3 py-1.5 text-sm"
+        >
+          {editions.map((item) => <option key={item.id} value={item.slug}>{item.slug} — {item.name}</option>)}
+        </select>
+        <select
+          aria-label="Payment status"
           value={status}
           onChange={(e) => setStatus(e.target.value as PaymentStatus | 'all')}
           className="rounded-md border px-3 py-1.5 text-sm"
@@ -80,6 +113,14 @@ export default function RegistrationsList() {
                     key={r.id}
                     className="cursor-pointer border-t hover:bg-muted/50"
                     onClick={() => nav(`/registrations/${r.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        nav(`/registrations/${r.id}`);
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
                   >
                     <td className="p-2">{r.users?.name || '—'}</td>
                     <td className="p-2">{r.user_phone}</td>

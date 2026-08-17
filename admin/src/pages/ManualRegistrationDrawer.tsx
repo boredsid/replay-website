@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import type { EditionRow } from '@/lib/types';
 import { toast } from 'sonner';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function ManualRegistrationDrawer() {
   const nav = useNavigate();
@@ -10,7 +11,7 @@ export default function ManualRegistrationDrawer() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [passType, setPassType] = useState<'oneshot' | 'campaign'>('oneshot');
-  const [days, setDays] = useState<{ day1: boolean; day2: boolean }>({ day1: true, day2: false });
+  const [day, setDay] = useState<'day1' | 'day2'>('day1');
   const [amount, setAmount] = useState('800');
   const [status, setStatus] = useState<'confirmed' | 'pending'>('confirmed');
   const [sendEmail, setSendEmail] = useState(false);
@@ -30,8 +31,9 @@ export default function ManualRegistrationDrawer() {
   }, []);
 
   const phoneDigits = phone.replace(/\D/g, '');
-  const selectedDays = (['day1', 'day2'] as const).filter((d) => days[d]);
-  const valid = phoneDigits.length >= 10 && selectedDays.length > 0;
+  const selectedDays: Array<'day1' | 'day2'> = [day];
+  const numericAmount = Number(amount);
+  const valid = phoneDigits.length === 10 && Number.isFinite(numericAmount) && numericAmount >= 0;
 
   const selectedEdition = editions.find((e) => e.slug === edition);
   const baseHint = selectedEdition
@@ -41,7 +43,7 @@ export default function ManualRegistrationDrawer() {
     : null;
 
   async function submit() {
-    if (!valid) { toast.error('Enter a valid phone and at least one day'); return; }
+    if (!valid) { toast.error('Enter a 10-digit phone and a non-negative amount'); return; }
     setBusy(true);
     try {
       await fetchAdmin('/api/admin/registrations', {
@@ -64,10 +66,13 @@ export default function ManualRegistrationDrawer() {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l bg-background p-6 shadow-xl">
-      <button onClick={() => nav('/registrations')} className="mb-4 text-sm text-muted-foreground">← Close</button>
-      <h2 className="mb-4 text-xl font-bold">Add registration</h2>
-      <div className="space-y-3">
+    <Sheet open onOpenChange={(open) => { if (!open) nav('/registrations'); }}>
+      <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
+        <SheetHeader className="p-0 pr-8">
+          <SheetTitle>Add registration</SheetTitle>
+          <SheetDescription>Create a validated manual registration for a selected edition.</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-3">
         <L label="Edition">
           <select aria-label="Edition" value={edition} onChange={(e) => setEdition(e.target.value)} className="w-full rounded-md border px-3 py-2">
             {editions.map((e) => (<option key={e.id} value={e.slug}>{e.slug} — {e.name}</option>))}
@@ -89,17 +94,18 @@ export default function ManualRegistrationDrawer() {
           </select>
         </L>
         {passType === 'oneshot' && (
-          <div className="flex gap-4">
+          <fieldset className="flex gap-4">
+            <legend className="mb-1 text-sm text-muted-foreground">Day</legend>
             <label className="flex items-center gap-1">
-              <input type="checkbox" checked={days.day1} onChange={(e) => setDays((d) => ({ ...d, day1: e.target.checked }))} /> Sat
+              <input type="radio" name="manual-day" checked={day === 'day1'} onChange={() => setDay('day1')} /> Sat
             </label>
             <label className="flex items-center gap-1">
-              <input type="checkbox" checked={days.day2} onChange={(e) => setDays((d) => ({ ...d, day2: e.target.checked }))} /> Sun
+              <input type="radio" name="manual-day" checked={day === 'day2'} onChange={() => setDay('day2')} /> Sun
             </label>
-          </div>
+          </fieldset>
         )}
         <L label="Amount (₹)">
-          <input aria-label="Amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          <input aria-label="Amount" type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </L>
         {baseHint != null && (
           <div className="-mt-2 text-xs text-muted-foreground">Base for this pass: ₹{baseHint}</div>
@@ -114,14 +120,15 @@ export default function ManualRegistrationDrawer() {
           <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} /> Send confirmation email
         </label>
         <button
-          disabled={busy}
+          disabled={busy || !valid}
           onClick={submit}
           className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50"
         >
           {busy ? 'Adding…' : 'Add registration'}
         </button>
-      </div>
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

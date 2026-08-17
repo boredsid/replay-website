@@ -27,20 +27,37 @@ export function shortDateRange(start: string, end: string): string {
   return `${shortDate(start)} – ${shortDate(end)}`;
 }
 
+/** "2026-09-12" + "2026-09-13" → "Sep 12–13, 2026". */
+export function publicDateRange(start: string, end: string): string {
+  const first = start.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const last = end.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!first || !last) return `${start} – ${end}`;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const startYear = Number(first[1]);
+  const startMonth = Number(first[2]);
+  const startDay = Number(first[3]);
+  const endYear = Number(last[1]);
+  const endMonth = Number(last[2]);
+  const endDay = Number(last[3]);
+  if (!months[startMonth - 1] || !months[endMonth - 1] || startDay < 1 || endDay < 1) return `${start} – ${end}`;
+  if (startYear === endYear && startMonth === endMonth) {
+    return `${months[startMonth - 1]} ${startDay}–${endDay}, ${endYear}`;
+  }
+  if (startYear === endYear) {
+    return `${months[startMonth - 1]} ${startDay}–${months[endMonth - 1]} ${endDay}, ${endYear}`;
+  }
+  return `${months[startMonth - 1]} ${startDay}, ${startYear}–${months[endMonth - 1]} ${endDay}, ${endYear}`;
+}
+
 export async function getCurrentEdition(): Promise<EditionRow | null> {
   const { data, error } = await supabase
     .from('editions')
     .select('*')
+    .eq('is_current', true)
     .eq('is_published', true)
-    .order('start_date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(1);
-  if (error) {
-    console.error('getCurrentEdition error:', error);
-    return null;
-  }
-  const rows = (data as EditionRow[]) ?? [];
-  return rows[0] ?? null;
+    .maybeSingle();
+  if (error) throw new Error(`getCurrentEdition failed: ${error.message}`);
+  return (data as EditionRow) ?? null;
 }
 
 export async function getSponsors(editionId: string): Promise<SponsorRow[]> {
@@ -49,10 +66,7 @@ export async function getSponsors(editionId: string): Promise<SponsorRow[]> {
     .select('*')
     .eq('edition_id', editionId)
     .order('display_order', { ascending: true });
-  if (error) {
-    console.error('getSponsors error:', error);
-    return [];
-  }
+  if (error) throw new Error(`getSponsors failed: ${error.message}`);
   return (data as SponsorRow[]) ?? [];
 }
 
@@ -63,9 +77,6 @@ export async function getScheduleItems(editionId: string): Promise<ScheduleItemR
     .eq('edition_id', editionId)
     .order('day', { ascending: true })
     .order('start_time', { ascending: true });
-  if (error) {
-    console.error('getScheduleItems error:', error);
-    return [];
-  }
+  if (error) throw new Error(`getScheduleItems failed: ${error.message}`);
   return (data as ScheduleItemRow[]) ?? [];
 }

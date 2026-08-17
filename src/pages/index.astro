@@ -35,7 +35,7 @@ import stripeGames from '../assets/landing/stripe-games.jpeg';
 import stripeCommunity from '../assets/landing/stripe-community.jpeg';
 import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
-import { getCurrentEdition, getSponsors, editionOrdinal, shortDate, shortDateRange } from '../lib/data';
+import { getCurrentEdition, getSponsors, editionOrdinal, publicDateRange } from '../lib/data';
 
 const edition = await getCurrentEdition();
 const sponsors = edition ? await getSponsors(edition.id) : [];
@@ -50,18 +50,48 @@ const heroPrimaryCta = edition
   : undefined;
 
 const editionOrdinalLabel = edition ? editionOrdinal(edition.slug) : '';
-const dateRange = edition ? shortDateRange(edition.start_date, edition.end_date) : '';
+const dateRange = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
 
 const closingVenueTail =
   edition && edition.venue && edition.venue !== 'TBD' ? ` · ${edition.venue}` : '';
+const eventJsonLd = edition ? JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Event',
+  name: `${edition.name} ${editionOrdinalLabel}`.trim(),
+  description: "Bangalore's two-day board-game convention with open play, demos, tournaments, and hundreds of games.",
+  startDate: edition.start_date,
+  endDate: edition.end_date,
+  eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  eventStatus: 'https://schema.org/EventScheduled',
+  location: {
+    '@type': 'Place',
+    name: edition.venue === 'TBD' ? 'Bangalore — venue to be announced' : edition.venue,
+    address: { '@type': 'PostalAddress', addressLocality: 'Bangalore', addressCountry: 'IN' },
+  },
+  organizer: { '@type': 'Organization', name: 'REPLAY', url: 'https://replaycon.in' },
+  image: ['https://replaycon.in/link-preview.png'],
+  offers: {
+    '@type': 'Offer',
+    url: 'https://replaycon.in/register/',
+    priceCurrency: 'INR',
+    price: Math.min(edition.pricing.oneshot.day1, edition.pricing.oneshot.day2),
+    availability: edition.registration_status === 'sold_out'
+      ? 'https://schema.org/SoldOut'
+      : edition.registration_status === 'open'
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/PreOrder',
+  },
+}).replace(/</g, '\\u003c') : null;
 ---
 
-<Layout title={title}>
+<Layout title={title} description="REPLAY is Bangalore's two-day board-game convention: open play, demos, tournaments, and hundreds of games.">
+  {eventJsonLd && <script is:inline type="application/ld+json" set:html={eventJsonLd} />}
   {/* ──────────────────────────────────────────────────────────── 1. Dark hero */}
   <DarkBand
     bg="#FFF8E7"
     tone="light"
     heading="A weekend to switch off."
+    headingLevel="h1"
     body="Two days. Hundreds of players. 200+ games. Everyone welcome."
     cta={heroPrimaryCta}
   />
@@ -157,8 +187,12 @@ const closingVenueTail =
       <Image
         src={closingPhoto}
         alt=""
+        layout="constrained"
+        width={1600}
         widths={[800, 1600]}
         sizes="100vw"
+        format="avif"
+        quality={55}
         loading="lazy"
         class="closing-cta__bg"
       />

@@ -33,6 +33,8 @@ export interface Env {
   ADMIN_EMAILS: string;
   CLOUDFLARE_PAGES_DEPLOY_HOOK: string;
   ADMIN_ORIGIN: string;
+  PUBLIC_RATE_LIMITER?: RateLimit;
+  SUBJECT_RATE_LIMITER?: RateLimit;
 }
 
 export default {

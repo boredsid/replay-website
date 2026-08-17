@@ -22,7 +22,7 @@ describe('handleEdCreate', () => {
 
   it('rejects a duplicate slug', async () => {
     const sb: any = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'e9' }, error: null }) }) }) }) };
-    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-3', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', pricing: PRICING, capacity_per_day: CAP }) });
+    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-3', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', daily_start_time: '10:00', daily_end_time: '19:00', venue: 'TBD', pricing: PRICING, capacity_per_day: CAP }) });
     const res = await handleEdCreate(req, {} as any, sb, 'sid@x.com', O);
     expect(res.status).toBe(409);
   });
@@ -40,7 +40,7 @@ describe('handleEdCreate', () => {
         return {} as any;
       },
     };
-    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'REPLAY', start_date: '2027-01-01', end_date: '2027-01-02', venue: 'TBD', pricing: PRICING, capacity_per_day: CAP, is_published: false }) });
+    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'REPLAY', start_date: '2027-01-01', end_date: '2027-01-02', daily_start_time: '10:00', daily_end_time: '19:00', venue: 'TBD', pricing: PRICING, capacity_per_day: CAP, is_published: false }) });
     const res = await handleEdCreate(req, {} as any, sb, 'sid@x.com', O);
     expect(res.status).toBe(200);
     expect(inserted.slug).toBe('replay-4');
@@ -73,7 +73,7 @@ describe('handleEdPatch', () => {
 
   it('flips registration_status and writes a diff', async () => {
     const audit: any = {};
-    const before = { id: 'e3', slug: 'replay-3', name: 'REPLAY', start_date: '2026-09-12', end_date: '2026-09-13', venue: 'TBD', pricing: PRICING, capacity_per_day: CAP, registration_status: 'upcoming', is_current: true, is_published: true };
+    const before = { id: 'e3', slug: 'replay-3', name: 'REPLAY', start_date: '2026-09-12', end_date: '2026-09-13', daily_start_time: '10:00', daily_end_time: '19:00', venue: 'TBD', pricing: PRICING, capacity_per_day: CAP, registration_status: 'upcoming', is_current: true, is_published: true };
     const sb: any = {
       from: (t: string) => {
         if (t === 'editions') return {

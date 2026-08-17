@@ -2,9 +2,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('./supabase', () => ({ serviceClient: vi.fn() }));
 import { serviceClient } from './supabase';
-import { handleLead, _resetLeadRateLimit } from './lead';
+import { handleLead } from './lead';
 
-function env() { return { SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x' } as any; }
+function env(overrides: Record<string, unknown> = {}) {
+  return { SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x', ...overrides } as any;
+}
 
 function mockSupabase(opts: {
   editionExists?: boolean;
@@ -48,7 +50,6 @@ function mockSupabase(opts: {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  _resetLeadRateLimit();
 });
 
 describe('handleLead', () => {
@@ -98,15 +99,20 @@ describe('handleLead', () => {
     expect(cap.row).toBeNull();
   });
 
-  it('rate-limit: drops second call within 2s without writing', async () => {
+  it('returns 429 when Cloudflare rejects the subject rate limit', async () => {
     const cap: any = { row: null, onConflict: null };
     (serviceClient as any).mockReturnValue(mockSupabase({ upsertCapture: cap }));
+    const limiter = {
+      limit: vi.fn()
+        .mockResolvedValueOnce({ success: true })
+        .mockResolvedValueOnce({ success: false }),
+    };
     const body = JSON.stringify({ phone: '9876543210', edition_id: 'e1', step_reached: 'phone_entered' });
-    await handleLead(new Request('http://x', { method: 'POST', body }), env());
+    await handleLead(new Request('http://x', { method: 'POST', body }), env({ SUBJECT_RATE_LIMITER: limiter }));
     expect(cap.row).not.toBeNull();
     cap.row = null;
-    const res2 = await handleLead(new Request('http://x', { method: 'POST', body }), env());
-    expect(res2.status).toBe(200);
+    const res2 = await handleLead(new Request('http://x', { method: 'POST', body }), env({ SUBJECT_RATE_LIMITER: limiter }));
+    expect(res2.status).toBe(429);
     expect(cap.row).toBeNull();
   });
 });

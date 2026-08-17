@@ -7,6 +7,7 @@ import type { EditionRow } from '../lib/types';
 const EDITION: EditionRow = {
   id: 'e1', slug: 'replay-3', name: 'REPLAY 3',
   start_date: '2026-09-12', end_date: '2026-09-13', venue: 'TBD',
+  daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   capacity_per_day: { day1: 250, day2: 250 },
   pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 },
   registration_status: 'open', is_current: true, is_published: true,
@@ -45,6 +46,7 @@ describe('RegisterForm', () => {
     render(<RegisterForm {...buildProps()} />);
     await waitFor(() => expect(screen.getByLabelText(/saturday/i)).toBeDisabled());
     expect(screen.getByLabelText(/sunday/i)).not.toBeDisabled();
+    expect(screen.getByLabelText(/campaign/i)).toBeDisabled();
   });
 
   it('debounces phone lookup and shows guildmaster preview', async () => {
@@ -64,6 +66,9 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/phone/i), '9876543210');
     await waitFor(() => expect(screen.getByText(/welcome back, asha/i)).toBeInTheDocument(), { timeout: 2000 });
     expect(screen.getByText(/guildmaster/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/name/i)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/email/i)).toHaveAttribute('readonly');
+    expect(screen.getByText(/existing details are protected/i)).toBeInTheDocument();
   });
 
   it('renders the anti-split warning when discount_blocked', async () => {
@@ -133,5 +138,24 @@ describe('RegisterForm', () => {
     await user.click(screen.getByLabelText(/saturday/i));
     await user.click(screen.getByRole('button', { name: /register/i }));
     await waitFor(() => expect(screen.getByText(/you're in!/i)).toBeInTheDocument());
+  });
+
+  it('shows a from-price and the exact price for each day when day prices differ', async () => {
+    const edition = {
+      ...EDITION,
+      pricing: {
+        ...EDITION.pricing,
+        oneshot: { day1: 700, day2: 900 },
+      },
+    };
+    mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
+      day1: { capacity: 250, remaining: 250, sold_out: false },
+      day2: { capacity: 250, remaining: 250, sold_out: false },
+      both_sold_out: false,
+    });
+    render(<RegisterForm {...buildProps({ edition })} />);
+    expect(screen.getByText(/day pass — from ₹700/i)).toBeInTheDocument();
+    expect(screen.getByText(/saturday · ₹700/i)).toBeInTheDocument();
+    expect(screen.getByText(/sunday · ₹900/i)).toBeInTheDocument();
   });
 });
