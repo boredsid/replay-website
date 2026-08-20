@@ -10,6 +10,7 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling. Source CSV files are intentionally ignored.
+- `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically.
 
 ## Current stack
 

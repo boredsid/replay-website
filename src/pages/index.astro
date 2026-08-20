@@ -35,12 +35,11 @@ import stripeGames from '../assets/landing/stripe-games.jpeg';
 import stripeCommunity from '../assets/landing/stripe-community.jpeg';
 import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
-import { getCurrentEdition, getSponsors, editionOrdinal, publicDateRange } from '../lib/data';
+import { getCurrentEdition, editionOrdinal, publicDateRange } from '../lib/data';
 import { clockTime, weekdayName } from '../lib/edition-format';
 import { partnerLogos } from '../lib/partner-logos';
 
 const edition = await getCurrentEdition();
-const sponsors = edition ? await getSponsors(edition.id) : [];
 
 const title = "REPLAY — Bangalore's gaming convention";
 
@@ -213,7 +212,7 @@ const eventJsonLd = edition ? JSON.stringify({
   />
 
   {/* ──────────────────────────────────────────────────────────── 8. Sponsors */}
-  <SponsorsBand sponsors={sponsors} fallbackLogos={partnerLogos} />
+  <SponsorsBand logos={partnerLogos} />
 
   {/* ──────────────────────────────────────────────────────────── 9. Orange CTA finish */}
   {edition && (
