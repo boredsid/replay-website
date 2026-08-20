@@ -64,6 +64,31 @@ export interface EditionRow {
   is_published: boolean;
 }
 
+export type ScheduleSection = 'always-on' | 'programme' | 'playtesting' | 'publisher-showcase' | 'event-floor';
+export type ScheduleKind = 'workshop' | 'tournament' | 'open-play' | 'meal' | 'talk' | 'ttrpg' | 'puzzle' | 'quiz' | 'social-game' | 'playtest' | 'publisher-showcase' | 'booth' | 'food' | 'merch' | 'amenity' | 'special';
+export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
+export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
+
+export interface ScheduleItemRow {
+  id: string;
+  edition_id: string;
+  day: string;
+  start_time: string | null;
+  end_time: string | null;
+  title: string;
+  description: string | null;
+  location: string | null;
+  kind: ScheduleKind;
+  section: ScheduleSection;
+  is_all_day: boolean;
+  host_name: string | null;
+  signup_mode: ScheduleSignupMode;
+  signup_url: string | null;
+  public_status: SchedulePublicStatus;
+  display_order: number;
+  created_at: string;
+}
+
 export interface UserRow {
   phone: string;
   name: string | null;

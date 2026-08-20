@@ -7,7 +7,7 @@ const entries = await getCollection('landing');
 const hero = entries.find((e) => e.id === 'hero' || e.id.endsWith('hero'));
 const data = (hero?.data ?? {}) as { eyebrow?: string; title?: string; subtitle?: string; photo?: string };
 const Body = hero ? (await render(hero)).Content : null;
-const ctaLabel = edition?.registration_status === 'open' ? 'Register now' :
+const ctaLabel = edition?.registration_status === 'open' ? 'Get tickets' :
                  edition?.registration_status === 'sold_out' ? 'Sold out' :
                  edition?.registration_status === 'closed' ? 'Registration closed' :
                  'Get notified';
@@ -24,7 +24,7 @@ const ctaLabel = edition?.registration_status === 'open' ? 'Register now' :
         </p>
       )}
       {edition && (
-        <a href="/register" class="btn btn-primary">{ctaLabel}</a>
+        <a href="/tickets" class="btn btn-primary">{ctaLabel}</a>
       )}
       {Body && <div class="mt-8 prose max-w-none"><Body /></div>}
     </div>

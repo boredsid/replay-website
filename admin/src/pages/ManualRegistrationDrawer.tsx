@@ -12,7 +12,7 @@ export default function ManualRegistrationDrawer() {
   const [email, setEmail] = useState('');
   const [passType, setPassType] = useState<'oneshot' | 'campaign'>('oneshot');
   const [day, setDay] = useState<'day1' | 'day2'>('day1');
-  const [amount, setAmount] = useState('800');
+  const [amount, setAmount] = useState('700');
   const [status, setStatus] = useState<'confirmed' | 'pending'>('confirmed');
   const [sendEmail, setSendEmail] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -41,6 +41,10 @@ export default function ManualRegistrationDrawer() {
       ? selectedEdition.pricing.campaign
       : selectedEdition.pricing.oneshot[selectedDays[0] ?? 'day1']
     : null;
+
+  useEffect(() => {
+    if (baseHint != null) setAmount(String(baseHint));
+  }, [baseHint]);
 
   async function submit() {
     if (!valid) { toast.error('Enter a 10-digit phone and a non-negative amount'); return; }

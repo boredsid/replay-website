@@ -1,6 +1,6 @@
 -- supabase/seeds/replay-3.sql
 -- Seeds the REPLAY 3 edition. Idempotent — safe to re-run.
--- Sept 12-13, 2026. 250 seats per day. Pricing: ₹800/day oneshot, ₹1400 campaign.
+-- Sept 12-13, 2026. 250 seats per day. Pricing: ₹700/day oneshot, ₹1200 campaign.
 -- Adventurer cap is ₹1000 (legacy parity).
 
 insert into editions (
@@ -13,7 +13,7 @@ insert into editions (
   '2026-09-12', '2026-09-13',
   'TBD',
   '{"day1": 250, "day2": 250}'::jsonb,
-  '{"oneshot": {"day1": 800, "day2": 800}, "campaign": 1400, "adventurer_cap": 1000}'::jsonb,
+  '{"oneshot": {"day1": 700, "day2": 700}, "campaign": 1200, "adventurer_cap": 1000}'::jsonb,
   'upcoming',
   true,
   false

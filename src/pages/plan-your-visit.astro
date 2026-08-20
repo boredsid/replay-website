@@ -1,0 +1,126 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DarkBand from '../components/DarkBand.astro';
+import { getCurrentEdition, publicDateRange } from '../lib/data';
+import { clockTime, eventDayLabel } from '../lib/edition-format';
+
+const edition = await getCurrentEdition();
+const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(edition.daily_end_time)}` : '';
+const venueConfirmed = Boolean(edition && edition.venue && edition.venue !== 'TBD');
+const mapUrl = venueConfirmed
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${edition!.venue}, Bangalore`)}`
+  : null;
+---
+
+<Layout title="Plan Your Visit — REPLAY" description="Dates, hours, venue status, arrival guidance, accessibility, food, transport, and other practical information for REPLAY.">
+  <DarkBand
+    eyebrow="▸ PLAN YOUR VISIT"
+    eyebrowColor="var(--color-yellow)"
+    heading="Arrive ready to play."
+    headingLevel="h1"
+    body={edition ? `${range} · ${hours} each day. Everything confirmed about getting there and getting in lives on this page.` : 'Practical information for the next REPLAY edition will appear here.'}
+    cta={edition ? { text: 'Get tickets →', href: '/tickets', variant: 'primary' } : undefined}
+  />
+
+  <section class="page-section page-section-yellow" aria-labelledby="essentials-heading">
+    <div class="container-x">
+      <span class="section-tag">Essentials</span>
+      <h2 id="essentials-heading" class="section-heading">The details to save.</h2>
+      {edition ? (
+        <div class="info-grid">
+          <article class="info-card">
+            <span class="info-card__kicker">Dates</span>
+            <h3>{range}</h3>
+            <p>{eventDayLabel(edition.start_date)} and {eventDayLabel(edition.end_date)}</p>
+          </article>
+          <article class="info-card">
+            <span class="info-card__kicker">Hours</span>
+            <h3>{hours}</h3>
+            <p>Daily event hours. Specific check-in and final-entry times will be published before tickets open.</p>
+          </article>
+          <article class="info-card">
+            <span class="info-card__kicker">Venue</span>
+            <h3>{venueConfirmed ? edition.venue : 'To be announced'}</h3>
+            {mapUrl ? <p><a class="text-link" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a></p> : <p>The full address, map, transit and parking guidance are still being confirmed.</p>}
+          </article>
+        </div>
+      ) : (
+        <p class="notice details-notice">No upcoming edition is published right now.</p>
+      )}
+    </div>
+  </section>
+
+  <section class="page-section page-section-paper" aria-labelledby="arrival-heading">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Arrival + check-in</span>
+        <h2 id="arrival-heading" class="section-heading">From the door to your first table.</h2>
+        <p class="section-copy">The ticket desk will use the phone number attached to your registration. Keep your confirmation email available as a second reference.</p>
+      </div>
+      <div>
+        <ol class="arrival-steps">
+          <li><strong>Come to the marked REPLAY entrance.</strong><span>The exact entrance and check-in desk location will be added with the venue plan.</span></li>
+          <li><strong>Share your registered phone number.</strong><span>Bring the confirmation email too, especially if someone else booked for you.</span></li>
+          <li><strong>Ask for an orientation.</strong><span>New to board games or visiting alone? The team can help you find the library, schedule and a suitable table.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section-blue" aria-labelledby="library-heading">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Game library</span>
+        <h2 id="library-heading" class="section-heading">Borrow a game. Return with a favourite.</h2>
+        <p class="section-copy">REPLAY has a shared library of 200+ games. You will be able to browse what is available, borrow a copy while you are at the convention, and return it to the library desk when you finish.</p>
+      </div>
+      <div class="info-card">
+        <span class="info-card__kicker">Borrowing details</span>
+        <h3>The circulation process is being prepared.</h3>
+        <p>The event-day app will cover library search and borrowing. Collection point, loan duration, return process, and the offline fallback will be published before doors open.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section-soft" aria-labelledby="venue-guide-heading">
+    <div class="container-x">
+      <span class="section-tag">Venue guide</span>
+      <h2 id="venue-guide-heading" class="section-heading">Confirm before you travel.</h2>
+      <p class="section-copy">These policies depend on the final venue and organiser decisions. They will be replaced with precise answers before ticket sales open.</p>
+      <div class="info-grid">
+        <article class="info-card"><h3>Getting there</h3><p>Full address, nearest public transport, parking availability, drop-off point and entrance route are pending venue confirmation.</p></article>
+        <article class="info-card"><h3>Accessibility</h3><p>Step-free route, accessible toilets, seating, sensory considerations and accommodation contacts are being confirmed. Email us now if you need to plan around a specific requirement.</p></article>
+        <article class="info-card"><h3>Food + water</h3><p>On-site food, outside-food rules, drinking-water access and allergy guidance will be published with the venue details.</p></article>
+        <article class="info-card"><h3>Age policy</h3><p>Minimum age, guardian requirements and any age-restricted sessions are not yet final.</p></article>
+        <article class="info-card"><h3>Re-entry</h3><p>The re-entry process and last-entry time will be published before ticket sales open.</p></article>
+        <article class="info-card"><h3>What not to bring</h3><p>Venue restrictions and prohibited items will be listed here once confirmed. Keep walkways and tables clear of oversized luggage.</p></article>
+      </div>
+      <p class="notice visit-notice">Check this page again before travelling. We will add the address, map, transport, accessibility, food/water, age, re-entry, prohibited-items and same-day support details as they are confirmed.</p>
+    </div>
+  </section>
+
+  <section class="page-section page-section-purple" aria-labelledby="help-heading">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Need help?</span>
+        <h2 id="help-heading" class="section-heading">Ask before the weekend.</h2>
+        <p class="section-copy">For ticket, accessibility, travel or venue questions, email the REPLAY team. The same-day help route will be added here once assigned.</p>
+      </div>
+      <div class="button-row">
+        <a href="mailto:hello@replaycon.in" class="btn btn-black">Email hello@replaycon.in</a>
+        <a href="/contact" class="btn btn-secondary">Read common answers →</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .details-notice { margin-top: 28px; }
+  .arrival-steps { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: arrival; }
+  .arrival-steps li { position: relative; padding: 20px 20px 20px 70px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: var(--color-cream); counter-increment: arrival; }
+  .arrival-steps li::before { content: counter(arrival); position: absolute; top: 18px; left: 20px; width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid var(--color-ink); border-radius: 50%; background: var(--color-orange); color: #fff; font-family: var(--font-heading); font-weight: 800; }
+  .arrival-steps strong, .arrival-steps span { display: block; }
+  .arrival-steps span { margin-top: 4px; color: rgba(26,26,26,.7); }
+  .visit-notice { margin-top: 32px; }
+</style>

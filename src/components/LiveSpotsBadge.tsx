@@ -4,9 +4,11 @@ import type { ApiEditionSpotsResponse } from '../lib/types';
 
 export interface LiveSpotsBadgeProps {
   editionId: string;
+  day1Label?: string;
+  day2Label?: string;
 }
 
-export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
+export function LiveSpotsBadge({ editionId, day1Label = 'Day 1', day2Label = 'Day 2' }: LiveSpotsBadgeProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,9 +39,9 @@ export function LiveSpotsBadge({ editionId }: LiveSpotsBadgeProps) {
   if (bothSoldOut) {
     spotsText = 'Event full';
   } else if (spots.day1.sold_out) {
-    spotsText = `Saturday full · ${spots.day2.remaining} Sunday spots left`;
+    spotsText = `${day1Label} full · ${spots.day2.remaining} ${day2Label} spots left`;
   } else if (spots.day2.sold_out) {
-    spotsText = `Sunday full · ${spots.day1.remaining} Saturday spots left`;
+    spotsText = `${day2Label} full · ${spots.day1.remaining} ${day1Label} spots left`;
   } else if (almostFull) {
     spotsText = `Almost full — ${totalRemaining} ${totalRemaining === 1 ? 'spot' : 'spots'} left`;
   } else {

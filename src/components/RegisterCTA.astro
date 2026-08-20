@@ -2,7 +2,7 @@
 import type { EditionRow } from '../lib/types';
 export interface Props { edition: EditionRow | null }
 const { edition } = Astro.props;
-const ctaLabel = edition?.registration_status === 'open' ? 'Register now' :
+const ctaLabel = edition?.registration_status === 'open' ? 'Get tickets' :
                  edition?.registration_status === 'sold_out' ? 'Sold out' :
                  edition?.registration_status === 'closed' ? 'Registration closed' :
                  'Get notified';
@@ -14,7 +14,7 @@ const ctaClass = edition?.registration_status === 'sold_out' ? 'btn btn-black' :
       <>
         <span class="pill pill-yellow mb-4">{edition.name} · {edition.start_date}</span>
         <h2 class="text-4xl md:text-5xl mb-6">Ready to play?</h2>
-        <a href="/register" class={ctaClass}>{ctaLabel}</a>
+        <a href="/tickets" class={ctaClass}>{ctaLabel}</a>
         <div class="mt-6">
           <slot />
         </div>

@@ -5,7 +5,7 @@ import { NAV } from './nav';
 export default function BottomTabBar() {
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-background border-t flex"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-background border-t flex overflow-x-auto"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Primary"
     >
@@ -16,7 +16,7 @@ export default function BottomTabBar() {
           end={t.end}
           className={({ isActive }) =>
             cn(
-              'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-11 text-xs',
+              'flex-none min-w-[4.75rem] flex flex-col items-center justify-center gap-0.5 py-2 min-h-11 text-xs',
               isActive ? 'text-primary' : 'text-muted-foreground',
             )
           }

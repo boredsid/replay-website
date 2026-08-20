@@ -85,6 +85,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - exactly two consecutive days for active editions, while preserving closed historical editions;
 - pending and confirmed registrations both reserve capacity;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
+- programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
+- public programme host, location, sign-up method, and display ordering managed through the protected admin.
 
 ## Registration and payment behavior
 
@@ -96,7 +98,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 
 ## Deployment and secrets
 
-The public and admin sites are Cloudflare Pages projects; the API is a Cloudflare Worker. Edition changes baked into the static site require the protected admin rebuild action.
+The public and admin sites are Cloudflare Pages projects; the API is a Cloudflare Worker. Edition and programme changes baked into the static site require the protected admin rebuild action.
 
 Keep all of the following in Cloudflare/Apps Script secret storage only:
 
