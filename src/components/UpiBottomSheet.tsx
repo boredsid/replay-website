@@ -10,9 +10,23 @@ export interface UpiBottomSheetProps {
   onClose: () => void;
 }
 
+function buildUpiUrl(
+  scheme: string,
+  path: string,
+  amount: number,
+  upiId: string,
+  payeeName: string,
+  transactionRef: string,
+): string {
+  return `${scheme}://${path}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
+}
+
 export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPaid, onClose }: UpiBottomSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
+  const gpayUrl = buildUpiUrl('tez', 'upi/', amount, upiId, payeeName, transactionRef);
+  const phonepeUrl = buildUpiUrl('phonepe', '', amount, upiId, payeeName, transactionRef);
+  const paytmUrl = buildUpiUrl('paytmmp', '', amount, upiId, payeeName, transactionRef);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -40,7 +54,7 @@ export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPai
         <div className="flex justify-between items-start mb-4">
           <div>
             <span className="pill pill-accent mb-2">Pay ₹{amount}</span>
-            <h2 id="upi-dialog-title" className="text-2xl mt-2">Scan or pay manually</h2>
+            <h2 id="upi-dialog-title" className="text-2xl mt-2">Scan or pay with an app</h2>
           </div>
           <button onClick={onClose} aria-label="Close" className="text-2xl leading-none font-bold">✕</button>
         </div>
@@ -55,11 +69,38 @@ export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPai
           />
         </div>
         <div className="space-y-1 mb-4 text-sm">
-          <p><strong>UPI ID:</strong> {upiId}</p>
           <p><strong>Amount:</strong> ₹{amount}</p>
         </div>
         <p id="upi-dialog-description" className="text-xs text-gray-600 mb-4">Pay using any UPI app. Once paid, click below — we'll email you after we confirm the payment manually.</p>
-        <a href={upiUrl} className="btn btn-secondary btn-block mb-3">Open your UPI app</a>
+        <div className="mb-4">
+          <p className="label-brutal text-center mb-3">Or pay directly with</p>
+          <div className="grid grid-cols-3 gap-3">
+            <a
+              href={gpayUrl}
+              aria-label="Pay with Google Pay"
+              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
+              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
+            >
+              <img src="/payment-app-icons/gpay.png" alt="Google Pay" className="max-h-10 max-w-[80%] object-contain" />
+            </a>
+            <a
+              href={phonepeUrl}
+              aria-label="Pay with PhonePe"
+              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
+              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
+            >
+              <img src="/payment-app-icons/phonepe.png" alt="PhonePe" className="max-h-10 max-w-[80%] object-contain" />
+            </a>
+            <a
+              href={paytmUrl}
+              aria-label="Pay with Paytm"
+              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
+              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
+            >
+              <img src="/payment-app-icons/paytm.jpg" alt="Paytm" className="max-h-10 max-w-[80%] object-contain" />
+            </a>
+          </div>
+        </div>
         <button onClick={onPaid} className="btn btn-primary btn-block">I've paid</button>
         </div>
       </div>
