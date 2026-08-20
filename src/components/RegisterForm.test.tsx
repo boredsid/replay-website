@@ -9,7 +9,7 @@ const EDITION: EditionRow = {
   start_date: '2026-09-12', end_date: '2026-09-13', venue: 'TBD',
   daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   capacity_per_day: { day1: 250, day2: 250 },
-  pricing: { oneshot: { day1: 700, day2: 700 }, campaign: 1200, adventurer_cap: 1000 },
+  pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 },
   registration_status: 'open', is_current: true, is_published: true,
 };
 
@@ -46,7 +46,7 @@ describe('RegisterForm', () => {
     render(<RegisterForm {...buildProps()} />);
     await waitFor(() => expect(screen.getByLabelText(/saturday/i)).toBeDisabled());
     expect(screen.getByLabelText(/sunday/i)).not.toBeDisabled();
-    expect(screen.getByLabelText(/campaign/i)).toBeDisabled();
+    expect(screen.getByLabelText(/2-day pass/i)).toBeDisabled();
   });
 
   it('debounces phone lookup and shows guildmaster preview', async () => {
@@ -140,22 +140,16 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(screen.getByText(/you're in!/i)).toBeInTheDocument());
   });
 
-  it('shows a from-price and the exact price for each day when day prices differ', async () => {
-    const edition = {
-      ...EDITION,
-      pricing: {
-        ...EDITION.pricing,
-        oneshot: { day1: 700, day2: 900 },
-      },
-    };
+  it('shows one shared price before the day choice', async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 250, sold_out: false },
       day2: { capacity: 250, remaining: 250, sold_out: false },
       both_sold_out: false,
     });
-    render(<RegisterForm {...buildProps({ edition })} />);
-    expect(screen.getByText(/day pass — from ₹700/i)).toBeInTheDocument();
-    expect(screen.getByText(/saturday · ₹700/i)).toBeInTheDocument();
-    expect(screen.getByText(/sunday · ₹900/i)).toBeInTheDocument();
+    render(<RegisterForm {...buildProps()} />);
+    expect(screen.getByText(/1-day pass — ₹700/i)).toBeInTheDocument();
+    expect(screen.getByText(/^saturday$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^sunday$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/saturday · ₹/i)).toBeNull();
   });
 });

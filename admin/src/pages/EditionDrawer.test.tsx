@@ -11,44 +11,59 @@ const ONE_DAY = {
   id: 'e1', slug: 'replay-1', name: 'REPLAY', start_date: '2026-01-31', end_date: '2026-01-31',
   daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   venue: 'TBD', capacity_per_day: { day1: 50 },
-  pricing: { oneshot: { day1: 800 }, campaign: null, adventurer_cap: 1000 },
+  pricing: { oneshot: 800, campaign: null, adventurer_cap: 1000 },
   registration_status: 'closed', is_current: false, is_published: true,
+};
+
+const TWO_DAY = {
+  ...ONE_DAY,
+  id: 'e3', slug: 'replay-3', start_date: '2026-09-12', end_date: '2026-09-13',
+  capacity_per_day: { day1: 250, day2: 250 },
+  pricing: { oneshot: { day1: 700, day2: 700 }, campaign: 1200, adventurer_cap: 1000 },
+  registration_status: 'open', is_current: true,
 };
 
 beforeEach(() => (fetchAdmin as any).mockReset());
 
-function renderDrawer() {
+function renderDrawer(edition: any = ONE_DAY) {
   (fetchAdmin as any).mockImplementation((path: string) => {
-    if (path === '/api/admin/editions') return Promise.resolve({ editions: [ONE_DAY] });
+    if (path === '/api/admin/editions') return Promise.resolve({ editions: [edition] });
     return Promise.resolve({ ok: true });
   });
   return render(
-    <MemoryRouter initialEntries={['/editions/e1']}>
+    <MemoryRouter initialEntries={[`/editions/${edition.id}`]}>
       <Routes><Route path="/editions/:id" element={<EditionDrawer />} /></Routes>
     </MemoryRouter>,
   );
 }
 
+it('uses one one-day price field and one two-day price field for an active edition', async () => {
+  renderDrawer(TWO_DAY);
+
+  expect(await screen.findByLabelText('One-day pass price')).toHaveValue(700);
+  expect(screen.getByLabelText('Two-day pass price')).toHaveValue(1200);
+  expect(screen.queryByLabelText('Day 1 price')).toBeNull();
+  expect(screen.queryByLabelText('Day 2 price')).toBeNull();
+});
+
 it('edits a single-day edition without forcing day2 or campaign, and prompts rebuild in-app', async () => {
   renderDrawer();
 
-  // One day → one price/capacity input, no day2, no campaign field.
-  expect(await screen.findByLabelText('Day 1 price')).toHaveValue(800);
-  expect(screen.queryByLabelText('Day 2 price')).toBeNull();
-  expect(screen.queryByLabelText('Campaign')).toBeNull();
+  // One day → one shared price/capacity input and no two-day price field.
+  expect(await screen.findByLabelText('One-day pass price')).toHaveValue(800);
+  expect(screen.queryByLabelText('Two-day pass price')).toBeNull();
 
   await userEvent.click(screen.getByRole('button', { name: /save edition/i }));
 
-  // PATCH body has day1 only + campaign null — no day2.
+  // PATCH body has one scalar day-pass price + campaign null.
   await waitFor(() =>
     expect((fetchAdmin as any)).toHaveBeenCalledWith('/api/admin/editions/e1', expect.objectContaining({
       method: 'PATCH',
-      body: expect.stringContaining('"oneshot":{"day1":800}'),
+      body: expect.stringContaining('"oneshot":800'),
     })),
   );
   const patchCall = (fetchAdmin as any).mock.calls.find((c: any[]) => c[0] === '/api/admin/editions/e1');
   expect(patchCall[1].body).toContain('"campaign":null');
-  expect(patchCall[1].body).not.toContain('day2');
 
   // In-app rebuild dialog appears (not a native confirm).
   expect(await screen.findByText(/rebuild the site\?/i)).toBeInTheDocument();

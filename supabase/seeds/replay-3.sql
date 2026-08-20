@@ -13,7 +13,7 @@ insert into editions (
   '2026-09-12', '2026-09-13',
   'TBD',
   '{"day1": 250, "day2": 250}'::jsonb,
-  '{"oneshot": {"day1": 700, "day2": 700}, "campaign": 1200, "adventurer_cap": 1000}'::jsonb,
+  '{"oneshot": 700, "campaign": 1200, "adventurer_cap": 1000}'::jsonb,
   'upcoming',
   true,
   false

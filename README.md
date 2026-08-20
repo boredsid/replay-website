@@ -84,6 +84,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 
 - one explicit current, published edition;
 - exactly two consecutive days for active editions, while preserving closed historical editions;
+- one scalar price for either one-day choice and one price for the full two-day pass;
 - pending and confirmed registrations both reserve capacity;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
@@ -94,7 +95,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - The public form creates a pending reservation for a paid pass.
 - Pending reservations reduce availability immediately.
 - An admin confirmation changes it to confirmed and then sends the confirmation email.
-- Campaign passes are unavailable if either event day is sold out.
+- Two-day passes are unavailable if either event day is sold out.
 - UPI payment opens through a device deep link and a locally rendered QR code.
 
 ## Deployment and secrets

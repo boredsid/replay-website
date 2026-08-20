@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
-import type { EditionRow } from '@/lib/types';
+import { oneDayPrice, type EditionRow } from '@/lib/types';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -39,7 +39,7 @@ export default function ManualRegistrationDrawer() {
   const baseHint = selectedEdition
     ? passType === 'campaign'
       ? selectedEdition.pricing.campaign
-      : selectedEdition.pricing.oneshot[selectedDays[0] ?? 'day1']
+      : oneDayPrice(selectedEdition.pricing)
     : null;
 
   useEffect(() => {
@@ -93,8 +93,8 @@ export default function ManualRegistrationDrawer() {
         </L>
         <L label="Pass type">
           <select aria-label="Pass type" value={passType} onChange={(e) => setPassType(e.target.value as 'oneshot' | 'campaign')} className="w-full rounded-md border px-3 py-2">
-            <option value="oneshot">Oneshot</option>
-            <option value="campaign">Campaign (both days)</option>
+            <option value="oneshot">1-day pass</option>
+            <option value="campaign">2-day pass</option>
           </select>
         </L>
         {passType === 'oneshot' && (

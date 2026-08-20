@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { toast } from 'sonner';
-import type { EditionRow } from '@/lib/types';
+import { oneDayPrice, type EditionRow } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -11,7 +11,7 @@ type Form = {
   daily_start_time: string; daily_end_time: string;
   registration_status: EditionRow['registration_status'];
   is_current: boolean; is_published: boolean;
-  oneshot: Record<string, string>; // day1..dayN price strings
+  oneshot: string;
   caps: Record<string, string>;    // day1..dayN capacity strings
   campaign: string; adventurer_cap: string;
 };
@@ -20,7 +20,7 @@ const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
   daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
-  oneshot: { day1: '700' }, caps: { day1: '250' }, campaign: '1200', adventurer_cap: '1000',
+  oneshot: '700', caps: { day1: '250' }, campaign: '1200', adventurer_cap: '1000',
 };
 
 // Inclusive day span between two ISO dates; falls back to 1 when dates are unset/invalid.
@@ -50,15 +50,13 @@ export default function EditionDrawer() {
         const res = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
         const e = res.editions.find((x) => x.id === id);
         if (!e) { toast.error('Edition not found'); nav('/editions'); return; }
-        const oneshot: Record<string, string> = {};
-        for (const [k, v] of Object.entries(e.pricing.oneshot)) oneshot[k] = String(v);
         const caps: Record<string, string> = {};
         for (const [k, v] of Object.entries(e.capacity_per_day)) caps[k] = String(v);
         setForm({
           slug: e.slug, name: e.name, start_date: e.start_date, end_date: e.end_date, venue: e.venue,
           daily_start_time: e.daily_start_time?.slice(0, 5) ?? '10:00', daily_end_time: e.daily_end_time?.slice(0, 5) ?? '19:00',
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
-          oneshot, caps,
+          oneshot: String(oneDayPrice(e.pricing)), caps,
           campaign: e.pricing.campaign == null ? '' : String(e.pricing.campaign),
           adventurer_cap: String(e.pricing.adventurer_cap),
         });
@@ -68,7 +66,6 @@ export default function EditionDrawer() {
   }, [id, isNew, nav]);
 
   function set<K extends keyof Form>(k: K, v: Form[K]) { setForm((f) => ({ ...f, [k]: v })); }
-  function setDayPrice(key: string, v: string) { setForm((f) => ({ ...f, oneshot: { ...f.oneshot, [key]: v } })); }
   function setDayCap(key: string, v: string) { setForm((f) => ({ ...f, caps: { ...f.caps, [key]: v } })); }
 
   const dayCount = daySpan(form.start_date, form.end_date);
@@ -81,15 +78,13 @@ export default function EditionDrawer() {
       return;
     }
     setBusy(true);
-    const oneshot: Record<string, number> = {};
-    for (const k of dayKeys) oneshot[k] = Number(form.oneshot[k] ?? '');
     const capacity: Record<string, number> = {};
     for (const k of dayKeys) capacity[k] = Number(form.caps[k] ?? '');
     const payload = {
       slug: form.slug.trim(), name: form.name, start_date: form.start_date, end_date: form.end_date, venue: form.venue,
       daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
-      pricing: { oneshot, campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
+      pricing: { oneshot: Number(form.oneshot), campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
       capacity_per_day: capacity,
     };
     try {
@@ -147,17 +142,13 @@ export default function EditionDrawer() {
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.is_current} onChange={(e) => set('is_current', e.target.checked)} /> Current edition</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.is_published} onChange={(e) => set('is_published', e.target.checked)} /> Published</label>
 
-        <div className="border-t pt-3 text-sm font-semibold">Day pass price (₹)</div>
-        <div className="grid grid-cols-2 gap-2">
-          {dayKeys.map((k, i) => (
-            <F key={k} label={`Day ${i + 1} price`}>
-              <input aria-label={`Day ${i + 1} price`} type="number" value={form.oneshot[k] ?? ''} onChange={(e) => setDayPrice(k, e.target.value)} className="w-full rounded-md border px-3 py-2" />
-            </F>
-          ))}
-        </div>
+        <div className="border-t pt-3 text-sm font-semibold">Pass prices (₹)</div>
+        <F label="One-day pass price">
+          <input aria-label="One-day pass price" type="number" value={form.oneshot} onChange={(e) => set('oneshot', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
         {isMultiDay && (
-          <F label={`Campaign (all ${dayCount} days)`}>
-            <input aria-label="Campaign" type="number" value={form.campaign} onChange={(e) => set('campaign', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          <F label="Two-day pass price">
+            <input aria-label="Two-day pass price" type="number" value={form.campaign} onChange={(e) => set('campaign', e.target.value)} className="w-full rounded-md border px-3 py-2" />
           </F>
         )}
         <F label="Adventurer cap"><input aria-label="Adventurer cap" type="number" value={form.adventurer_cap} onChange={(e) => set('adventurer_cap', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>

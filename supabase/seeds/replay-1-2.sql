@@ -15,7 +15,7 @@ insert into editions (
   '2026-01-31', '2026-01-31',
   'The Bangalore Local, Koramangala',
   '{"day1": 50}'::jsonb,
-  '{"oneshot": {"day1": 800}, "campaign": null, "adventurer_cap": 1000}'::jsonb,
+  '{"oneshot": 800, "campaign": null, "adventurer_cap": 1000}'::jsonb,
   'closed', false, true
 ),
 (
@@ -24,7 +24,7 @@ insert into editions (
   '2026-04-18', '2026-04-19',
   'The Bangalore Local, Koramangala',
   '{"day1": 150, "day2": 150}'::jsonb,
-  '{"oneshot": {"day1": 800, "day2": 800}, "campaign": 1400, "adventurer_cap": 1000}'::jsonb,
+  '{"oneshot": 800, "campaign": 1400, "adventurer_cap": 1000}'::jsonb,
   'closed', false, true
 )
 on conflict (slug) do update set

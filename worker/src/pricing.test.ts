@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
 
 const PRICING = {
-  oneshot: { day1: 800, day2: 800 },
+  oneshot: 800,
   campaign: 1400,
   adventurer_cap: 1000,
 };
@@ -12,21 +12,22 @@ describe('readPricing', () => {
     expect(readPricing(PRICING)).toEqual(PRICING);
   });
   it('defaults adventurer_cap to Infinity when missing', () => {
-    const p = { oneshot: { day1: 600, day2: 600 }, campaign: 999 };
+    const p = { oneshot: 600, campaign: 999 };
     expect(readPricing(p).adventurer_cap).toBe(Infinity);
   });
-  it('parses a single-day edition (only day1, campaign null)', () => {
-    const p = { oneshot: { day1: 800 }, adventurer_cap: 1000 };
-    expect(readPricing(p)).toEqual({ oneshot: { day1: 800 }, campaign: null, adventurer_cap: 1000 });
+  it('parses a single-day edition with no two-day price', () => {
+    const p = { oneshot: 800, adventurer_cap: 1000 };
+    expect(readPricing(p)).toEqual({ oneshot: 800, campaign: null, adventurer_cap: 1000 });
   });
-  it('parses a three-day edition (day1..day3)', () => {
-    const p = { oneshot: { day1: 800, day2: 800, day3: 800 }, campaign: 2000, adventurer_cap: 1000 };
-    expect(readPricing(p).oneshot).toEqual({ day1: 800, day2: 800, day3: 800 });
+  it('normalizes the old per-day shape when every day used the same price', () => {
+    const p = { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 };
+    expect(readPricing(p)).toEqual(PRICING);
   });
-  it('throws when oneshot is missing, has no day1, or has a non-number value', () => {
+  it('throws when oneshot is missing, invalid, or has differing legacy day prices', () => {
     expect(() => readPricing({ campaign: 1 } as any)).toThrow();
     expect(() => readPricing({ oneshot: { day2: 800 } } as any)).toThrow(); // no day1
     expect(() => readPricing({ oneshot: { day1: 'x' } } as any)).toThrow(); // non-number
+    expect(() => readPricing({ oneshot: { day1: 800, day2: 900 } } as any)).toThrow();
     expect(() => readPricing(null as any)).toThrow();
   });
 });
@@ -35,7 +36,7 @@ describe('calculateBasePrice', () => {
   it('campaign always returns campaign price regardless of days', () => {
     expect(calculateBasePrice(PRICING, 'campaign', ['day1', 'day2'])).toBe(1400);
   });
-  it('oneshot returns the price for the single requested day', () => {
+  it('oneshot returns the same price for either requested day', () => {
     expect(calculateBasePrice(PRICING, 'oneshot', ['day1'])).toBe(800);
     expect(calculateBasePrice(PRICING, 'oneshot', ['day2'])).toBe(800);
   });

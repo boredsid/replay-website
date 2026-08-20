@@ -78,7 +78,7 @@ const eventJsonLd = edition ? JSON.stringify({
     '@type': 'Offer',
     url: 'https://replaycon.in/tickets/',
     priceCurrency: 'INR',
-    price: Math.min(edition.pricing.oneshot.day1, edition.pricing.oneshot.day2),
+    price: edition.pricing.oneshot,
     availability: edition.registration_status === 'sold_out'
       ? 'https://schema.org/SoldOut'
       : edition.registration_status === 'open'

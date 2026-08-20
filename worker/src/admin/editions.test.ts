@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { handleEdCreate, handleEdPatch } from './editions';
 
 const O = 'https://admin.replaycon.in';
-const PRICING = { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 };
+const PRICING = { oneshot: 800, campaign: 1400, adventurer_cap: 1000 };
 const CAP = { day1: 250, day2: 250 };
 
 describe('handleEdCreate', () => {
@@ -57,7 +57,7 @@ describe('handleEdCreate', () => {
 
   it('rejects a non-finite price', async () => {
     const sb: any = { from: () => ({}) };
-    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: null }, capacity_per_day: CAP }) });
+    const req = new Request('https://x/api/admin/editions', { method: 'POST', body: JSON.stringify({ slug: 'replay-4', name: 'X', start_date: '2027-01-01', end_date: '2027-01-02', pricing: { oneshot: 800, campaign: 1400, adventurer_cap: null }, capacity_per_day: CAP }) });
     const res = await handleEdCreate(req, {} as any, sb, 'sid@x.com', O);
     expect(res.status).toBe(400);
   });

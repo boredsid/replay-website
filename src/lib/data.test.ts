@@ -34,11 +34,14 @@ describe('publicDateRange', () => {
 
 describe('getCurrentEdition', () => {
   it('returns the explicitly current published edition', async () => {
-    const row = { id: 'e3', slug: 'replay-3', is_current: true, is_published: true, start_date: '2026-09-12' };
+    const row = {
+      id: 'e3', slug: 'replay-3', is_current: true, is_published: true, start_date: '2026-09-12',
+      pricing: { oneshot: { day1: 700, day2: 700 }, campaign: 1200, adventurer_cap: 1000 },
+    };
     const { from, builder } = mockChain({ data: row, error: null });
     Object.assign(supabase, { from });
     const out = await getCurrentEdition();
-    expect(out).toEqual(row);
+    expect(out).toEqual({ ...row, pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 } });
     expect(builder.eq).toHaveBeenCalledWith('is_current', true);
     expect(builder.eq).toHaveBeenCalledWith('is_published', true);
     expect(builder.maybeSingle).toHaveBeenCalled();

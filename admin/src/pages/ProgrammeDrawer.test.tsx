@@ -11,7 +11,7 @@ const EDITION = {
   id: 'e3', slug: 'replay-3', name: 'REPLAY', start_date: '2026-09-12', end_date: '2026-09-13',
   daily_start_time: '10:00:00', daily_end_time: '19:00:00', venue: 'TBD',
   capacity_per_day: { day1: 250, day2: 250 },
-  pricing: { oneshot: { day1: 700, day2: 700 }, campaign: 1200, adventurer_cap: 1000 },
+  pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 },
   registration_status: 'upcoming', is_current: true, is_published: true,
 };
 

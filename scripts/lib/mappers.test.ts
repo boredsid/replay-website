@@ -16,7 +16,7 @@ import {
 } from './mappers';
 
 const R2_PRICING: EditionPricing = {
-  oneshot: { day1: 800, day2: 800 },
+  oneshot: 800,
   campaign: 1400,
   adventurer_cap: 1000,
 };

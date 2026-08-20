@@ -27,7 +27,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const ALLOWED_SLUGS = ['replay-1', 'replay-2'] as const;
 
 const REPLAY2_PRICING: EditionPricing = {
-  oneshot: { day1: 800, day2: 800 },
+  oneshot: 800,
   campaign: 1400,
   adventurer_cap: 1000,
 };

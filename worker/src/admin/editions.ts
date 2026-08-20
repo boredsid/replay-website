@@ -25,7 +25,7 @@ function readCapacity(input: unknown, requireTwoDays: boolean): Record<string, n
 }
 
 function assertFinitePricing(p: Pricing) {
-  const vals = [...Object.values(p.oneshot), p.adventurer_cap];
+  const vals = [p.oneshot, p.adventurer_cap];
   if (p.campaign !== null) vals.push(p.campaign);
   if (vals.some((v) => !Number.isFinite(v) || v < 0)) throw new Error('pricing: all values must be finite, non-negative numbers');
 }
@@ -45,9 +45,8 @@ function readTime(value: unknown): string | null {
 function assertActiveEditionShape(start: string, end: string, status: string, pricing: Pricing, capacity: Record<string, number>) {
   if (status === 'closed') return;
   if (!isTwoConsecutiveDays(start, end)) throw new Error('active editions require two consecutive days');
-  const priceKeys = Object.keys(pricing.oneshot).sort();
-  if (priceKeys.length !== 2 || priceKeys[0] !== 'day1' || priceKeys[1] !== 'day2' || pricing.campaign === null) {
-    throw new Error('active editions require day1, day2, and a campaign price');
+  if (pricing.campaign === null) {
+    throw new Error('active editions require one-day and two-day prices');
   }
   readCapacity(capacity, true);
 }
@@ -55,7 +54,12 @@ function assertActiveEditionShape(start: string, end: string, status: string, pr
 export async function handleEdList(env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
   const { data, error } = await sb.from('editions').select('*').order('start_date', { ascending: false });
   if (error) return adminJson({ error: 'query_failed' }, 500, origin);
-  return adminJson({ editions: data ?? [] }, 200, origin);
+  try {
+    const editions = (data ?? []).map((edition: any) => ({ ...edition, pricing: readPricing(edition.pricing) }));
+    return adminJson({ editions }, 200, origin);
+  } catch {
+    return adminJson({ error: 'invalid_pricing_data' }, 500, origin);
+  }
 }
 
 export async function handleEdCreate(req: Request, env: Env, sb: SupabaseClient, email: string, origin: string): Promise<Response> {
@@ -158,7 +162,7 @@ export async function handleEdPatch(req: Request, env: Env, sb: SupabaseClient, 
       sd,
       ed,
       patch.registration_status ?? prev.registration_status,
-      (patch.pricing ?? prev.pricing) as Pricing,
+      readPricing(patch.pricing ?? prev.pricing),
       (patch.capacity_per_day ?? prev.capacity_per_day) as Record<string, number>,
     );
   } catch (e: any) {

@@ -33,7 +33,7 @@ export async function sendRegistrationConfirmation(
       edition_name: editionDisplayName,
       venue: edition.venue,
       date_range: shortDateRange(edition.start_date, edition.end_date),
-      pass_type: input.passType,
+      pass_type: input.passType === 'campaign' ? '2-day pass' : '1-day pass',
       days_label: dayLabel(input.days),
       seats: 1,
       amount_paid: input.amountPaid,

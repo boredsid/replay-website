@@ -11,3 +11,4 @@ dist/
 .tmp/
 audit-output/
 scripts/data/
+supabase/.temp/

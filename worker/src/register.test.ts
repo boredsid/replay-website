@@ -30,7 +30,7 @@ function defaultEdition() {
     daily_end_time: '19:00:00',
     venue: 'TBD',
     capacity_per_day: { day1: 250, day2: 250 },
-    pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 },
+    pricing: { oneshot: 800, campaign: 1400, adventurer_cap: 1000 },
     registration_status: 'open' as const,
     is_current: true,
     is_published: true,

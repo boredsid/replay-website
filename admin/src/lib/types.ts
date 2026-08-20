@@ -43,9 +43,19 @@ export interface DashboardData {
 export interface SpotCount { capacity: number; reserved: number; remaining: number; }
 
 export interface EditionPricing {
-  oneshot: Record<string, number>; // per-day prices keyed day1..dayN
+  oneshot: number;                 // shared price for any one-day pass
   campaign: number | null;         // null for single-day editions
   adventurer_cap: number;
+}
+
+export function oneDayPrice(pricing: { oneshot: unknown }): number {
+  if (typeof pricing.oneshot === 'number') return pricing.oneshot;
+  if (!pricing.oneshot || typeof pricing.oneshot !== 'object' || Array.isArray(pricing.oneshot)) return Number.NaN;
+  const legacy = pricing.oneshot as Record<string, unknown>;
+  const values = Object.values(legacy);
+  return typeof legacy.day1 === 'number' && values.every((value) => value === legacy.day1)
+    ? legacy.day1
+    : Number.NaN;
 }
 
 export interface EditionRow {

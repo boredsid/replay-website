@@ -2,7 +2,35 @@
 // Build-time supabase reads from Astro frontmatter. RLS gates every
 // query — only is_published rows are visible to the anon client.
 import { supabase } from './supabase';
-import type { EditionRow, SponsorRow, ScheduleItemRow } from './types';
+import type { EditionPricing, EditionRow, SponsorRow, ScheduleItemRow } from './types';
+
+export function readEditionPricing(input: unknown): EditionPricing {
+  if (!input || typeof input !== 'object') throw new Error('edition pricing is not an object');
+  const pricing = input as Record<string, unknown>;
+  let oneshot: number;
+  if (typeof pricing.oneshot === 'number') {
+    oneshot = pricing.oneshot;
+  } else if (pricing.oneshot && typeof pricing.oneshot === 'object' && !Array.isArray(pricing.oneshot)) {
+    const legacy = pricing.oneshot as Record<string, unknown>;
+    const values = Object.values(legacy);
+    if (typeof legacy.day1 !== 'number' || values.some((value) => value !== legacy.day1)) {
+      throw new Error('legacy edition day prices are not identical');
+    }
+    oneshot = legacy.day1;
+  } else {
+    throw new Error('edition one-day price is invalid');
+  }
+  if (typeof pricing.campaign !== 'number') throw new Error('edition two-day price is invalid');
+  if (oneshot < 0 || pricing.campaign < 0) throw new Error('edition prices must be non-negative');
+  if (pricing.adventurer_cap !== undefined && (typeof pricing.adventurer_cap !== 'number' || pricing.adventurer_cap < 0)) {
+    throw new Error('edition adventurer cap is invalid');
+  }
+  return {
+    oneshot,
+    campaign: pricing.campaign,
+    ...(pricing.adventurer_cap === undefined ? {} : { adventurer_cap: pricing.adventurer_cap }),
+  };
+}
 
 /** "replay-3" → "3rd edition", "replay-21" → "21st edition", etc. */
 export function editionOrdinal(slug: string): string {
@@ -57,7 +85,9 @@ export async function getCurrentEdition(): Promise<EditionRow | null> {
     .eq('is_published', true)
     .maybeSingle();
   if (error) throw new Error(`getCurrentEdition failed: ${error.message}`);
-  return (data as EditionRow) ?? null;
+  if (!data) return null;
+  const row = data as Omit<EditionRow, 'pricing'> & { pricing: unknown };
+  return { ...row, pricing: readEditionPricing(row.pricing) };
 }
 
 export async function getSponsors(editionId: string): Promise<SponsorRow[]> {

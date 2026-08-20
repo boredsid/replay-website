@@ -26,6 +26,12 @@ export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 export type StepReached = 'phone_entered' | 'name_entered' | 'details_entered';
 
+export interface EditionPricing {
+  oneshot: number;
+  campaign: number;
+  adventurer_cap?: number;
+}
+
 export interface EditionRow {
   id: string;
   slug: string;
@@ -36,11 +42,7 @@ export interface EditionRow {
   daily_end_time: string;
   venue: string;
   capacity_per_day: { day1: number; day2: number };
-  pricing: {
-    oneshot: { day1: number; day2: number };
-    campaign: number;
-    adventurer_cap?: number;
-  };
+  pricing: EditionPricing;
   registration_status: RegistrationStatus;
   is_current: boolean;
   is_published: boolean;

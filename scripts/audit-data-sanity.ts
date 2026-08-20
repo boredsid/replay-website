@@ -67,6 +67,14 @@ const userPhonesWithActivity = new Set([
 
 const editionById = new Map(editions.map((edition) => [edition.id, edition]));
 const userByPhone = new Map(users.map((user) => [user.phone, user]));
+function oneDayPrice(pricing: any): number {
+  if (typeof pricing?.oneshot === 'number') return pricing.oneshot;
+  if (!pricing?.oneshot || typeof pricing.oneshot !== 'object') return Number.NaN;
+  const values = Object.values(pricing.oneshot);
+  return typeof pricing.oneshot.day1 === 'number' && values.every((value) => value === pricing.oneshot.day1)
+    ? pricing.oneshot.day1
+    : Number.NaN;
+}
 const invalidRegistrations = registrations.filter((registration) => {
   const days = Array.isArray(registration.days) ? registration.days : [];
   const knownDays = days.length > 0 && days.every((day: string) => day === 'day1' || day === 'day2');
@@ -98,9 +106,8 @@ const activeEditionShapeIssues = editions.filter((edition) => {
   if (edition.registration_status === 'closed') return false;
   const start = Date.parse(`${edition.start_date}T00:00:00Z`);
   const end = Date.parse(`${edition.end_date}T00:00:00Z`);
-  const priceKeys = Object.keys(edition.pricing?.oneshot ?? {}).sort().join(',');
   const capacityKeys = Object.keys(edition.capacity_per_day ?? {}).sort().join(',');
-  return end - start !== 86_400_000 || priceKeys !== 'day1,day2' || capacityKeys !== 'day1,day2'
+  return end - start !== 86_400_000 || !Number.isFinite(oneDayPrice(edition.pricing)) || capacityKeys !== 'day1,day2'
     || !Number.isFinite(edition.pricing?.campaign);
 });
 

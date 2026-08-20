@@ -3,7 +3,7 @@ import type { Day, PassType } from './validation';
 import type { GuildTier } from './bgc-client';
 
 export interface Pricing {
-  oneshot: Record<string, number>; // per-day prices keyed day1..dayN (at least day1)
+  oneshot: number;                 // one price for any single-day pass
   campaign: number | null;         // null for single-day editions (no multi-day pass)
   adventurer_cap: number;          // Infinity when uncapped
 }
@@ -13,17 +13,18 @@ export function readPricing(input: unknown): Pricing {
     throw new Error('pricing: not an object');
   }
   const p = input as any;
-  if (!p.oneshot || typeof p.oneshot !== 'object') {
-    throw new Error('pricing: oneshot required as an object');
-  }
-  // Editions can be any number of days, so accept a variable day1..dayN map.
-  const oneshot: Record<string, number> = {};
-  for (const [k, v] of Object.entries(p.oneshot)) {
-    if (typeof v !== 'number') throw new Error(`pricing: oneshot.${k} must be a number`);
-    oneshot[k] = v;
-  }
-  if (typeof oneshot.day1 !== 'number') {
-    throw new Error('pricing: oneshot.day1 required as a number');
+  let oneshot: number;
+  if (typeof p.oneshot === 'number') {
+    oneshot = p.oneshot;
+  } else if (p.oneshot && typeof p.oneshot === 'object' && !Array.isArray(p.oneshot)) {
+    // Rolling-deploy compatibility for the old {day1, day2} database shape.
+    const legacyPrices = Object.values(p.oneshot);
+    if (typeof p.oneshot.day1 !== 'number' || legacyPrices.some((value) => value !== p.oneshot.day1)) {
+      throw new Error('pricing: legacy day prices must be identical numbers');
+    }
+    oneshot = p.oneshot.day1;
+  } else {
+    throw new Error('pricing: oneshot required as a number');
   }
   // campaign (multi-day pass) is optional — single-day editions store null.
   const campaign = typeof p.campaign === 'number' ? p.campaign : null;
@@ -34,7 +35,7 @@ export function readPricing(input: unknown): Pricing {
 export function calculateBasePrice(pricing: Pricing, passType: PassType, days: Day[]): number {
   if (passType === 'campaign') return pricing.campaign ?? 0;
   // oneshot: exactly one day, validated upstream
-  return pricing.oneshot[days[0]];
+  return pricing.oneshot;
 }
 
 export function calculateDiscount(args: {

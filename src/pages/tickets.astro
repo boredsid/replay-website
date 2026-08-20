@@ -44,24 +44,20 @@ const statusCopy = edition?.registration_status === 'open'
 
         <div class="ticket-grid">
           <article class="ticket-card">
-            <span class="pill pill-blue">Day ticket</span>
-            <h3>One Shot</h3>
-            <p class="ticket-price">₹{Math.min(edition.pricing.oneshot.day1, edition.pricing.oneshot.day2)}</p>
-            {edition.pricing.oneshot.day1 !== edition.pricing.oneshot.day2 && <p class="ticket-price-note">Starting price</p>}
+            <span class="pill pill-blue">One day</span>
+            <h3>1-day pass</h3>
+            <p class="ticket-price">₹{edition.pricing.oneshot}</p>
+            <p class="ticket-price-note">Same price on either day</p>
             <ul class="clean-list">
               <li>Choose {day1Label} or {day2Label}</li>
               <li>Entry and programme access for your chosen day</li>
               <li>Borrow from the REPLAY game library while on site</li>
             </ul>
-            <div class="ticket-day-prices">
-              <span>{day1Name}: ₹{edition.pricing.oneshot.day1}</span>
-              <span>{day2Name}: ₹{edition.pricing.oneshot.day2}</span>
-            </div>
           </article>
 
           <article class="ticket-card ticket-card--featured">
-            <span class="pill pill-accent">Full weekend</span>
-            <h3>Campaign</h3>
+            <span class="pill pill-accent">Both days</span>
+            <h3>2-day pass</h3>
             <p class="ticket-price">₹{edition.pricing.campaign}</p>
             <p class="ticket-price-note">Both event days</p>
             <ul class="clean-list">
@@ -162,9 +158,6 @@ const statusCopy = edition?.registration_status === 'open'
   .ticket-card h3 { margin: 18px 0 0; font-size: 2rem; }
   .ticket-price { margin-top: 12px; font-family: var(--font-heading); font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 800; line-height: 1; }
   .ticket-price-note { margin-top: 6px; color: rgba(26,26,26,.65); }
-  .ticket-day-prices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-  .ticket-day-prices span { padding: 6px 10px; border: 2px solid var(--color-ink); border-radius: 999px; font-weight: 700; background: var(--color-blue); }
-
   .availability-card {
     margin-top: 28px;
     padding: 24px;

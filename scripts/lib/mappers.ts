@@ -8,7 +8,7 @@ export type GuildTier = 'initiate' | 'adventurer' | 'guildmaster';
 export type Channel = 'website' | 'whatsaround' | 'swiggy';
 
 export interface EditionPricing {
-  oneshot: { day1?: number; day2?: number };
+  oneshot: number;
   campaign: number | null;
   adventurer_cap?: number;
 }
@@ -109,7 +109,7 @@ export function expectedBase(pricing: EditionPricing, pass_type: PassType, days:
   if (pass_type === 'campaign') {
     perPass = pricing.campaign ?? 0;
   } else {
-    perPass = days.reduce((sum, d) => sum + (pricing.oneshot[d] ?? 0), 0);
+    perPass = pricing.oneshot;
   }
   return perPass * seats;
 }

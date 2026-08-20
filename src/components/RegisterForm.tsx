@@ -25,7 +25,7 @@ function tierLabel(t: string | null) {
 
 function computePrice(edition: EditionRow, passType: PassType, days: Day[]): number {
   if (passType === 'campaign') return edition.pricing.campaign;
-  return days.length === 1 ? edition.pricing.oneshot[days[0]] : 0;
+  return days.length === 1 ? edition.pricing.oneshot : 0;
 }
 
 function computeDiscount(base: number, tier: string | null, cap: number): number {
@@ -167,14 +167,8 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const bothSoldOut = spots?.both_sold_out ?? false;
   const campaignUnavailable = day1SoldOut || day2SoldOut;
   const tierMsg = tierLabel(lookup?.guild.tier ?? null);
-  const day1Price = edition.pricing.oneshot.day1;
-  const day2Price = edition.pricing.oneshot.day2;
   const day1Name = weekdayName(edition.start_date);
   const day2Name = weekdayName(edition.end_date);
-  const dayPricesDiffer = day1Price !== day2Price;
-  const dayPassPriceLabel = dayPricesDiffer
-    ? `from ₹${Math.min(day1Price, day2Price)}`
-    : `₹${day1Price}`;
   const storedNameProtected = Boolean(lookup?.user.found && lookup.user.name);
   const storedEmailProtected = Boolean(lookup?.user.found && lookup.user.email);
 
@@ -234,11 +228,11 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           <div className="grid grid-cols-2 gap-3">
             <label className={`btn ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
               <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} className="sr-only" />
-              Day pass — {dayPassPriceLabel}
+              1-day pass — ₹{edition.pricing.oneshot}
             </label>
             <label className={`btn ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${campaignUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
               <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={campaignUnavailable} className="sr-only" />
-              Campaign ₹{edition.pricing.campaign}
+              2-day pass — ₹{edition.pricing.campaign}
             </label>
           </div>
         </fieldset>
@@ -249,11 +243,11 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
             <div className="grid grid-cols-2 gap-3">
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day1' ? 'pill-accent' : ''} ${day1SoldOut ? 'opacity-50' : ''}`}>
                 <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label={day1Name} className="sr-only" />
-                {day1Name} · ₹{day1Price} {day1SoldOut && <span className="text-xs">(sold out)</span>}
+                {day1Name} {day1SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day2' ? 'pill-accent' : ''} ${day2SoldOut ? 'opacity-50' : ''}`}>
                 <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label={day2Name} className="sr-only" />
-                {day2Name} · ₹{day2Price} {day2SoldOut && <span className="text-xs">(sold out)</span>}
+                {day2Name} {day2SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
             </div>
           </fieldset>
