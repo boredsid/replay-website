@@ -35,6 +35,25 @@ const statusCopy = edition?.registration_status === 'open'
     cta={edition ? { text: edition.registration_status === 'open' ? 'Choose tickets ↓' : 'Get updates ↓', href: '#ticket-action', variant: 'primary' } : undefined}
   />
 
+  <section id="ticket-action" class="ticket-action" aria-labelledby="ticket-action-heading">
+    <div class="container-x ticket-action__inner">
+      <span class="section-tag">{edition?.registration_status === 'open' ? 'Book now' : 'Ticket updates'}</span>
+      <h2 id="ticket-action-heading" class="section-heading">
+        {edition?.registration_status === 'open' ? 'Get your REPLAY ticket.' : 'Know when tickets move.'}
+      </h2>
+      {!edition ? (
+        <p class="section-copy">There is no upcoming edition to register for right now. Follow REPLAY on Instagram for announcements.</p>
+      ) : edition.registration_status === 'open' ? (
+        <RegisterForm client:load edition={edition} upiId={upiId} />
+      ) : (
+        <div class="notify-card">
+          <p>{statusCopy}</p>
+          <NotifyMeForm client:load editionId={edition.id} editionName={edition.name} status={edition.registration_status} />
+        </div>
+      )}
+    </div>
+  </section>
+
   {edition && (
     <section class="page-section page-section-yellow" aria-labelledby="ticket-options-heading">
       <div class="container-x">
@@ -102,25 +121,6 @@ const statusCopy = edition?.registration_status === 'open'
         <article class="info-card"><span class="info-card__kicker">03</span><h3>Watch for email</h3><p>Paid registrations remain pending until payment is reviewed. Your confirmation email is your final ticket record.</p></article>
       </div>
       <p class="notice payment-notice">Cancellation and refund terms will be published before ticket sales open. If you need help with an existing registration, contact the REPLAY team.</p>
-    </div>
-  </section>
-
-  <section id="ticket-action" class="ticket-action" aria-labelledby="ticket-action-heading">
-    <div class="container-x ticket-action__inner">
-      <span class="section-tag">{edition?.registration_status === 'open' ? 'Book now' : 'Ticket updates'}</span>
-      <h2 id="ticket-action-heading" class="section-heading">
-        {edition?.registration_status === 'open' ? 'Get your REPLAY ticket.' : 'Know when tickets move.'}
-      </h2>
-      {!edition ? (
-        <p class="section-copy">There is no upcoming edition to register for right now. Follow REPLAY on Instagram for announcements.</p>
-      ) : edition.registration_status === 'open' ? (
-        <RegisterForm client:load edition={edition} upiId={upiId} />
-      ) : (
-        <div class="notify-card">
-          <p>{statusCopy}</p>
-          <NotifyMeForm client:load editionId={edition.id} editionName={edition.name} status={edition.registration_status} />
-        </div>
-      )}
     </div>
   </section>
 
