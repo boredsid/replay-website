@@ -2,5 +2,8 @@
 /register        /tickets/   301
 /register/       /tickets/   301
 /register.html   /tickets/   301
+/faq             /contact/   301
+/faq/            /contact/   301
+/faq.html        /contact/   301
 /schedule.html   /schedule/  301
 /preorder.html   /           301
