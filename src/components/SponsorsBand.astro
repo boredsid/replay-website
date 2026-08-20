@@ -1,101 +1,86 @@
 ---
 /**
- * SponsorsBand
- * -----------------------------------------------------------------
- * Tier-stacked sponsor logos on cream with thick ink borders.
- * Tier order: title → gold → silver → partner.
- * Hidden entirely when no sponsors are present.
+ * One unified partners-and-sponsors logo wall.
+ * Current-edition records take precedence; tracked logos keep the
+ * section complete until the edition-specific records are populated.
  */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import type { PartnerLogo } from '../lib/partner-logos';
 import type { SponsorRow } from '../lib/types';
 
 export interface Props {
   sponsors: SponsorRow[];
+  fallbackLogos?: PartnerLogo[];
 }
 
-const { sponsors } = Astro.props;
-
-type Tier = 'title' | 'gold' | 'silver' | 'partner';
-const TIERS: Tier[] = ['title', 'gold', 'silver', 'partner'];
-const TIER_LABEL: Record<Tier, string> = {
-  title: 'Title sponsor',
-  gold: 'Gold sponsors',
-  silver: 'Silver sponsors',
-  partner: 'Partners',
-};
-
-const grouped: Record<Tier, SponsorRow[]> = {
-  title: [],
-  gold: [],
-  silver: [],
-  partner: [],
-};
-for (const s of sponsors) {
-  if (TIERS.includes(s.tier as Tier)) {
-    grouped[s.tier as Tier].push(s);
-  }
+interface LogoItem {
+  name: string;
+  websiteUrl: string | null;
+  localImage?: ImageMetadata;
+  remoteUrl?: string;
 }
+
+const { sponsors, fallbackLogos = [] } = Astro.props;
+const logos: LogoItem[] = sponsors.length > 0
+  ? sponsors.map((sponsor) => ({
+      name: sponsor.name,
+      websiteUrl: sponsor.website_url,
+      remoteUrl: sponsor.logo_url,
+    }))
+  : fallbackLogos.map((logo) => ({
+      name: logo.name,
+      websiteUrl: null,
+      localImage: logo.image,
+    }));
 ---
 
 {
-  sponsors.length > 0 && (
-    <section class="sponsors-band">
+  logos.length > 0 && (
+    <section class="sponsors-band" aria-labelledby="partners-sponsors-heading">
       <div class="container-x sponsors-band__inner">
-        <span
-          class="section-tag"
-          style="background: var(--color-yellow); color: var(--color-ink);"
-        >
-          SPONSORS
-        </span>
-        <h2 class="sponsors-band__heading">Backed by</h2>
+        <span class="section-tag">Partners &amp; sponsors</span>
+        <h2 id="partners-sponsors-heading" class="sponsors-band__heading">
+          The people making REPLAY happen.
+        </h2>
 
-        {TIERS.map((tier) =>
-          grouped[tier].length === 0 ? null : (
-            <div class:list={['sponsors-band__tier', `tier-${tier}`]}>
-              <div class="sponsors-band__tier-label">{TIER_LABEL[tier]}</div>
-              <div class:list={['sponsors-band__grid', `grid-${tier}`]}>
-                {grouped[tier].map((sponsor) =>
-                  sponsor.website_url ? (
-                    <a
-                      href={sponsor.website_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class:list={[
-                        'card-brutal',
-                        tier === 'title' && 'card-brutal-lg',
-                        'sponsors-band__card',
-                      ]}
-                      aria-label={sponsor.name}
-                    >
-                      <img
-                        src={sponsor.logo_url}
-                        alt={sponsor.name}
-                        loading="lazy"
-                        decoding="async"
-                        class:list={['sponsors-band__logo', `logo-${tier}`]}
-                      />
-                    </a>
-                  ) : (
-                    <div
-                      class:list={[
-                        'card-brutal',
-                        tier === 'title' && 'card-brutal-lg',
-                        'sponsors-band__card',
-                      ]}
-                    >
-                      <img
-                        src={sponsor.logo_url}
-                        alt={sponsor.name}
-                        loading="lazy"
-                        decoding="async"
-                        class:list={['sponsors-band__logo', `logo-${tier}`]}
-                      />
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          )
-        )}
+        <div class="sponsors-band__grid">
+          {logos.map((logo) => {
+            const logoImage = logo.localImage ? (
+              <Image
+                src={logo.localImage}
+                alt={logo.name}
+                width={220}
+                format="webp"
+                quality={82}
+                loading="lazy"
+                class="sponsors-band__logo"
+              />
+            ) : (
+              <img
+                src={logo.remoteUrl}
+                alt={logo.name}
+                loading="lazy"
+                decoding="async"
+                class="sponsors-band__logo"
+              />
+            );
+
+            return logo.websiteUrl ? (
+              <a
+                href={logo.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="sponsors-band__logo-cell"
+                aria-label={logo.name}
+              >
+                {logoImage}
+              </a>
+            ) : (
+              <div class="sponsors-band__logo-cell">{logoImage}</div>
+            );
+          })}
+        </div>
       </div>
     </section>
   )
@@ -107,106 +92,59 @@ for (const s of sponsors) {
     border-top: 4px solid var(--color-ink);
     border-bottom: 4px solid var(--color-ink);
   }
+
   .sponsors-band__inner {
     padding: 64px 24px;
   }
 
   .sponsors-band__heading {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    line-height: 1.05;
-    letter-spacing: -1px;
-    color: var(--color-ink);
+    max-width: 18ch;
     margin: 8px 0 40px;
-  }
-
-  .sponsors-band__tier + .sponsors-band__tier {
-    margin-top: 40px;
-  }
-
-  .sponsors-band__tier-label {
+    color: var(--color-ink);
     font-family: var(--font-heading);
+    font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 700;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #6b7280; /* gray-600 */
-    margin-bottom: 12px;
+    letter-spacing: -1px;
+    line-height: 1.05;
   }
 
   .sponsors-band__grid {
     display: grid;
-    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 24px 18px;
   }
 
-  .sponsors-band__card {
+  .sponsors-band__logo-cell {
     display: flex;
+    min-width: 0;
+    min-height: 96px;
     align-items: center;
     justify-content: center;
-    padding: 18px;
-    background: #fff;
+    padding: 8px;
+    color: inherit;
     text-decoration: none;
   }
 
   .sponsors-band__logo {
-    width: 100%;
-    object-fit: contain;
     display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 96px;
+    object-fit: contain;
   }
 
-  /* Tier-specific grids + logo sizing -------------------- */
-  .grid-title {
-    grid-template-columns: 1fr;
-    max-width: 28rem; /* max-w-md-ish */
-    margin: 0 auto;
-  }
-  .logo-title {
-    height: 128px;
-  }
-
-  .grid-gold {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .logo-gold {
-    height: 80px;
-  }
-
-  .grid-silver {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .logo-silver {
-    height: 64px;
-  }
-
-  .grid-partner {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .logo-partner {
-    height: 56px;
-  }
-
-  @media (min-width: 768px) {
-    .grid-gold {
-      grid-template-columns: repeat(3, 1fr);
-    }
-    .grid-silver {
-      grid-template-columns: repeat(4, 1fr);
-    }
-    .grid-partner {
-      grid-template-columns: repeat(5, 1fr);
+  @media (min-width: 640px) {
+    .sponsors-band__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
-  @media (min-width: 1024px) {
-    .grid-partner {
-      grid-template-columns: repeat(6, 1fr);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .sponsors-band__card {
-      transition: none;
+  @media (min-width: 900px) {
+    .sponsors-band__grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 32px 24px;
     }
   }
 </style>

@@ -36,5 +36,5 @@ export function clockTime(value: string): string {
   const minute = match[2];
   const suffix = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minute} ${suffix}`;
+  return minute === '00' ? `${displayHour} ${suffix}` : `${displayHour}:${minute} ${suffix}`;
 }

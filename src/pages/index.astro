@@ -37,6 +37,7 @@ import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
 import { getCurrentEdition, getSponsors, editionOrdinal, publicDateRange } from '../lib/data';
 import { clockTime, weekdayName } from '../lib/edition-format';
+import { partnerLogos } from '../lib/partner-logos';
 
 const edition = await getCurrentEdition();
 const sponsors = edition ? await getSponsors(edition.id) : [];
@@ -96,7 +97,7 @@ const eventJsonLd = edition ? JSON.stringify({
     tone="light"
     heading="A weekend to switch off."
     headingLevel="h1"
-    body="Two days. One shared library of 200+ games. Beginners, regulars, and everyone in between welcome."
+    body="Two days off your phone and in the real world. Everything offline gaming all in one place."
     cta={heroPrimaryCta}
   />
 
@@ -212,7 +213,7 @@ const eventJsonLd = edition ? JSON.stringify({
   />
 
   {/* ──────────────────────────────────────────────────────────── 8. Sponsors */}
-  <SponsorsBand sponsors={sponsors} />
+  <SponsorsBand sponsors={sponsors} fallbackLogos={partnerLogos} />
 
   {/* ──────────────────────────────────────────────────────────── 9. Orange CTA finish */}
   {edition && (

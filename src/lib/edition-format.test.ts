@@ -10,7 +10,9 @@ describe('edition display formatting', () => {
   });
 
   it('formats edition times without relying on the browser timezone', () => {
-    expect(clockTime('10:00:00')).toBe('10:00 AM');
+    expect(clockTime('10:00:00')).toBe('10 AM');
     expect(clockTime('19:30:00')).toBe('7:30 PM');
+    expect(clockTime('00:00:00')).toBe('12 AM');
+    expect(clockTime('12:00:00')).toBe('12 PM');
   });
 });

@@ -18,6 +18,7 @@ const {
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 const nav = [
+  { href: '/', label: 'Home' },
   { href: '/schedule', label: 'Schedule' },
   { href: '/plan-your-visit', label: 'Plan your visit' },
   { href: '/get-involved', label: 'Get involved' },
