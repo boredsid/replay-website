@@ -1,0 +1,232 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DarkBand from '../components/DarkBand.astro';
+import { getCurrentEdition, publicDateRange } from '../lib/data';
+
+const edition = await getCurrentEdition();
+const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+
+const boothPackages: Array<{
+  name: string;
+  price: string;
+  duration: string;
+  inclusions: string[];
+  note?: string;
+}> = [
+  {
+    name: 'Standard booth',
+    price: '₹8,000 + GST',
+    duration: 'Full weekend',
+    inclusions: [
+      'One table and access to power',
+      'Two complimentary two-day REPLAY passes',
+      'Bring your own signage and display material',
+    ],
+    note: 'For booths using their regular price list during the convention.',
+  },
+  {
+    name: 'Community booth',
+    price: '₹6,500 + GST',
+    duration: 'Full weekend',
+    inclusions: [
+      'One table and access to power',
+      'Two complimentary two-day REPLAY passes',
+      'Bring your own signage and display material',
+    ],
+    note: 'This reduced booth rate requires at least 15% off the booth’s published price list for REPLAY attendees during the event.',
+  },
+];
+
+const communityPackages: Array<{
+  name: string;
+  price: string;
+  duration: string;
+  inclusions: string[];
+}> = [
+  {
+    name: 'Standard engagement',
+    price: '₹3,000 + GST / day',
+    duration: 'Three-hour slot',
+    inclusions: ['Four tables for the activity', 'Programme listing once the activity is confirmed'],
+  },
+  {
+    name: 'Patron engagement',
+    price: '₹3,500 + GST / day',
+    duration: 'Three-hour slot',
+    inclusions: ['Four tables for the activity', 'One complimentary two-day REPLAY pass', 'Programme listing once the activity is confirmed'],
+  },
+];
+
+const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeURIComponent(subject)}`;
+---
+
+<Layout title="Get Involved — REPLAY" description="Run an event, book a booth, sponsor REPLAY, or work with the convention as a content creator.">
+  <DarkBand
+    eyebrow="▸ GET INVOLVED"
+    eyebrowColor="var(--color-yellow)"
+    heading="Bring something to the table."
+    headingLevel="h1"
+    body={edition ? `REPLAY is built with the people who make Bangalore's game community interesting. Partner with us for ${range}.` : "REPLAY is built with the people who make Bangalore's game community interesting."}
+    cta={{ text: 'Choose a partnership ↓', href: '#ways-to-partner', variant: 'primary' }}
+  />
+
+  <section id="ways-to-partner" class="page-section page-section-yellow" aria-labelledby="ways-heading">
+    <div class="container-x">
+      <span class="section-tag">Four ways to partner</span>
+      <h2 id="ways-heading" class="section-heading">Pick the role that sounds like you.</h2>
+      <p class="section-copy">Each route has a different operational ask. Send enough detail for the team to evaluate fit, space, timing and support.</p>
+
+      <div class="partner-grid">
+        <article id="run-an-event" class="partner-card partner-card--blue">
+          <span class="partner-number">01</span>
+          <span class="pill pill-blue">Community engagement</span>
+          <h3>Conduct an activity at REPLAY.</h3>
+          <p>Propose a tournament, demonstration, workshop, hosted game, roleplaying session or another participatory format.</p>
+          <ul class="clean-list">
+            <li>Format, duration and ideal time</li>
+            <li>Minimum and maximum participants</li>
+            <li>Table, room, equipment and staff needs</li>
+            <li>Experience level and sign-up method</li>
+          </ul>
+          <a class="btn btn-black" href="#community-pricing">See engagement pricing ↓</a>
+        </article>
+
+        <article id="book-a-booth" class="partner-card partner-card--orange">
+          <span class="partner-number">02</span>
+          <span class="pill pill-accent">Book a booth</span>
+          <h3>Meet players on the event floor.</h3>
+          <p>For publishers, designers, retailers, artists and relevant community businesses that need a dedicated physical footprint.</p>
+          <ul class="clean-list">
+            <li>Tell us what you will display, demonstrate or sell</li>
+            <li>Share your preferred event days and staffing plan</li>
+            <li>Plan the signage and display material you will bring</li>
+            <li>Tell us how you will use the provided table and power</li>
+          </ul>
+          <a class="btn btn-black" href="#booth-pricing">See booth pricing ↓</a>
+        </article>
+
+        <article id="sponsor" class="partner-card partner-card--purple">
+          <span class="partner-number">03</span>
+          <span class="pill pill-purple">Sponsor REPLAY</span>
+          <h3>Support the whole weekend.</h3>
+          <p>Sponsorship is tailored to the brand, the audience and the outcome you want. Start a conversation rather than choosing a generic checkout package.</p>
+          <ul class="clean-list">
+            <li>Your organisation and category</li>
+            <li>The audience or outcome you care about</li>
+            <li>Budget range and activation ideas</li>
+            <li>Brand, product or exclusivity constraints</li>
+          </ul>
+          <a class="btn btn-black" href={mailto('REPLAY sponsorship conversation')}>Talk sponsorship →</a>
+        </article>
+
+        <article id="content-creators" class="partner-card partner-card--green">
+          <span class="partner-number">04</span>
+          <span class="pill pill-green">Content creators</span>
+          <h3>Tell the story of the room.</h3>
+          <p>Creators, journalists, photographers and community media can propose coverage or a collaboration that helps more people understand the event.</p>
+          <ul class="clean-list">
+            <li>Channels, audience and relevant work</li>
+            <li>Coverage idea and planned format</li>
+            <li>Access, interview or filming needs</li>
+            <li>Publishing timeline and usage expectations</li>
+          </ul>
+          <a class="btn btn-black" href={mailto('REPLAY content creator enquiry')}>Pitch your coverage →</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="booth-pricing" class="page-section page-section-paper" aria-labelledby="booth-pricing-heading">
+    <div class="container-x">
+      <span class="section-tag">Booth pricing</span>
+      <h2 id="booth-pricing-heading" class="section-heading">A clear rate before you commit.</h2>
+      <div class="booth-grid">
+        {boothPackages.map((booth) => (
+          <article class="booth-card">
+            <span class="pill pill-yellow">{booth.duration}</span>
+            <h3>{booth.name}</h3>
+            <p class="booth-price">{booth.price}</p>
+            <ul class="clean-list">{booth.inclusions.map((item) => <li>{item}</li>)}</ul>
+            {booth.note && <p class="booth-note">{booth.note}</p>}
+            <a class="btn btn-primary" href={mailto(`REPLAY booth enquiry — ${booth.name}`)}>Enquire about this booth →</a>
+          </article>
+        ))}
+      </div>
+      <p class="commercial-note">Cancellations are accepted only until seven days before the event starts. After that deadline, cancellations are not accepted.</p>
+    </div>
+  </section>
+
+  <section id="community-pricing" class="page-section page-section-green" aria-labelledby="community-pricing-heading">
+    <div class="container-x">
+      <span class="section-tag">Community engagement pricing</span>
+      <h2 id="community-pricing-heading" class="section-heading">Bring an activity people can join.</h2>
+      <p class="section-copy">Choose a three-hour slot on either event day. Tell us what you want to run, who it is for, and what support the activity needs.</p>
+      <div class="booth-grid">
+        {communityPackages.map((item) => (
+          <article class="booth-card">
+            <span class="pill pill-blue">{item.duration}</span>
+            <h3>{item.name}</h3>
+            <p class="booth-price">{item.price}</p>
+            <ul class="clean-list">{item.inclusions.map((inclusion) => <li>{inclusion}</li>)}</ul>
+            <a class="btn btn-primary" href={mailto(`REPLAY community engagement enquiry — ${item.name}`)}>Propose an activity →</a>
+          </article>
+        ))}
+      </div>
+      <p class="commercial-note">Cancellations are accepted only until seven days before the event starts. After that deadline, cancellations are not accepted.</p>
+    </div>
+  </section>
+
+  <section class="page-section page-section-blue" aria-labelledby="partner-process-heading">
+    <div class="container-x">
+      <span class="section-tag">How it works</span>
+      <h2 id="partner-process-heading" class="section-heading">Fit first, logistics second.</h2>
+      <div class="info-grid">
+        <article class="info-card"><span class="info-card__kicker">01</span><h3>Send the useful detail</h3><p>Choose the relevant route above and include enough information for a real evaluation.</p></article>
+        <article class="info-card"><span class="info-card__kicker">02</span><h3>Confirm the fit</h3><p>The team reviews audience value, schedule or floor-space constraints, staffing and venue requirements.</p></article>
+        <article class="info-card"><span class="info-card__kicker">03</span><h3>Lock the operating plan</h3><p>Nothing is public until scope, timings, commercial terms, assets, contacts and on-site ownership are agreed.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section-purple">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Not sure which route?</span>
+        <h2 class="section-heading">Start with what you want to make happen.</h2>
+        <p class="section-copy">The team can help place an idea, but it needs a clear audience, outcome and operational owner.</p>
+      </div>
+      <div class="button-row">
+        <a class="btn btn-black" href={mailto('REPLAY partnership enquiry')}>Email hello@replaycon.in</a>
+        <a class="btn btn-secondary" href="/contact">Contact options →</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .partner-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
+  .partner-card { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; padding: 30px; border: 4px solid var(--color-ink); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+  .partner-card--blue { background: var(--color-blue); }
+  .partner-card--orange { background: var(--color-orange); }
+  .partner-card--purple { background: var(--color-purple); }
+  .partner-card--green { background: var(--color-green); }
+  .partner-card h3 { position: relative; margin-top: 18px; max-width: 18ch; font-size: clamp(1.65rem, 4vw, 2.4rem); }
+  .partner-card p, .partner-card ul, .partner-card .btn { position: relative; }
+  .partner-card > p { margin-top: 12px; max-width: 55ch; }
+  .partner-card .btn { margin-top: auto; padding-top: 12px; }
+  .partner-card .clean-list { margin-bottom: 28px; }
+  .partner-number { position: absolute; right: -4px; top: -18px; font-family: var(--font-heading); font-size: 9rem; font-weight: 900; line-height: 1; opacity: .09; }
+
+  .booth-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 24px; margin-top: 36px; }
+  .booth-card { padding: clamp(28px, 6vw, 48px); border: 4px solid var(--color-ink); border-radius: var(--radius-lg); background: var(--color-cream); box-shadow: var(--shadow-lg); }
+  .booth-card h3 { margin-top: 18px; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+  .booth-price { margin-top: 12px; font-family: var(--font-heading); font-size: 2.8rem; font-weight: 850; }
+  .booth-note { margin-top: 14px; color: rgba(26,26,26,.72); }
+  .booth-card .btn { margin-top: 24px; }
+  .commercial-note { max-width: 880px; margin-top: 28px; padding: 16px 18px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: var(--color-cream); font-weight: 700; }
+
+  @media (min-width: 820px) {
+    .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .partner-card { padding: 38px; min-height: 540px; }
+  }
+</style>

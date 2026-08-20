@@ -23,7 +23,7 @@ export function NotifyMeForm({ editionId }: NotifyMeFormProps) {
     return (
       <div className="text-center py-6">
         <h2 className="text-2xl mb-2 font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Got it.</h2>
-        <p className="text-gray-700">We'll WhatsApp you when registration opens.</p>
+        <p className="text-gray-700">The REPLAY team has your number for ticket updates.</p>
       </div>
     );
   }

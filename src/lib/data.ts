@@ -78,5 +78,24 @@ export async function getScheduleItems(editionId: string): Promise<ScheduleItemR
     .order('day', { ascending: true })
     .order('start_time', { ascending: true });
   if (error) throw new Error(`getScheduleItems failed: ${error.message}`);
-  return (data as ScheduleItemRow[]) ?? [];
+  const sectionOrder = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'];
+  return ((data ?? []) as Array<Partial<ScheduleItemRow> & Pick<ScheduleItemRow, 'id' | 'edition_id' | 'day' | 'title' | 'kind'>>).map((item) => ({
+    ...item,
+    start_time: item.start_time ?? null,
+    end_time: item.end_time ?? null,
+    description: item.description ?? null,
+    location: item.location ?? null,
+    section: item.section ?? 'programme',
+    is_all_day: item.is_all_day ?? false,
+    host_name: item.host_name ?? null,
+    signup_mode: item.signup_mode ?? 'none',
+    signup_url: item.signup_url ?? null,
+    public_status: item.public_status ?? 'published',
+    display_order: item.display_order ?? 0,
+  })).sort((a, b) =>
+    a.day.localeCompare(b.day)
+    || sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section)
+    || a.display_order - b.display_order
+    || (a.start_time ?? '').localeCompare(b.start_time ?? '')
+  );
 }

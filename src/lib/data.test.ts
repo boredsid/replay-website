@@ -71,10 +71,15 @@ describe('getSponsors', () => {
 
 describe('getScheduleItems', () => {
   it('returns ordered items', async () => {
-    const rows = [{ id: 'i1', day: '2026-09-12', start_time: '10:00' }, { id: 'i2', day: '2026-09-12', start_time: '11:00' }];
+    const rows = [
+      { id: 'i1', edition_id: 'e1', day: '2026-09-12', title: 'Workshop', kind: 'workshop', start_time: '10:00', end_time: '11:00' },
+      { id: 'i2', edition_id: 'e1', day: '2026-09-12', title: 'Quiz', kind: 'quiz', start_time: '11:00', end_time: '12:00', section: 'programme', public_status: 'published' },
+    ];
     const { from } = mockChain({ data: rows, error: null });
     Object.assign(supabase, { from });
     const out = await getScheduleItems('e1');
-    expect(out).toEqual(rows);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ section: 'programme', public_status: 'published', is_all_day: false, signup_mode: 'none', display_order: 0 });
+    expect(out[1]).toMatchObject({ section: 'programme', public_status: 'published' });
   });
 });

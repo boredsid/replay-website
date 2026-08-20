@@ -1,4 +1,6 @@
 /index.html      /           301
-/register.html   /register/  301
+/register        /tickets/   301
+/register/       /tickets/   301
+/register.html   /tickets/   301
 /schedule.html   /schedule/  301
 /preorder.html   /           301

@@ -1,5 +1,6 @@
 ---
-import type { ScheduleItemRow } from '../lib/types';
+import type { ScheduleItemRow, ScheduleKind, ScheduleSection, ScheduleSignupMode } from '../lib/types';
+import { calendarDate } from '../lib/edition-format';
 
 export interface Props {
   date: string;
@@ -9,290 +10,149 @@ export interface Props {
 
 const { date, label, items } = Astro.props;
 
-const KIND_PILL: Record<ScheduleItemRow['kind'], string> = {
-  workshop:    'pill-blue',
-  tournament:  'pill-pink',
+const SECTIONS: Array<{ key: ScheduleSection; label: string; intro: string }> = [
+  { key: 'always-on', label: 'Explore all day', intro: 'Drop in during event hours unless the listing says otherwise.' },
+  { key: 'programme', label: 'Timed programme', intro: 'Sessions, workshops, tournaments and special events in start-time order.' },
+  { key: 'playtesting', label: 'Playtests', intro: 'Try games in development and share useful feedback with their designers.' },
+  { key: 'publisher-showcase', label: 'Publisher showcases', intro: 'Meet the people behind the games and learn what they are bringing to the table.' },
+  { key: 'event-floor', label: 'Around the event floor', intro: 'Booths, food, merch and useful places to find while you explore.' },
+];
+
+const KIND_LABEL: Record<ScheduleKind, string> = {
+  workshop: 'Workshop',
+  tournament: 'Tournament',
+  'open-play': 'Open play',
+  meal: 'Meal',
+  talk: 'Talk',
+  ttrpg: 'TTRPG',
+  puzzle: 'Puzzle',
+  quiz: 'Quiz',
+  'social-game': 'Social game',
+  playtest: 'Playtest',
+  'publisher-showcase': 'Publisher showcase',
+  booth: 'Booth',
+  food: 'Food',
+  merch: 'Merch',
+  amenity: 'Amenity',
+  special: 'Special event',
+};
+
+const KIND_PILL: Record<ScheduleKind, string> = {
+  workshop: 'pill-blue',
+  tournament: 'pill-pink',
   'open-play': 'pill-yellow',
-  meal:        'pill-green',
-  talk:        'pill-purple',
+  meal: 'pill-green',
+  talk: 'pill-purple',
+  ttrpg: 'pill-purple',
+  puzzle: 'pill-blue',
+  quiz: 'pill-yellow',
+  'social-game': 'pill-pink',
+  playtest: 'pill-green',
+  'publisher-showcase': 'pill-accent',
+  booth: 'pill-accent',
+  food: 'pill-green',
+  merch: 'pill-yellow',
+  amenity: 'pill-blue',
+  special: 'pill-purple',
 };
 
-const KIND_DOT: Record<ScheduleItemRow['kind'], string> = {
-  workshop:    'var(--color-blue)',
-  tournament:  'var(--color-pink)',
-  'open-play': 'var(--color-yellow)',
-  meal:        'var(--color-green)',
-  talk:        'var(--color-purple)',
+const SIGNUP_LABEL: Record<Exclude<ScheduleSignupMode, 'none'>, string> = {
+  'walk-in': 'Walk in',
+  advance: 'Advance sign-up',
+  'on-site': 'Sign up on site',
 };
 
-const hhmm = (t: string) => t.slice(0, 5);
+const hhmm = (time: string | null) => time ? time.slice(0, 5) : '';
+const timing = (item: ScheduleItemRow) => item.is_all_day
+  ? 'All day'
+  : `${hhmm(item.start_time)}–${hhmm(item.end_time)}`;
 ---
 
 <section class="schedule-day" aria-label={`${label} schedule`}>
   <header class="schedule-day-header">
     <h2 class="schedule-day-label">{label}</h2>
-    <span class="schedule-day-date">{date}</span>
+    <span class="schedule-day-date">{calendarDate(date)}</span>
   </header>
 
   {items.length === 0 ? (
-    <p class="schedule-empty">No items yet.</p>
+    <p class="schedule-empty">No published items yet.</p>
   ) : (
-    <ol class="schedule-timeline">
-      {items.map((i) => (
-        <li class="schedule-item">
-          <span
-            class="schedule-dot"
-            style={`background: ${KIND_DOT[i.kind]};`}
-            aria-hidden="true"
-          ></span>
+    SECTIONS.map((section) => {
+      const sectionItems = items.filter((item) => item.section === section.key);
+      if (sectionItems.length === 0) return null;
 
-          <div class="schedule-time" aria-label={`${hhmm(i.start_time)} to ${hhmm(i.end_time)}`}>
-            <span class="schedule-time-start">{hhmm(i.start_time)}</span>
-            <span class="schedule-time-sep" aria-hidden="true">→</span>
-            <span class="schedule-time-end">{hhmm(i.end_time)}</span>
+      return (
+        <section class="schedule-group" aria-labelledby={`${section.key}-${date}`}>
+          <div class="schedule-group__header">
+            <h3 id={`${section.key}-${date}`}>{section.label}</h3>
+            <p>{section.intro}</p>
           </div>
 
-          <div class="schedule-body">
-            <h3 class="schedule-title">{i.title}</h3>
-            {i.location && (
-              <div class="schedule-location">
-                <span class="schedule-loc-marker" aria-hidden="true">◆</span>
-                {i.location}
-              </div>
-            )}
-            {i.description && (
-              <p class="schedule-description">{i.description}</p>
-            )}
-          </div>
+          <div class:list={['schedule-items', section.key === 'programme' && 'schedule-items--timeline']}>
+            {sectionItems.map((item) => (
+              <article class:list={['schedule-card', item.public_status === 'cancelled' && 'schedule-card--cancelled']}>
+                <div class="schedule-card__meta">
+                  <span class={`pill ${KIND_PILL[item.kind]}`}>{KIND_LABEL[item.kind]}</span>
+                  <span class="schedule-card__time">{timing(item)}</span>
+                  {item.public_status === 'cancelled' && <span class="pill pill-cream">Cancelled</span>}
+                </div>
 
-          <div class="schedule-kind">
-            <span class={`pill ${KIND_PILL[i.kind]}`}>{i.kind}</span>
+                <h4>{item.title}</h4>
+                {item.host_name && <p class="schedule-card__host">Hosted by {item.host_name}</p>}
+                {item.description && <p class="schedule-card__description">{item.description}</p>}
+
+                {(item.location || item.signup_mode !== 'none') && (
+                  <div class="schedule-card__details">
+                    {item.location && <span>◆ {item.location}</span>}
+                    {item.signup_mode !== 'none' && (
+                      item.signup_url && item.public_status !== 'cancelled'
+                        ? <a href={item.signup_url} target="_blank" rel="noopener noreferrer">{SIGNUP_LABEL[item.signup_mode]} ↗</a>
+                        : <span>{SIGNUP_LABEL[item.signup_mode]}</span>
+                    )}
+                  </div>
+                )}
+              </article>
+            ))}
           </div>
-        </li>
-      ))}
-    </ol>
+        </section>
+      );
+    })
   )}
 </section>
 
 <style>
-  .schedule-day {
-    margin-bottom: 4rem;
-  }
+  .schedule-day { margin-bottom: 5rem; }
+  .schedule-day-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .8rem; margin-bottom: 2rem; border-bottom: 4px solid var(--color-ink); }
+  .schedule-day-label { margin: 0; font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+  .schedule-day-date { font-family: var(--font-heading); font-size: .78rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .58; white-space: nowrap; }
+  .schedule-empty { padding: 1rem 0; color: rgba(26,26,26,.58); }
 
-  /* ---------- Header ---------- */
-  .schedule-day-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-bottom: 0.75rem;
-    margin-bottom: 2rem;
-    border-bottom: 4px solid var(--color-ink);
-  }
+  .schedule-group + .schedule-group { margin-top: 3.5rem; }
+  .schedule-group__header { display: grid; gap: .45rem; margin-bottom: 1.25rem; }
+  .schedule-group__header h3 { font-size: clamp(1.45rem, 4vw, 2rem); }
+  .schedule-group__header p { max-width: 68ch; color: rgba(26,26,26,.68); }
 
-  .schedule-day-label {
-    font-family: var(--font-heading);
-    font-weight: 800;
-    font-size: clamp(2rem, 5vw, 3rem);
-    line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--color-ink);
-    margin: 0;
-  }
+  .schedule-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px; }
+  .schedule-card { display: flex; flex-direction: column; min-width: 0; padding: 22px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-md); }
+  .schedule-card--cancelled { opacity: .68; background: var(--color-cream); }
+  .schedule-card--cancelled h4 { text-decoration: line-through; }
+  .schedule-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .schedule-card__time { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: .82rem; font-weight: 800; }
+  .schedule-card h4 { margin-top: 16px; font-size: 1.3rem; line-height: 1.2; }
+  .schedule-card__host { margin-top: 5px; font-size: .86rem; font-weight: 750; color: rgba(26,26,26,.66); }
+  .schedule-card__description { margin-top: 10px; color: rgba(26,26,26,.75); }
+  .schedule-card__details { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: auto; padding-top: 18px; font-size: .84rem; font-weight: 700; }
+  .schedule-card__details a { color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 
-  .schedule-day-date {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 0.78rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink);
-    opacity: 0.55;
-    white-space: nowrap;
-  }
-
-  /* ---------- Empty state ---------- */
-  .schedule-empty {
-    font-family: var(--font-body);
-    color: rgba(26, 26, 26, 0.55);
-    padding: 1rem 0;
-  }
-
-  /* ---------- Timeline list ---------- */
-  .schedule-timeline {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    position: relative;
-  }
-
-  /* Vertical rail down the dot column */
-  .schedule-timeline::before {
-    content: '';
-    position: absolute;
-    top: 12px;
-    bottom: 12px;
-    left: 15px;          /* center of 32px dot column (32 / 2 = 16; line is 2px wide → 15) */
-    width: 2px;
-    background: rgba(26, 26, 26, 0.22);
-    z-index: 0;
-  }
-
-  .schedule-item {
-    display: grid;
-    grid-template-columns: 32px 80px 1fr auto;
-    column-gap: 16px;
-    align-items: start;
-    padding: 1rem 0;
-    border-bottom: 1px solid rgba(26, 26, 26, 0.08);
-    position: relative;
-  }
-
-  .schedule-item:last-child {
-    border-bottom: 0;
-  }
-
-  /* ---------- Dot ---------- */
-  .schedule-dot {
-    grid-column: 1;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--color-ink);
-    margin-top: 6px;
-    margin-left: 7px;   /* aligns the dot's center with the rail */
-    box-shadow: 2px 2px 0 var(--color-ink);
-    position: relative;
-    z-index: 1;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-  }
-
-  .schedule-item:hover .schedule-dot {
-    transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--color-ink);
-  }
-
-  /* ---------- Time block ---------- */
-  .schedule-time {
-    grid-column: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.85rem;
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--color-ink);
-    padding-top: 3px;
-  }
-
-  .schedule-time-start {
-    font-size: 0.95rem;
-  }
-
-  .schedule-time-sep {
-    font-size: 0.7rem;
-    color: rgba(26, 26, 26, 0.35);
-    font-weight: 400;
-    line-height: 1;
-  }
-
-  .schedule-time-end {
-    color: rgba(26, 26, 26, 0.55);
-    font-weight: 600;
-  }
-
-  /* ---------- Body ---------- */
-  .schedule-body {
-    grid-column: 3;
-    min-width: 0;
-  }
-
-  .schedule-title {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 1.125rem;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    color: var(--color-ink);
-    margin: 0 0 4px;
-  }
-
-  .schedule-location {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-body);
-    font-size: 0.825rem;
-    color: rgba(26, 26, 26, 0.6);
-    font-weight: 500;
-  }
-
-  .schedule-loc-marker {
-    color: var(--color-orange);
-    font-size: 0.7rem;
-    line-height: 1;
-  }
-
-  .schedule-description {
-    margin: 6px 0 0;
-    font-family: var(--font-body);
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: rgba(26, 26, 26, 0.75);
-  }
-
-  /* ---------- Kind pill ---------- */
-  .schedule-kind {
-    grid-column: 4;
-    padding-top: 4px;
-    white-space: nowrap;
-  }
-
-  /* ---------- Mobile reflow ---------- */
-  @media (max-width: 640px) {
-    .schedule-timeline::before {
-      left: 11px;
-    }
-
-    .schedule-item {
-      grid-template-columns: 24px 1fr;
-      grid-template-rows: auto auto auto;
-      column-gap: 12px;
-      row-gap: 4px;
-      padding: 1.1rem 0;
-    }
-
-    .schedule-dot {
-      grid-column: 1;
-      grid-row: 1 / 4;
-      margin-top: 8px;
-      margin-left: 3px;
-      align-self: start;
-    }
-
-    .schedule-time {
-      grid-column: 2;
-      grid-row: 1;
-      flex-direction: row;
-      align-items: baseline;
-      gap: 8px;
-      padding-top: 0;
-    }
-
-    .schedule-time-sep {
-      font-size: 0.75rem;
-    }
-
-    .schedule-body {
-      grid-column: 2;
-      grid-row: 2;
-    }
-
-    .schedule-kind {
-      grid-column: 2;
-      grid-row: 3;
-      padding-top: 6px;
-    }
+  @media (min-width: 760px) {
+    .schedule-items--timeline { grid-template-columns: 1fr; }
+    .schedule-items--timeline .schedule-card { display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr); column-gap: 24px; align-items: start; }
+    .schedule-items--timeline .schedule-card__meta { grid-column: 1; grid-row: 1 / span 4; align-content: start; }
+    .schedule-items--timeline .schedule-card h4,
+    .schedule-items--timeline .schedule-card__host,
+    .schedule-items--timeline .schedule-card__description,
+    .schedule-items--timeline .schedule-card__details { grid-column: 2; }
+    .schedule-items--timeline .schedule-card h4 { margin-top: 0; }
+    .schedule-items--timeline .schedule-card__details { margin-top: 0; }
   }
 </style>

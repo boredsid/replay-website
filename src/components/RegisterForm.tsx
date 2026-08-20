@@ -4,6 +4,7 @@ import { getEditionSpots, lookupPhone, registerForEdition, captureLead } from '.
 import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, EditionRow, Day, PassType } from '../lib/types';
 import { UpiBottomSheet } from './UpiBottomSheet';
 import { SuccessScreen } from './SuccessScreen';
+import { weekdayName } from '../lib/edition-format';
 
 export interface RegisterFormProps {
   edition: EditionRow;
@@ -149,7 +150,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     } catch (err: any) {
       const body = err?.body ?? {};
       if (body.error === 'sold_out') {
-        setError(`${body.day === 'day1' ? 'Saturday' : 'Sunday'} just sold out. Please choose the other day.`);
+        setError(`${body.day === 'day1' ? weekdayName(edition.start_date) : weekdayName(edition.end_date)} just sold out. Please choose the other day.`);
         try { setSpots(await getEditionSpots(edition.id)); } catch {}
       } else if (body.error === 'registration_closed') {
         setError('Registration just closed. Please refresh.');
@@ -168,6 +169,8 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const tierMsg = tierLabel(lookup?.guild.tier ?? null);
   const day1Price = edition.pricing.oneshot.day1;
   const day2Price = edition.pricing.oneshot.day2;
+  const day1Name = weekdayName(edition.start_date);
+  const day2Name = weekdayName(edition.end_date);
   const dayPricesDiffer = day1Price !== day2Price;
   const dayPassPriceLabel = dayPricesDiffer
     ? `from ₹${Math.min(day1Price, day2Price)}`
@@ -177,7 +180,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
 
   return (
     <div className="container-x section max-w-xl">
-      <span className="pill pill-yellow mb-4">Register</span>
+      <span className="pill pill-yellow mb-4">Ticket details</span>
       <h2 className="text-4xl md:text-5xl mb-3">{edition.name}</h2>
       <p className="text-gray-700 mb-8">{formatDateRange(edition.start_date, edition.end_date)} · {edition.venue}</p>
       {availabilityError && (
@@ -245,12 +248,12 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
             <legend className="label-brutal">Day</legend>
             <div className="grid grid-cols-2 gap-3">
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day1' ? 'pill-accent' : ''} ${day1SoldOut ? 'opacity-50' : ''}`}>
-                <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label="Saturday" className="sr-only" />
-                Saturday · ₹{day1Price} {day1SoldOut && <span className="text-xs">(sold out)</span>}
+                <input type="radio" id="day1" name="day" checked={days[0] === 'day1'} onChange={() => toggleDay('day1')} disabled={day1SoldOut} aria-label={day1Name} className="sr-only" />
+                {day1Name} · ₹{day1Price} {day1SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
               <label className={`pill cursor-pointer justify-center py-3 ${days[0] === 'day2' ? 'pill-accent' : ''} ${day2SoldOut ? 'opacity-50' : ''}`}>
-                <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label="Sunday" className="sr-only" />
-                Sunday · ₹{day2Price} {day2SoldOut && <span className="text-xs">(sold out)</span>}
+                <input type="radio" id="day2" name="day" checked={days[0] === 'day2'} onChange={() => toggleDay('day2')} disabled={day2SoldOut} aria-label={day2Name} className="sr-only" />
+                {day2Name} · ₹{day2Price} {day2SoldOut && <span className="text-xs">(sold out)</span>}
               </label>
             </div>
           </fieldset>

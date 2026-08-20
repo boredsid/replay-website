@@ -1,0 +1,176 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DarkBand from '../components/DarkBand.astro';
+import { getCurrentEdition, publicDateRange } from '../lib/data';
+
+const edition = await getCurrentEdition();
+const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+
+const faqs = [
+  {
+    category: 'The event',
+    question: 'Is REPLAY friendly for first-time players?',
+    answer: 'Yes. You do not need to know the games or arrive with a group. Ask the team for an orientation and help finding a suitable table.',
+  },
+  {
+    category: 'The event',
+    question: 'Can I come alone?',
+    answer: 'Yes. Open play and hosted activities are designed to help people join tables. The final schedule will identify anything that needs advance sign-up.',
+  },
+  {
+    category: 'The event',
+    question: 'Can I bring my own games?',
+    answer: 'Yes. Label anything you bring and keep personal games separate from the REPLAY library returns area.',
+  },
+  {
+    category: 'The event',
+    question: 'Can I borrow games at REPLAY?',
+    answer: 'Yes. The shared library has 200+ games for on-site play. The event-day app will support search and borrowing; collection, loan and return details will be published before doors open.',
+  },
+  {
+    category: 'Tickets',
+    question: 'What is the difference between a day ticket and a campaign ticket?',
+    answer: 'A day ticket covers one selected event day. A campaign ticket covers both event days. Both include convention entry and access to the public programme, subject to individual activity capacity.',
+  },
+  {
+    category: 'Tickets',
+    question: 'When is my ticket confirmed?',
+    answer: 'If payment is required, your registration remains pending until the REPLAY team reviews the payment. The confirmation email is your final ticket record.',
+  },
+  {
+    category: 'Tickets',
+    question: 'How do Guild Path discounts work?',
+    answer: 'Use the phone number linked to your active BGC Guild Path membership. The first eligible REPLAY ticket receives the tier benefit automatically; the same membership cannot be split across repeat discounted bookings.',
+  },
+  {
+    category: 'Tickets',
+    question: 'What is the cancellation and refund policy?',
+    answer: 'The policy is not final yet and must be published before ticket sales open. Email hello@replaycon.in if you have a current registration question.',
+  },
+  {
+    category: 'Programme',
+    question: 'Does a ticket guarantee every hosted activity?',
+    answer: 'No. The ticket covers convention entry. Individual events may have their own capacity or sign-up rules, which will be stated on the schedule.',
+  },
+  {
+    category: 'Programme',
+    question: 'Can I run an event or demonstration?',
+    answer: 'Yes, proposals are welcome. Use the Get Involved page to tell the team what you want to run, its duration, player capacity and what support you need.',
+  },
+  {
+    category: 'Venue + access',
+    question: 'Where is the event?',
+    answer: edition && edition.venue !== 'TBD'
+      ? `${edition.venue}, Bangalore. See Plan Your Visit for the current map and arrival guidance.`
+      : 'The Bangalore venue and full address are still being confirmed. They will be published before ticket sales open.',
+  },
+  {
+    category: 'Venue + access',
+    question: 'What accessibility support is available?',
+    answer: 'Venue-specific accessibility details are still being confirmed. Email hello@replaycon.in with your requirements so the team can plan and give you a precise answer.',
+  },
+  {
+    category: 'Venue + access',
+    question: 'Can children attend?',
+    answer: 'The age and guardian policy is not final yet. It will be published before ticket sales open, along with any age restrictions on individual sessions.',
+  },
+];
+
+const categories = [...new Set(faqs.map((item) => item.category))];
+const faqJsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
+}).replace(/</g, '\\u003c');
+---
+
+<Layout title="Contact Us — REPLAY" description="Answers to common REPLAY ticket, programme, venue and accessibility questions, plus the right way to contact the team.">
+  <script is:inline type="application/ld+json" set:html={faqJsonLd} />
+  <DarkBand
+    eyebrow="▸ CONTACT US"
+    eyebrowColor="var(--color-yellow)"
+    heading="Questions belong at the table too."
+    headingLevel="h1"
+    body={edition ? `Planning for ${range}? Start with the answers below, then contact the REPLAY team if your question is specific to you.` : 'Start with the answers below, then contact the REPLAY team if your question is specific to you.'}
+    cta={{ text: 'Email the team →', href: 'mailto:hello@replaycon.in', variant: 'primary' }}
+  />
+
+  <section class="page-section page-section-yellow" aria-labelledby="contact-options-heading">
+    <div class="container-x">
+      <span class="section-tag">Talk to us</span>
+      <h2 id="contact-options-heading" class="section-heading">Use the route that fits.</h2>
+      <div class="info-grid">
+        <article class="info-card">
+          <span class="info-card__kicker">Tickets + general help</span>
+          <h3>Email REPLAY</h3>
+          <p>Best for registration, payment, venue, accessibility and organiser questions.</p>
+          <p><a class="text-link" href="mailto:hello@replaycon.in">hello@replaycon.in →</a></p>
+        </article>
+        <article class="info-card">
+          <span class="info-card__kicker">Announcements</span>
+          <h3>Follow on Instagram</h3>
+          <p>Dates, programme reveals and public updates.</p>
+          <p><a class="text-link" href="https://www.instagram.com/replay.convention" target="_blank" rel="noopener noreferrer">@replay.convention ↗</a></p>
+        </article>
+        <article class="info-card">
+          <span class="info-card__kicker">Community</span>
+          <h3>Join the WhatsApp group</h3>
+          <p>Meet the wider community. This group is not the official route for ticket or same-day support.</p>
+          <p><a class="text-link" href="https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp" target="_blank" rel="noopener noreferrer">Join the community ↗</a></p>
+        </article>
+        <article class="info-card">
+          <span class="info-card__kicker">Partners</span>
+          <h3>Get involved</h3>
+          <p>Run an event, book a booth, sponsor REPLAY or cover the weekend as a creator.</p>
+          <p><a class="text-link" href="/get-involved">See partnership routes →</a></p>
+        </article>
+      </div>
+      <p class="notice contact-notice">The official same-day help number and ticket-desk escalation route have not been assigned yet. They will be added here and on Plan Your Visit before doors open.</p>
+    </div>
+  </section>
+
+  <section class="page-section page-section-soft" aria-labelledby="questions-heading">
+    <div class="container-x faq-container">
+      <span class="section-tag">Common questions</span>
+      <h2 id="questions-heading" class="section-heading">Answers before you ask.</h2>
+      {categories.map((category) => (
+        <section class="faq-group" aria-labelledby={`faq-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+          <h3 id={`faq-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{category}</h3>
+          <div class="faq-list">
+            {faqs.filter((item) => item.category === category).map((item) => (
+              <details>
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </section>
+
+  <section class="page-section page-section-purple">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Still stuck?</span>
+        <h2 class="section-heading">Send the useful details.</h2>
+        <p class="section-copy">Include your registered phone number or ticket reference for booking questions. For accessibility, tell us the outcome you need rather than sharing unnecessary personal or medical details.</p>
+      </div>
+      <div class="button-row">
+        <a class="btn btn-black" href="mailto:hello@replaycon.in?subject=REPLAY%20question">Email hello@replaycon.in</a>
+        <a class="btn btn-secondary" href="/plan-your-visit">Plan your visit →</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .contact-notice { margin-top: 32px; }
+  .faq-container { max-width: 900px; }
+  .faq-group { margin-top: 48px; }
+  .faq-group h3 { font-size: 1.6rem; }
+</style>

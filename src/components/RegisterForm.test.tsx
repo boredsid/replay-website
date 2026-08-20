@@ -9,7 +9,7 @@ const EDITION: EditionRow = {
   start_date: '2026-09-12', end_date: '2026-09-13', venue: 'TBD',
   daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   capacity_per_day: { day1: 250, day2: 250 },
-  pricing: { oneshot: { day1: 800, day2: 800 }, campaign: 1400, adventurer_cap: 1000 },
+  pricing: { oneshot: { day1: 700, day2: 700 }, campaign: 1200, adventurer_cap: 1000 },
   registration_status: 'open', is_current: true, is_published: true,
 };
 
@@ -102,7 +102,7 @@ describe('RegisterForm', () => {
       discount_blocked: false,
     });
     mockRoute((u) => u.includes('/api/register'), 200, {
-      registration_id: 'r1', final_amount: 800, discount_applied: 0, discount_blocked: false, payment_required: true,
+      registration_id: 'r1', final_amount: 700, discount_applied: 0, discount_blocked: false, payment_required: true,
     });
     const user = userEvent.setup();
     render(<RegisterForm {...buildProps()} />);
@@ -128,7 +128,7 @@ describe('RegisterForm', () => {
       discount_blocked: false,
     });
     mockRoute((u) => u.includes('/api/register'), 200, {
-      registration_id: 'r1', final_amount: 0, discount_applied: 800, discount_blocked: false, payment_required: false,
+      registration_id: 'r1', final_amount: 0, discount_applied: 700, discount_blocked: false, payment_required: false,
     });
     const user = userEvent.setup();
     render(<RegisterForm {...buildProps()} />);

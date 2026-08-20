@@ -17,6 +17,7 @@ import { handleEdList, handleEdCreate, handleEdPatch } from './admin/editions';
 import { handleUserList, handleUserGet, handleUserPatch, handleUserChangePhone } from './admin/users';
 import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
+import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -63,6 +64,12 @@ export default {
         if (path === '/api/admin/dashboard' && req.method === 'GET') return await handleDashboard(req, env, sb, origin);
         if (path === '/api/admin/leads' && req.method === 'GET') return await handleLeadsList(req, env, sb, origin);
         if (path === '/api/admin/audit' && req.method === 'GET') return await handleAuditList(req, env, sb, origin);
+
+        if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, sb, origin);
+        if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);
+        const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
+        if (scheduleMatch && req.method === 'GET') return await handleScheduleGet(sb, scheduleMatch[1], origin);
+        if (scheduleMatch && req.method === 'PATCH') return await handleSchedulePatch(req, sb, scheduleMatch[1], email, origin);
 
         if (path === '/api/admin/registrations' && req.method === 'GET') return await handleRegList(req, env, sb, origin);
         if (path === '/api/admin/registrations' && req.method === 'POST') return await handleRegCreate(req, env, sb, email, origin);

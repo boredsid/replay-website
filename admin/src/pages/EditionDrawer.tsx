@@ -20,7 +20,7 @@ const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
   daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
-  oneshot: { day1: '800' }, caps: { day1: '250' }, campaign: '1400', adventurer_cap: '1000',
+  oneshot: { day1: '700' }, caps: { day1: '250' }, campaign: '1200', adventurer_cap: '1000',
 };
 
 // Inclusive day span between two ISO dates; falls back to 1 when dates are unset/invalid.
