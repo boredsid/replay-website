@@ -34,6 +34,7 @@ function renderTemplate(template, vars) {
   const urls = {
     'replay-registration': 'https://raw.githubusercontent.com/boredsid/replay-website/main/src/emails/registration.html',
     'replay-preorder':     'https://raw.githubusercontent.com/boredsid/replay-website/main/src/emails/preorder.html',
+    'replay-partner':      'https://raw.githubusercontent.com/boredsid/replay-website/main/src/emails/partner.html',
   };
   const url = urls[template];
   if (!url) throw new Error('unknown template: ' + template);

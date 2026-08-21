@@ -6,6 +6,10 @@ import type {
   ApiRegisterRequest,
   ApiRegisterPreviewResponse,
   ApiRegisterResponse,
+  ApiPartnerPurchaseDetails,
+  ApiPartnerPurchaseRequest,
+  ApiPartnerPurchasePreviewResponse,
+  ApiPartnerPurchaseResponse,
   StepReached,
 } from './types';
 
@@ -51,6 +55,14 @@ export async function registerForEdition(input: ApiRegisterRequest): Promise<Api
 
 export async function previewRegistration(input: ApiRegistrationDetails): Promise<ApiRegisterPreviewResponse> {
   return jsonPost<ApiRegisterPreviewResponse>('/api/register/preview', input);
+}
+
+export async function purchasePartnerPackage(input: ApiPartnerPurchaseRequest): Promise<ApiPartnerPurchaseResponse> {
+  return jsonPost<ApiPartnerPurchaseResponse>('/api/partner-purchase', input);
+}
+
+export async function previewPartnerPackage(input: ApiPartnerPurchaseDetails): Promise<ApiPartnerPurchasePreviewResponse> {
+  return jsonPost<ApiPartnerPurchasePreviewResponse>('/api/partner-purchase/preview', input);
 }
 
 export async function cancelRegistration(registrationId: string, phone: string): Promise<{ ok: true; registration_id: string }> {

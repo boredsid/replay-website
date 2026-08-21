@@ -25,11 +25,21 @@ export type ScheduleKind =
 export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 export type StepReached = 'phone_entered' | 'name_entered' | 'details_entered';
+export type PartnerKind = 'booth' | 'community_engagement';
+export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
 
 export interface EditionPricing {
   oneshot: number;
   campaign: number;
   adventurer_cap?: number;
+}
+
+export interface PartnerPricing {
+  gst_rate: number;
+  standard_booth: number;
+  community_booth: number;
+  standard_engagement: number;
+  patron_engagement: number;
 }
 
 export interface EditionVisitDetails {
@@ -60,6 +70,7 @@ export interface EditionRow extends EditionVisitDetails {
   venue: string;
   capacity_per_day: { day1: number; day2: number };
   pricing: EditionPricing;
+  partner_pricing: PartnerPricing;
   registration_status: RegistrationStatus;
   is_current: boolean;
   is_published: boolean;
@@ -137,6 +148,40 @@ export interface ApiRegisterResponse {
   final_amount: number;
   discount_applied: number;
   discount_blocked: boolean;
+  payment_required: boolean;
+}
+
+export interface ApiPartnerPurchaseDetails {
+  edition_id: string;
+  organization_name: string;
+  contact_name: string;
+  phone: string;
+  email: string;
+  website_url?: string | null;
+  gstin?: string | null;
+  package_key: PartnerPackageKey;
+  days: Day[];
+  details?: string | null;
+}
+
+export interface ApiPartnerPurchaseRequest extends ApiPartnerPurchaseDetails {
+  partner_id: string;
+  expected_amount: number;
+}
+
+export interface ApiPartnerPurchasePreviewResponse {
+  payment_reference: string;
+  base_amount: number;
+  gst_amount: number;
+  final_amount: number;
+  payment_required: boolean;
+}
+
+export interface ApiPartnerPurchaseResponse {
+  partner_id: string;
+  base_amount: number;
+  gst_amount: number;
+  final_amount: number;
   payment_required: boolean;
 }
 

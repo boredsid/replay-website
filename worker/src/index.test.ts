@@ -11,8 +11,18 @@ vi.mock('./app-bootstrap', () => ({
   })),
 }));
 
+vi.mock('./partner-purchase', () => ({
+  handlePartnerPurchase: vi.fn(async () => new Response(JSON.stringify({ partner_id: 'p1' }), {
+    headers: { 'Content-Type': 'application/json' },
+  })),
+  handlePartnerPurchasePreview: vi.fn(async () => new Response(JSON.stringify({ payment_reference: 'ref-1' }), {
+    headers: { 'Content-Type': 'application/json' },
+  })),
+}));
+
 import worker from './index';
 import { handleAppBootstrap } from './app-bootstrap';
+import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 
 const adminBaseEnv = {
   ENVIRONMENT: 'test',
@@ -39,6 +49,20 @@ describe("worker", () => {
     const res = await worker.fetch(new Request('https://api.x/api/app/bootstrap'), adminBaseEnv);
     expect(res.status).toBe(200);
     expect(handleAppBootstrap).toHaveBeenCalledWith({ marker: 'mock-service-client' });
+  });
+
+  it('routes the public partner purchase endpoint', async () => {
+    const req = new Request('https://api.x/api/partner-purchase', { method: 'POST', body: '{}' });
+    const res = await worker.fetch(req, adminBaseEnv);
+    expect(res.status).toBe(200);
+    expect(handlePartnerPurchase).toHaveBeenCalledWith(req, adminBaseEnv);
+  });
+
+  it('routes the read-only partner purchase preview endpoint', async () => {
+    const req = new Request('https://api.x/api/partner-purchase/preview', { method: 'POST', body: '{}' });
+    const res = await worker.fetch(req, adminBaseEnv);
+    expect(res.status).toBe(200);
+    expect(handlePartnerPurchasePreview).toHaveBeenCalledWith(req, adminBaseEnv);
   });
 });
 

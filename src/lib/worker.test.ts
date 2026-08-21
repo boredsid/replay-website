@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { lookupPhone, getEditionSpots, previewRegistration, registerForEdition, captureLead, cancelRegistration } from './worker';
+import { lookupPhone, getEditionSpots, previewRegistration, registerForEdition, captureLead, cancelRegistration, previewPartnerPackage, purchasePartnerPackage } from './worker';
 
 const WORKER_URL = 'https://api.replaycon.in';
 
@@ -74,6 +74,29 @@ describe('previewRegistration', () => {
       method: 'POST',
       body: JSON.stringify(input),
     }));
+  });
+});
+
+describe('purchasePartnerPackage', () => {
+  it('POSTs a read-only preview to /api/partner-purchase/preview', async () => {
+    mockFetch(200, { payment_reference: 'ref-1', base_amount: 8000, gst_amount: 1440, final_amount: 9440, payment_required: true });
+    const out = await previewPartnerPackage({
+      edition_id: 'e1', organization_name: 'Studio', contact_name: 'Asha', phone: '9876543210',
+      email: 'asha@example.com', package_key: 'standard_booth', days: ['day1', 'day2'], details: 'Games booth',
+    });
+    expect(out.payment_reference).toBe('ref-1');
+    expect(global.fetch).toHaveBeenCalledWith(`${WORKER_URL}/api/partner-purchase/preview`, expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('POSTs to /api/partner-purchase', async () => {
+    mockFetch(200, { partner_id: 'p1', base_amount: 8000, gst_amount: 1440, final_amount: 9440, payment_required: true });
+    const out = await purchasePartnerPackage({
+      edition_id: 'e1', organization_name: 'Studio', contact_name: 'Asha', phone: '9876543210',
+      email: 'asha@example.com', package_key: 'standard_booth', days: ['day1', 'day2'], details: 'Games booth',
+      partner_id: '11111111-1111-4111-8111-111111111111', expected_amount: 9440,
+    });
+    expect(out.final_amount).toBe(9440);
+    expect(global.fetch).toHaveBeenCalledWith(`${WORKER_URL}/api/partner-purchase`, expect.objectContaining({ method: 'POST' }));
   });
 });
 

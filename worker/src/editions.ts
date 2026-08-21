@@ -31,6 +31,7 @@ export interface EditionRow extends EditionVisitDetails {
   venue: string;
   capacity_per_day: { day1: number; day2: number };
   pricing: unknown;
+  partner_pricing?: unknown;
   registration_status: 'upcoming' | 'open' | 'sold_out' | 'closed';
   is_current: boolean;
   is_published: boolean;

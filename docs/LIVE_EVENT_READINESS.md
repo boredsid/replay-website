@@ -25,7 +25,7 @@ follow-up rather than launch scope.
 | Tickets | Explain ticket choices and complete registration | Day and campaign comparison, inclusions, per-day availability, Guild Path discounts, payment/confirmation process, cancellation/refund summary, registration or notification form |
 | Plan Your Visit | Remove arrival-day uncertainty | Venue, address/map, travel/parking, hours, check-in proof, accessibility, food/water, age policy, re-entry, what to bring, prohibited items, same-day support |
 | Contact Us | Answer common questions and route unresolved ones | Ticket/payment, newcomer, schedule, venue, accessibility, cancellation/refund, contact and escalation answers |
-| Get Involved | Convert prospective partners | Four paths: community engagement, book a paid booth, sponsor the event, or participate as a content creator; approved packages/prices and tailored contact routes |
+| Get Involved | Convert prospective partners | Four paths: community engagement, book a paid booth, sponsor the event, or participate as a content creator; approved booth/engagement packages with website checkout, plus tailored sponsor/creator contact routes |
 
 Past editions, store/pre-orders, and a standalone sponsor directory are not
 launch-readiness pages. Revisit them after the core attendee journey is ready.
@@ -70,6 +70,9 @@ launch-readiness pages. Revisit them after the core attendee journey is ready.
 - Test each day ticket, campaign ticket, every Guild Path tier, sold-out day,
   sold-out campaign, duplicate registration, failed payment, confirmation,
   cancellation, and calendar download.
+- Test every booth and community-engagement package, both engagement days,
+  GST totals, abandoned and completed UPI handoffs, duplicate submissions,
+  admin create/edit/status changes, and partner confirmation delivery.
 
 ### Public release checks
 

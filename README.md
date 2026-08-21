@@ -4,12 +4,12 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 
 ## What lives here
 
-- `src/` — Astro public site, React registration islands, schedule, SEO metadata, and the registration-email template.
+- `src/` — Astro public site, React registration and partner-checkout islands, schedule, SEO metadata, and email templates.
 - `app/` — installable Vite/React attendee PWA for the live schedule, local agenda, event status, and organiser announcements.
-- `worker/` — Cloudflare Worker for registration, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
-- `admin/` — Vite/React operations console behind Cloudflare Access, including scheduled announcement publishing.
+- `worker/` — Cloudflare Worker for registration, partner purchases, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
+- `admin/` — Vite/React operations console for registrations, partners, editions, programme data, and scheduled announcements behind Cloudflare Access.
 - `supabase/` — database migrations and edition seed data.
-- `apps-script/` — source for the registration-email relay. Its deployed URL and signing key are secrets, never repository configuration.
+- `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling. Source CSV files are intentionally ignored.
 - `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically.
 
@@ -102,6 +102,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - public bookings support 1–10 tickets in one registration row, with `seats` storing the quantity;
 - Guild Path benefits apply to the member's first eligible ticket in a multi-ticket booking;
 - pending and confirmed registrations both reserve capacity;
+- partner package pricing is stored per edition, while every partner purchase preserves its base, GST, and final totals as a transaction snapshot;
+- partner purchases are operational records in the private `partners` table, separate from the build-time homepage logo source;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
 - public programme host, location, sign-up method, and display ordering managed through the protected admin.
@@ -117,6 +119,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - An admin confirmation changes it to confirmed and then sends the confirmation email.
 - Two-day passes are unavailable if either event day is sold out.
 - UPI payment opens through a device deep link and a locally rendered QR code.
+- Booth and community-engagement buyers use the same preview-then-record UPI handoff on Get Involved: opening or abandoning UPI creates no row, “I've paid” creates the pending partner record, and admins then verify or cancel it.
+- Confirming a pending partner record in admin sends the partner confirmation email; editing a confirmed record does not resend it.
 
 ## Deployment and secrets
 

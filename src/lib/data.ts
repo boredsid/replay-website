@@ -3,6 +3,7 @@
 // query — only is_published rows are visible to the anon client.
 import { supabase } from './supabase';
 import type { EditionPricing, EditionRow, SponsorRow, ScheduleItemRow } from './types';
+import { readPartnerPricing } from './partner-packages';
 
 export function readEditionPricing(input: unknown): EditionPricing {
   if (!input || typeof input !== 'object') throw new Error('edition pricing is not an object');
@@ -86,8 +87,12 @@ export async function getCurrentEdition(): Promise<EditionRow | null> {
     .maybeSingle();
   if (error) throw new Error(`getCurrentEdition failed: ${error.message}`);
   if (!data) return null;
-  const row = data as Omit<EditionRow, 'pricing'> & { pricing: unknown };
-  return { ...row, pricing: readEditionPricing(row.pricing) };
+  const row = data as Omit<EditionRow, 'pricing' | 'partner_pricing'> & { pricing: unknown; partner_pricing?: unknown };
+  return {
+    ...row,
+    pricing: readEditionPricing(row.pricing),
+    partner_pricing: readPartnerPricing(row.partner_pricing),
+  };
 }
 
 export async function getSponsors(editionId: string): Promise<SponsorRow[]> {

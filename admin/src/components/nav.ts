@@ -1,4 +1,4 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Megaphone, Handshake } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -6,6 +6,7 @@ export const NAV = [
   { to: '/programme', label: 'Programme', icon: CalendarDays, end: false },
   { to: '/announcements', label: 'Announcements', icon: Megaphone, end: false },
   { to: '/registrations', label: 'Registrations', icon: Ticket, end: false },
+  { to: '/partners', label: 'Partners', icon: Handshake, end: false },
   { to: '/users', label: 'Users', icon: Users, end: false },
   { to: '/leads', label: 'Leads', icon: UserPlus, end: false },
   { to: '/audit', label: 'Audit', icon: ScrollText, end: false },

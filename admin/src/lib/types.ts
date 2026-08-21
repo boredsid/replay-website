@@ -1,6 +1,8 @@
 export type PaymentStatus = 'confirmed' | 'pending' | 'cancelled';
 export type PassType = 'oneshot' | 'campaign';
 export type Day = 'day1' | 'day2';
+export type PartnerKind = 'booth' | 'community_engagement';
+export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
 
 export interface RegistrationRow {
   id: string;
@@ -48,6 +50,14 @@ export interface EditionPricing {
   adventurer_cap: number;
 }
 
+export interface PartnerPricing {
+  gst_rate: number;
+  standard_booth: number;
+  community_booth: number;
+  standard_engagement: number;
+  patron_engagement: number;
+}
+
 export function oneDayPrice(pricing: { oneshot: unknown }): number {
   if (typeof pricing.oneshot === 'number') return pricing.oneshot;
   if (!pricing.oneshot || typeof pricing.oneshot !== 'object' || Array.isArray(pricing.oneshot)) return Number.NaN;
@@ -86,6 +96,7 @@ export interface EditionRow extends EditionVisitDetails {
   venue: string;
   capacity_per_day: Record<string, number>; // day1..dayN
   pricing: EditionPricing;
+  partner_pricing?: PartnerPricing;
   registration_status: 'upcoming' | 'open' | 'sold_out' | 'closed';
   is_current: boolean;
   is_published: boolean;
@@ -158,4 +169,27 @@ export interface UserDetail {
     editions?: { slug: string; name: string } | null;
   }>;
   orders: Array<{ id: string; total: number; payment_status: string; created_at: string }>;
+}
+
+export interface PartnerRow {
+  id: string;
+  edition_id: string;
+  organization_name: string;
+  contact_name: string;
+  phone: string;
+  email: string;
+  website_url: string | null;
+  gstin: string | null;
+  kind: PartnerKind;
+  package_key: PartnerPackageKey;
+  days: Day[];
+  details: string | null;
+  internal_notes: string | null;
+  base_amount: number;
+  gst_amount: number;
+  total_amount: number;
+  payment_status: PaymentStatus;
+  source: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }
