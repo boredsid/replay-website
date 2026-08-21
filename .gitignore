@@ -8,6 +8,7 @@ app/dist/
 .env
 .env.local
 *.local
+.playwright-mcp/
 .superpowers/
 .tmp/
 audit-output/
