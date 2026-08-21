@@ -1,0 +1,21 @@
+{
+  "name": "REPLAY Event App",
+  "short_name": "REPLAY",
+  "description": "Your event-day guide to REPLAY: now, schedule, saved sessions, venue, and essential information.",
+  "id": "/",
+  "start_url": "/#now",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff8e7",
+  "theme_color": "#1a0088",
+  "orientation": "portrait-primary",
+  "categories": ["events", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/replay-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

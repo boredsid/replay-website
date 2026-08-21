@@ -18,6 +18,8 @@ import { handleUserList, handleUserGet, handleUserPatch, handleUserChangePhone }
 import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
+import { handleAppBootstrap } from './app-bootstrap';
+import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -65,6 +67,12 @@ export default {
         if (path === '/api/admin/leads' && req.method === 'GET') return await handleLeadsList(req, env, sb, origin);
         if (path === '/api/admin/audit' && req.method === 'GET') return await handleAuditList(req, env, sb, origin);
 
+        if (path === '/api/admin/announcements' && req.method === 'GET') return await handleAnnouncementList(req, sb, origin);
+        if (path === '/api/admin/announcements' && req.method === 'POST') return await handleAnnouncementCreate(req, sb, email, origin);
+        const announcementMatch = path.match(/^\/api\/admin\/announcements\/([^/]+)$/);
+        if (announcementMatch && req.method === 'GET') return await handleAnnouncementGet(sb, announcementMatch[1], origin);
+        if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, sb, announcementMatch[1], email, origin);
+
         if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, sb, origin);
         if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);
         const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
@@ -94,6 +102,9 @@ export default {
 
       if (path === '/api/health') {
         return jsonResponse({ ok: true, env: env.ENVIRONMENT });
+      }
+      if (path === '/api/app/bootstrap' && req.method === 'GET') {
+        return await handleAppBootstrap(serviceClient(env));
       }
       if (path === '/api/lookup-phone' && req.method === 'POST') {
         return await handleLookupPhone(req, env);

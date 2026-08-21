@@ -66,7 +66,7 @@ describe('previewRegistration', () => {
       payment_required: true,
     });
     const input = {
-      phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot' as const, days: ['day1' as const],
+      phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot' as const, days: ['day1' as const], quantity: 1,
     };
     const out = await previewRegistration(input);
     expect(out.payment_reference).toBe('123e4567-e89b-42d3-a456-426614174000');

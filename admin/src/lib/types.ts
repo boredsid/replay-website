@@ -116,6 +116,23 @@ export interface ScheduleItemRow {
   created_at: string;
 }
 
+export type AnnouncementSeverity = 'info' | 'urgent' | 'incident';
+export type AnnouncementAudience = 'all' | 'day1' | 'day2';
+
+export interface AnnouncementRow {
+  id: string;
+  edition_id: string;
+  title: string;
+  body: string;
+  severity: AnnouncementSeverity;
+  audience: AnnouncementAudience;
+  starts_at: string;
+  ends_at: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserRow {
   phone: string;
   name: string | null;

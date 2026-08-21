@@ -1,5 +1,6 @@
 node_modules/
 dist/
+app/dist/
 .astro/
 .wrangler/
 .DS_Store

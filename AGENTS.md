@@ -7,6 +7,10 @@ belong there, while ephemeral task status and secrets do not.
 ## Current source of truth
 
 - `src/` is the Astro 7 public site, deployed to Cloudflare Pages from `main`.
+- `app/` is the Vite/React attendee PWA for `app.replaycon.in`. Its public
+  schedule, device-local agenda, venue shell, and runtime announcements are
+  implemented; secure tickets, maps, check-in, and library circulation remain
+  gated by `docs/ATTENDEE_APP_PLAN.md`.
 - `admin/` is the Vite/React operations console, deployed as a separate
   Cloudflare Pages project and protected by Cloudflare Access.
 - `worker/` is the Cloudflare Worker API for registration, capacity, discounts,
@@ -20,8 +24,9 @@ belong there, while ephemeral task status and secrets do not.
   deployment/secret boundary.
 - `docs/LIVE_EVENT_READINESS.md` is the deliberately deferred launch checklist.
 
-Run the root and admin tests/builds plus the Worker tests/typecheck before
-publishing. Run `npm audit` separately in all three dependency trees. Never
+Run the root and attendee-app tests/builds, the admin tests/build, and the Worker
+tests/typecheck before publishing. Run `npm audit` separately in all three
+dependency trees (the attendee app shares the root tree). Never
 commit `.env*`, deploy-hook URLs, Apps Script deployment URLs, service keys,
 signing secrets, source data, or audit exports containing personal data.
 
@@ -212,3 +217,5 @@ gh run watch
 - 2026-08-20 — Edition pricing stores one-day price as scalar `pricing.oneshot` and the two-day price as `pricing.campaign`; capacity remains keyed by day. **Why it matters:** this supersedes the 2026-06-08 per-day-pricing shape—admin, public ticket display, and registration calculations must never recreate day-specific prices or allow Saturday/Sunday price drift.
 - 2026-08-21 — Paid public registrations use a read-only `/api/register/preview`; only “I've paid” calls `/api/register` and persists the preview reference as a pending registration ID. **Why it matters:** closing or abandoning UPI must not reserve capacity or block a Guild Path discount; deploy the Worker before the public Pages build because the new client requires the preview endpoint.
 - 2026-08-21 — Public ticket bookings allow 1–10 tickets per registration; `registrations.seats` stores that quantity, while a Guild Path benefit applies only to the member's first eligible ticket. **Why it matters:** subtotal and capacity checks must multiply by quantity, but the personal membership discount must not multiply across guest tickets.
+- 2026-08-21 — Organiser announcements are private database rows exposed only as an active, public-safe projection through `/api/app/bootstrap`; the incident banner belongs in the attendee app, not the public website. **Why it matters:** keep browser roles off the table, preserve the admin audit trail, and deploy the Worker before app UI changes that depend on the payload.
+- 2026-08-21 — Attendee-app event date/time formatting must use the event timezone (`Asia/Kolkata`) instead of the device timezone for calendar dates and schedule state. **Why it matters:** organisers and attendees abroad must not see a different event day or premature “live” state.

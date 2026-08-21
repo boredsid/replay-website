@@ -4,10 +4,15 @@
   "description": "Official website for REPLAY, Bangalore's board game convention. Astro 7 + React 19 + Cloudflare Pages + Supabase.",
   "scripts": {
     "dev": "astro dev",
+    "dev:app": "vite --config app/vite.config.ts",
     "build": "astro build",
+    "build:app": "vite build --config app/vite.config.ts",
+    "check:app": "tsc -p app/tsconfig.json --noEmit",
     "preview": "astro preview",
+    "preview:app": "vite preview --config app/vite.config.ts",
     "astro": "astro",
     "test": "vitest run",
+    "test:app": "vitest run --config app/vite.config.ts",
     "test:watch": "vitest",
     "audit:data": "tsx scripts/audit-data-sanity.ts",
     "audit:placeholders": "tsx scripts/reconcile-placeholder-users.ts",
@@ -50,6 +55,7 @@
     "tailwindcss": "4.2",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
+    "vite": "^7.3.6",
     "vitest": "^4.1.10"
   }
 }

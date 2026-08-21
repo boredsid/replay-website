@@ -97,8 +97,10 @@ design and test the following operational scenario matrix before implementation.
   status; it deliberately excludes internal capacity and staff responsibility.
 - Preview public changes, trigger a site rebuild, show rebuild success/failure,
   and prevent staff from assuming a save is already live.
-- Publish normal announcements, urgent notices, and an incident banner used by
-  both the public website and event-day app.
+- Publish normal announcements, urgent notices, and an incident banner in the
+  event-day app only. The protected editor, audited Worker APIs, and app surface
+  are implemented; the remaining launch task is a production rehearsal of the
+  authoring, scheduling, expiry, and rollback workflow.
 
 ### Registration and ticket-desk scenarios
 
@@ -133,7 +135,10 @@ design and test the following operational scenario matrix before implementation.
 
 Build `app.replaycon.in` as an installable, mobile-first PWA. Public utility
 must work without signing in; secure personal features form a second but still
-in-scope launch layer.
+in-scope launch layer. The detailed delivery contract lives in
+`docs/ATTENDEE_APP_PLAN.md`. Its Phase 1 public schedule/agenda shell and the
+Phase 2 announcement slice are implemented; the venue-map, secure-ticket,
+check-in, and library phases remain gated by that plan.
 
 ### Public utility layer
 
@@ -178,8 +183,9 @@ in-scope launch layer.
 
 ### App dependencies
 
-- Complete the admin check-in, announcements, schedule, venue-map, and library
-  circulation workflows first.
+- Complete the admin check-in, schedule, venue-map, and library circulation
+  workflows first, and rehearse the implemented announcement workflow in
+  production.
 - Define identity, QR-token security, offline conflict resolution, push
   notification ownership, support staffing, and data/privacy boundaries before
   implementation.

@@ -5,8 +5,9 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 ## What lives here
 
 - `src/` — Astro public site, React registration islands, schedule, SEO metadata, and the registration-email template.
-- `worker/` — Cloudflare Worker for registration, capacity, Guild Path discounts, confirmation emails, calendar files, and the protected admin API.
-- `admin/` — Vite/React operations console behind Cloudflare Access.
+- `app/` — installable Vite/React attendee PWA for the live schedule, local agenda, event status, and organiser announcements.
+- `worker/` — Cloudflare Worker for registration, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
+- `admin/` — Vite/React operations console behind Cloudflare Access, including scheduled announcement publishing.
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling. Source CSV files are intentionally ignored.
@@ -15,6 +16,7 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 ## Current stack
 
 - Astro 7 and React 19
+- Vite 7 attendee PWA
 - Cloudflare Pages, Workers, Access, and native rate limiting
 - Supabase/Postgres
 - Vite 8 admin application
@@ -41,6 +43,15 @@ PUBLIC_WORKER_URL=http://localhost:8787
 PUBLIC_UPI_ID=
 ```
 
+Attendee app:
+
+```sh
+npm run dev:app
+```
+
+Set `VITE_WORKER_URL=http://localhost:8787` when the local app should use a
+local Worker. Production defaults to `https://api.replaycon.in`.
+
 Worker:
 
 ```sh
@@ -61,11 +72,14 @@ The admin uses a same-origin `/api/admin/*` route in production. Cloudflare Acce
 
 ## Verification
 
-Run all three suites and both builds before publishing:
+Run the public site, attendee app, admin, and Worker checks before publishing:
 
 ```sh
 npm test
 npm run build
+npm run test:app
+npm run check:app
+npm run build:app
 
 cd admin
 npm test
@@ -91,6 +105,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
 - public programme host, location, sign-up method, and display ordering managed through the protected admin.
+- private organiser announcements with explicit publish windows, severity, audience, and audit history; browsers receive only the active public payload through the Worker.
 
 ## Registration and payment behavior
 
@@ -105,7 +120,13 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 
 ## Deployment and secrets
 
-The public and admin sites are Cloudflare Pages projects; the API is a Cloudflare Worker. Edition and programme changes baked into the static site require the protected admin rebuild action.
+The public site, attendee app, and admin are separate Cloudflare Pages projects;
+the API is a Cloudflare Worker. Deploy the Worker before the attendee app when
+the bootstrap contract changes. The attendee app is built to `app/dist/`; its
+service worker retains the most recent successful event bootstrap for offline
+use. Announcements are live runtime data and do not require rebuilding the
+public website or attendee app. Edition and programme changes baked into the
+static public site still require the protected admin rebuild action.
 
 Keep all of the following in Cloudflare/Apps Script secret storage only:
 

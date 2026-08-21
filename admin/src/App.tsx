@@ -14,6 +14,8 @@ import Users from '@/pages/Users';
 import UserDrawer from '@/pages/UserDrawer';
 import Programme from '@/pages/Programme';
 import ProgrammeDrawer from '@/pages/ProgrammeDrawer';
+import Announcements from '@/pages/Announcements';
+import AnnouncementDrawer from '@/pages/AnnouncementDrawer';
 
 export function App() {
   return (
@@ -38,6 +40,9 @@ export function App() {
               <Route path="/programme" element={<Programme />} />
               <Route path="/programme/new" element={<><Programme /><ProgrammeDrawer /></>} />
               <Route path="/programme/:id" element={<><Programme /><ProgrammeDrawer /></>} />
+              <Route path="/announcements" element={<Announcements />} />
+              <Route path="/announcements/new" element={<><Announcements /><AnnouncementDrawer /></>} />
+              <Route path="/announcements/:id" element={<><Announcements /><AnnouncementDrawer /></>} />
               <Route path="/users" element={<Users />} />
               <Route path="/users/:phone" element={<><Users /><UserDrawer /></>} />
               <Route path="/leads" element={<Leads />} />

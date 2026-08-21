@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">REPLAY</title>
+  <rect width="512" height="512" rx="96" fill="#1a0088"/>
+  <rect x="40" y="40" width="432" height="432" rx="68" fill="#ff5a36" stroke="#fff8e7" stroke-width="24"/>
+  <path d="M136 150h141c72 0 113 40 113 101 0 45-24 78-67 93l75 88H297l-60-78h-15v78h-86V150Zm86 76v59h49c23 0 35-10 35-30s-12-29-35-29h-49Z" fill="#fff8e7"/>
+</svg>
