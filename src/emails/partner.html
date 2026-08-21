@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>REPLAY partner booking confirmed</title>
+  </head>
+  <body style="margin:0;background:#fff8e7;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your REPLAY partner booking is confirmed.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff8e7;">
+      <tr>
+        <td align="center" style="padding:28px 14px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;border:4px solid #1a1a1a;background:#ffffff;box-shadow:8px 8px 0 #1a1a1a;">
+            <tr>
+              <td style="padding:28px;background:#1a0088;color:#ffffff;">
+                <div style="font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ffd400;">Partner booking confirmed</div>
+                <h1 style="margin:10px 0 0;font-size:32px;line-height:1.1;">{{edition_name}}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:30px;">
+                <p style="margin:0 0 16px;font-size:18px;line-height:1.5;">Hi {{contact_name}},</p>
+                <p style="margin:0 0 22px;font-size:16px;line-height:1.6;">We’ve confirmed the payment and partner booking for <strong>{{organization_name}}</strong>.</p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:3px solid #1a1a1a;background:#ffeb3b;">
+                  <tr><td style="padding:10px 14px;font-weight:800;">Package</td><td align="right" style="padding:10px 14px;">{{package_name}}</td></tr>
+                  <tr><td style="padding:10px 14px;font-weight:800;border-top:2px solid #1a1a1a;">Days</td><td align="right" style="padding:10px 14px;border-top:2px solid #1a1a1a;">{{days_label}}</td></tr>
+                  <tr><td style="padding:10px 14px;font-weight:800;border-top:2px solid #1a1a1a;">Date</td><td align="right" style="padding:10px 14px;border-top:2px solid #1a1a1a;">{{date_range}}</td></tr>
+                  <tr><td style="padding:10px 14px;font-weight:800;border-top:2px solid #1a1a1a;">Venue</td><td align="right" style="padding:10px 14px;border-top:2px solid #1a1a1a;">{{venue}}</td></tr>
+                </table>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px;border:3px solid #1a1a1a;background:#e8f5e9;">
+                  <tr><td style="padding:10px 14px;">Package amount</td><td align="right" style="padding:10px 14px;">₹{{base_amount}}</td></tr>
+                  <tr><td style="padding:10px 14px;border-top:1px solid #1a1a1a;">GST</td><td align="right" style="padding:10px 14px;border-top:1px solid #1a1a1a;">₹{{gst_amount}}</td></tr>
+                  <tr><td style="padding:10px 14px;border-top:2px solid #1a1a1a;font-weight:800;">Total confirmed</td><td align="right" style="padding:10px 14px;border-top:2px solid #1a1a1a;font-weight:800;">₹{{total_amount}}</td></tr>
+                </table>
+
+                <div style="margin-top:18px;padding:16px;border:3px solid #1a1a1a;background:#f3e5f5;">
+                  <strong>Submitted operating detail</strong>
+                  <p style="margin:8px 0 0;line-height:1.55;">{{details}}</p>
+                </div>
+
+                <p style="margin:24px 0 0;font-size:15px;line-height:1.6;">The REPLAY team will coordinate floor placement or programme timing, assets and on-site logistics separately.</p>
+                <p style="margin:20px 0 0;"><a href="{{contact_url}}" style="display:inline-block;padding:12px 18px;border:3px solid #1a1a1a;background:#ff5a1f;color:#1a1a1a;text-decoration:none;font-weight:800;box-shadow:4px 4px 0 #1a1a1a;">Contact REPLAY</a></p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

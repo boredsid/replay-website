@@ -41,7 +41,11 @@ describe('getCurrentEdition', () => {
     const { from, builder } = mockChain({ data: row, error: null });
     Object.assign(supabase, { from });
     const out = await getCurrentEdition();
-    expect(out).toEqual({ ...row, pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 } });
+    expect(out).toEqual({
+      ...row,
+      pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 },
+      partner_pricing: { gst_rate: 0.18, standard_booth: 8000, community_booth: 6500, standard_engagement: 3000, patron_engagement: 3500 },
+    });
     expect(builder.eq).toHaveBeenCalledWith('is_current', true);
     expect(builder.eq).toHaveBeenCalledWith('is_published', true);
     expect(builder.maybeSingle).toHaveBeenCalled();

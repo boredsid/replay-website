@@ -10,6 +10,7 @@ const EDITION: EditionRow = {
   daily_start_time: '10:00:00', daily_end_time: '19:00:00',
   capacity_per_day: { day1: 250, day2: 250 },
   pricing: { oneshot: 700, campaign: 1200, adventurer_cap: 1000 },
+  partner_pricing: { gst_rate: 0.18, standard_booth: 8000, community_booth: 6500, standard_engagement: 3000, patron_engagement: 3500 },
   registration_status: 'open', is_current: true, is_published: true,
 };
 

@@ -20,6 +20,8 @@ import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
+import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
+import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch } from './admin/partners';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -73,6 +75,12 @@ export default {
         if (announcementMatch && req.method === 'GET') return await handleAnnouncementGet(sb, announcementMatch[1], origin);
         if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, sb, announcementMatch[1], email, origin);
 
+        if (path === '/api/admin/partners' && req.method === 'GET') return await handlePartnerList(req, sb, origin);
+        if (path === '/api/admin/partners' && req.method === 'POST') return await handlePartnerCreate(req, env, sb, email, origin);
+        const partnerMatch = path.match(/^\/api\/admin\/partners\/([^/]+)$/);
+        if (partnerMatch && req.method === 'GET') return await handlePartnerGet(sb, partnerMatch[1], origin);
+        if (partnerMatch && req.method === 'PATCH') return await handlePartnerPatch(req, env, sb, partnerMatch[1], email, origin);
+
         if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, sb, origin);
         if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);
         const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
@@ -114,6 +122,12 @@ export default {
       }
       if (path === '/api/register/preview' && req.method === 'POST') {
         return await handleRegisterPreview(req, env);
+      }
+      if (path === '/api/partner-purchase' && req.method === 'POST') {
+        return await handlePartnerPurchase(req, env);
+      }
+      if (path === '/api/partner-purchase/preview' && req.method === 'POST') {
+        return await handlePartnerPurchasePreview(req, env);
       }
       if (path.startsWith('/api/edition-spots/') && req.method === 'GET') {
         const editionId = path.split('/api/edition-spots/')[1];

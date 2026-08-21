@@ -2,7 +2,7 @@
 import type { Env } from "./index";
 
 export interface EmailPayload {
-  template: "replay-registration" | "replay-preorder";
+  template: "replay-registration" | "replay-preorder" | "replay-partner";
   to: string;
   subject: string;
   variables: Record<string, string | number>;
