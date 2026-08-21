@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1080, "h": 1350, "title": "Main — dense", "print": "fixed" },
+    { "file": "Alt.dc.html", "x": 1280, "y": 0, "w": 1080, "h": 1350, "title": "Alt — bold minimal", "print": "fixed" }
+  ],
+  "annotations": [
+    { "id": "note-main", "x": 0, "y": -230, "w": 520, "text": "MAIN — dense / energetic.\nNavy ground from the existing poster, dot grid, colour-coded activity chips using the site accent palette. Leads with the TICKETS ARE LIVE sticker. Everything a first-time reader needs in one pass." },
+    { "id": "note-alt", "x": 1280, "y": -230, "w": 520, "text": "ALT — bold / minimal.\nInk ground, headline-led, no chips. Reads across a room and holds up when Instagram shrinks it in-feed. Fewer facts, more impact — the activity list drops to one quiet line." }
+  ],
+  "launch": { "view": "canvas" }
+}
