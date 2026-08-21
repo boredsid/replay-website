@@ -3,7 +3,24 @@ import type { Env } from './index';
 import { serviceClient } from './supabase';
 import type { Day } from './validation';
 
-export interface EditionRow {
+export interface EditionVisitDetails {
+  venue_address?: string | null;
+  google_maps_url?: string | null;
+  entrance_details?: string | null;
+  check_in_location?: string | null;
+  nearest_metro_name?: string | null;
+  nearest_metro_distance?: string | null;
+  nearest_bus_stop_name?: string | null;
+  nearest_bus_stop_distance?: string | null;
+  parking_availability?: string | null;
+  parking_charges?: string | null;
+  food_details?: string | null;
+  water_details?: string | null;
+  game_library_process?: string | null;
+  help_on_the_day?: string | null;
+}
+
+export interface EditionRow extends EditionVisitDetails {
   id: string;
   slug: string;
   name: string;

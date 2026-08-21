@@ -8,6 +8,12 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 
 type Form = {
   slug: string; name: string; start_date: string; end_date: string; venue: string;
+  venue_address: string; google_maps_url: string; entrance_details: string; check_in_location: string;
+  nearest_metro_name: string; nearest_metro_distance: string;
+  nearest_bus_stop_name: string; nearest_bus_stop_distance: string;
+  parking_availability: string; parking_charges: string;
+  food_details: string; water_details: string;
+  game_library_process: string; help_on_the_day: string;
   daily_start_time: string; daily_end_time: string;
   registration_status: EditionRow['registration_status'];
   is_current: boolean; is_published: boolean;
@@ -18,6 +24,10 @@ type Form = {
 
 const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
+  venue_address: '', google_maps_url: '', entrance_details: '', check_in_location: '',
+  nearest_metro_name: '', nearest_metro_distance: '', nearest_bus_stop_name: '', nearest_bus_stop_distance: '',
+  parking_availability: '', parking_charges: '', food_details: '', water_details: '',
+  game_library_process: '', help_on_the_day: '',
   daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
   oneshot: '700', caps: { day1: '250' }, campaign: '1200', adventurer_cap: '1000',
@@ -54,6 +64,13 @@ export default function EditionDrawer() {
         for (const [k, v] of Object.entries(e.capacity_per_day)) caps[k] = String(v);
         setForm({
           slug: e.slug, name: e.name, start_date: e.start_date, end_date: e.end_date, venue: e.venue,
+          venue_address: e.venue_address ?? '', google_maps_url: e.google_maps_url ?? '',
+          entrance_details: e.entrance_details ?? '', check_in_location: e.check_in_location ?? '',
+          nearest_metro_name: e.nearest_metro_name ?? '', nearest_metro_distance: e.nearest_metro_distance ?? '',
+          nearest_bus_stop_name: e.nearest_bus_stop_name ?? '', nearest_bus_stop_distance: e.nearest_bus_stop_distance ?? '',
+          parking_availability: e.parking_availability ?? '', parking_charges: e.parking_charges ?? '',
+          food_details: e.food_details ?? '', water_details: e.water_details ?? '',
+          game_library_process: e.game_library_process ?? '', help_on_the_day: e.help_on_the_day ?? '',
           daily_start_time: e.daily_start_time?.slice(0, 5) ?? '10:00', daily_end_time: e.daily_end_time?.slice(0, 5) ?? '19:00',
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
           oneshot: String(oneDayPrice(e.pricing)), caps,
@@ -82,6 +99,13 @@ export default function EditionDrawer() {
     for (const k of dayKeys) capacity[k] = Number(form.caps[k] ?? '');
     const payload = {
       slug: form.slug.trim(), name: form.name, start_date: form.start_date, end_date: form.end_date, venue: form.venue,
+      venue_address: form.venue_address, google_maps_url: form.google_maps_url,
+      entrance_details: form.entrance_details, check_in_location: form.check_in_location,
+      nearest_metro_name: form.nearest_metro_name, nearest_metro_distance: form.nearest_metro_distance,
+      nearest_bus_stop_name: form.nearest_bus_stop_name, nearest_bus_stop_distance: form.nearest_bus_stop_distance,
+      parking_availability: form.parking_availability, parking_charges: form.parking_charges,
+      food_details: form.food_details, water_details: form.water_details,
+      game_library_process: form.game_library_process, help_on_the_day: form.help_on_the_day,
       daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
       pricing: { oneshot: Number(form.oneshot), campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
@@ -131,6 +155,56 @@ export default function EditionDrawer() {
           {dayCount} day{dayCount === 1 ? '' : 's'}{form.registration_status !== 'closed' && dayCount !== 2 ? ' — active editions require exactly 2.' : ''}
         </div>
         <F label="Venue"><input aria-label="Venue" value={form.venue} onChange={(e) => set('venue', e.target.value)} className="w-full rounded-md border px-3 py-2" /></F>
+
+        <div className="border-t pt-3 text-sm font-semibold">Plan your visit</div>
+        <p className="text-xs text-muted-foreground">Leave unconfirmed details blank. Saved details appear on the public page after a site rebuild.</p>
+        <F label="Venue address">
+          <textarea aria-label="Venue address" rows={2} value={form.venue_address} onChange={(e) => set('venue_address', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Google Maps pin">
+          <input aria-label="Google Maps pin" type="url" inputMode="url" placeholder="https://maps.app.goo.gl/…" value={form.google_maps_url} onChange={(e) => set('google_maps_url', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Entrance details">
+          <textarea aria-label="Entrance details" rows={3} value={form.entrance_details} onChange={(e) => set('entrance_details', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Check-in location">
+          <textarea aria-label="Check-in location" rows={2} value={form.check_in_location} onChange={(e) => set('check_in_location', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <F label="Nearest Metro station">
+            <input aria-label="Nearest Metro station" value={form.nearest_metro_name} onChange={(e) => set('nearest_metro_name', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          </F>
+          <F label="Metro distance">
+            <input aria-label="Metro distance" placeholder="e.g. 700 m" value={form.nearest_metro_distance} onChange={(e) => set('nearest_metro_distance', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          </F>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <F label="Nearest bus stop">
+            <input aria-label="Nearest bus stop" value={form.nearest_bus_stop_name} onChange={(e) => set('nearest_bus_stop_name', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          </F>
+          <F label="Bus stop distance">
+            <input aria-label="Bus stop distance" placeholder="e.g. 300 m" value={form.nearest_bus_stop_distance} onChange={(e) => set('nearest_bus_stop_distance', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+          </F>
+        </div>
+        <F label="Parking availability">
+          <textarea aria-label="Parking availability" rows={2} value={form.parking_availability} onChange={(e) => set('parking_availability', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Parking charges">
+          <textarea aria-label="Parking charges" rows={2} value={form.parking_charges} onChange={(e) => set('parking_charges', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Food details">
+          <textarea aria-label="Food details" rows={3} value={form.food_details} onChange={(e) => set('food_details', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Water details">
+          <textarea aria-label="Water details" rows={2} value={form.water_details} onChange={(e) => set('water_details', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Game library process">
+          <textarea aria-label="Game library process" rows={4} value={form.game_library_process} onChange={(e) => set('game_library_process', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Help on the day">
+          <textarea aria-label="Help on the day" rows={3} value={form.help_on_the_day} onChange={(e) => set('help_on_the_day', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+
         <F label="Registration status">
           <select aria-label="Registration status" value={form.registration_status} onChange={(e) => set('registration_status', e.target.value as Form['registration_status'])} className="w-full rounded-md border px-3 py-2">
             <option value="upcoming">upcoming</option>

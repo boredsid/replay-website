@@ -6,6 +6,57 @@ import { readPricing, type Pricing } from '../pricing';
 
 const STATUSES = ['upcoming', 'open', 'sold_out', 'closed'];
 
+const VISIT_TEXT_LIMITS = {
+  venue_address: 500,
+  entrance_details: 2000,
+  check_in_location: 500,
+  nearest_metro_name: 160,
+  nearest_metro_distance: 120,
+  nearest_bus_stop_name: 160,
+  nearest_bus_stop_distance: 120,
+  parking_availability: 1000,
+  parking_charges: 500,
+  food_details: 2000,
+  water_details: 1000,
+  game_library_process: 3000,
+  help_on_the_day: 2000,
+} as const;
+
+type VisitTextField = keyof typeof VISIT_TEXT_LIMITS;
+
+function readOptionalText(value: unknown, max: number, field: string): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string') throw new Error(`invalid_${field}`);
+  const text = value.trim();
+  if (!text) return null;
+  if (text.length > max) throw new Error(`invalid_${field}`);
+  return text;
+}
+
+function readGoogleMapsUrl(value: unknown): string | null {
+  const text = readOptionalText(value, 500, 'google_maps_url');
+  if (!text) return null;
+  try {
+    const url = new URL(text);
+    if (url.protocol !== 'https:') throw new Error();
+    return url.toString();
+  } catch {
+    throw new Error('invalid_google_maps_url');
+  }
+}
+
+function readVisitDetails(body: any, partial: boolean): Record<string, string | null> {
+  const details: Record<string, string | null> = {};
+  for (const [field, max] of Object.entries(VISIT_TEXT_LIMITS) as Array<[VisitTextField, number]>) {
+    if (partial && body[field] === undefined) continue;
+    details[field] = readOptionalText(body[field], max, field);
+  }
+  if (!partial || body.google_maps_url !== undefined) {
+    details.google_maps_url = readGoogleMapsUrl(body.google_maps_url);
+  }
+  return details;
+}
+
 function readCapacity(input: unknown, requireTwoDays: boolean): Record<string, number> {
   if (!input || typeof input !== 'object') throw new Error('capacity: not an object');
   const c = input as any;
@@ -82,12 +133,13 @@ export async function handleEdCreate(req: Request, env: Env, sb: SupabaseClient,
     return adminJson({ error: 'invalid_daily_times' }, 400, origin);
   }
   const status = STATUSES.includes(body.registration_status) ? body.registration_status : 'upcoming';
-  let pricing: Pricing, capacity: Record<string, number>;
+  let pricing: Pricing, capacity: Record<string, number>, visitDetails: Record<string, string | null>;
   try {
     pricing = readPricing(body.pricing);
     assertFinitePricing(pricing);
     capacity = readCapacity(body.capacity_per_day, status !== 'closed');
     assertActiveEditionShape(body.start_date, body.end_date, status, pricing, capacity);
+    visitDetails = readVisitDetails(body, false);
   }
   catch (e: any) { return adminJson({ error: e.message }, 400, origin); }
 
@@ -99,6 +151,7 @@ export async function handleEdCreate(req: Request, env: Env, sb: SupabaseClient,
     daily_start_time: dailyStartTime, daily_end_time: dailyEndTime, venue,
     pricing, capacity_per_day: capacity, registration_status: status,
     is_current: body.is_current === true, is_published: body.is_published === true,
+    ...visitDetails,
   }).select().single();
   if (ins.error || !ins.data) return adminJson({ error: 'insert_failed' }, 500, origin);
 
@@ -150,6 +203,11 @@ export async function handleEdPatch(req: Request, env: Env, sb: SupabaseClient, 
   if (typeof body.venue === 'string') {
     if (!body.venue.trim()) return adminJson({ error: 'invalid_venue' }, 400, origin);
     patch.venue = body.venue.trim();
+  }
+  try {
+    Object.assign(patch, readVisitDetails(body, true));
+  } catch (e: any) {
+    return adminJson({ error: e.message }, 400, origin);
   }
   if (body.pricing !== undefined) { try { const pr = readPricing(body.pricing); assertFinitePricing(pr as any); patch.pricing = pr; } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
   if (body.capacity_per_day !== undefined) { try { patch.capacity_per_day = readCapacity(body.capacity_per_day, false); } catch (e: any) { return adminJson({ error: e.message }, 400, origin); } }
