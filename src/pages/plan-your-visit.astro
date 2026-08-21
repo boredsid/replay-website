@@ -24,6 +24,7 @@ const parkingAvailability = text(edition?.parking_availability);
 const parkingCharges = text(edition?.parking_charges);
 const foodDetails = text(edition?.food_details);
 const waterDetails = text(edition?.water_details);
+const accessibilityDetails = text(edition?.accessibility_details);
 const libraryProcess = text(edition?.game_library_process);
 const helpOnTheDay = text(edition?.help_on_the_day);
 ---
@@ -128,7 +129,7 @@ const helpOnTheDay = text(edition?.help_on_the_day);
       <div class="info-grid">
         <article class="info-card"><span class="info-card__kicker">Food</span><h3>Eating during REPLAY</h3><p class="rich-copy">{foodDetails ?? 'On-site food, outside-food rules, and allergy guidance are being confirmed.'}</p></article>
         <article class="info-card"><span class="info-card__kicker">Water</span><h3>Stay hydrated</h3><p class="rich-copy">{waterDetails ?? 'Drinking-water and refill-point details are being confirmed.'}</p></article>
-        <article class="info-card"><span class="info-card__kicker">Accessibility</span><h3>Plan around your needs</h3><p>Step-free access, accessible toilets, seating, sensory considerations and accommodation contacts are being confirmed. Email us if you need to plan around a specific requirement.</p></article>
+        <article class="info-card"><span class="info-card__kicker">Accessibility</span><h3>Plan around your needs</h3><p class="rich-copy">{accessibilityDetails ?? 'Step-free access, accessible toilets, seating, sensory considerations and accommodation contacts are being confirmed. Email us if you need to plan around a specific requirement.'}</p></article>
       </div>
       <p class="notice visit-notice">Age, guardian, re-entry, last-entry and prohibited-item policies are still being confirmed. Check this page again before travelling.</p>
     </div>

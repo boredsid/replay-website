@@ -81,6 +81,7 @@ export interface EditionVisitDetails {
   parking_charges?: string | null;
   food_details?: string | null;
   water_details?: string | null;
+  accessibility_details?: string | null;
   game_library_process?: string | null;
   help_on_the_day?: string | null;
 }

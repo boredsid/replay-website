@@ -18,6 +18,7 @@ const VISIT_TEXT_LIMITS = {
   parking_charges: 500,
   food_details: 2000,
   water_details: 1000,
+  accessibility_details: 2000,
   game_library_process: 3000,
   help_on_the_day: 2000,
 } as const;
