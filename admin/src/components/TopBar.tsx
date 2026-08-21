@@ -56,7 +56,7 @@ export default function TopBar() {
   return (
     <header className="h-14 bg-background border-b flex items-center gap-2 px-4 md:px-6">
       <div className="flex items-center gap-2 min-w-0 md:hidden">
-        <img src="/replay-logo.png" alt="" className="h-6 w-6" />
+        <img src="/replay-icon.png" alt="" className="h-6 w-6" />
         <span className="font-heading font-semibold">Admin</span>
       </div>
 
