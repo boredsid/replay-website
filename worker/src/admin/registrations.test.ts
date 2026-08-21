@@ -45,7 +45,7 @@ describe('handleRegPatch', () => {
     };
     const before = {
       id: 'r1', edition_id: 'e1', user_phone: '9876543210', pass_type: 'oneshot', days: ['day1'],
-      payment_status: 'pending', amount_paid: 800, discount_applied: 0, guild_tier_at_purchase: null,
+      seats: 2, payment_status: 'pending', amount_paid: 1600, discount_applied: 0, guild_tier_at_purchase: null,
       users: { name: 'Asha', email: 'asha@example.com' }, editions: edition,
     };
     const sb: any = {
@@ -66,6 +66,11 @@ describe('handleRegPatch', () => {
     expect(res.status).toBe(200);
     expect(body.email_sent).toBe(true);
     expect(sendRegistrationConfirmation).toHaveBeenCalledTimes(1);
+    expect(sendRegistrationConfirmation).toHaveBeenCalledWith(
+      expect.anything(),
+      edition,
+      expect.objectContaining({ seats: 2, amountPaid: 1600 }),
+    );
   });
 });
 

@@ -103,6 +103,7 @@ export default function RegistrationsList() {
                   <th className="p-2">Phone</th>
                   <th className="p-2">Pass</th>
                   <th className="p-2">Days</th>
+                  <th className="p-2">Tickets</th>
                   <th className="p-2">Status</th>
                   <th className="p-2">Amount</th>
                 </tr>
@@ -126,6 +127,7 @@ export default function RegistrationsList() {
                     <td className="p-2">{r.user_phone}</td>
                     <td className="p-2">{r.pass_type}</td>
                     <td className="p-2">{r.days.join(', ')}</td>
+                    <td className="p-2">{r.seats}</td>
                     <td className="p-2">
                       <StatusBadge status={r.payment_status} />
                     </td>
@@ -134,7 +136,7 @@ export default function RegistrationsList() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">
                       No registrations
                     </td>
                   </tr>
@@ -157,7 +159,7 @@ export default function RegistrationsList() {
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{r.user_phone}</div>
                 <div className="mt-1 flex items-center justify-between text-sm">
-                  <span>{r.pass_type} · {r.days.join(', ')}</span>
+                  <span>{r.seats} ticket{r.seats === 1 ? '' : 's'} · {r.pass_type} · {r.days.join(', ')}</span>
                   <span>{inr(r.amount_paid)}</span>
                 </div>
               </button>

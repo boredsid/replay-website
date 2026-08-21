@@ -47,9 +47,12 @@ describe('registerForEdition', () => {
   it('POSTs to /api/register', async () => {
     mockFetch(200, { registration_id: 'r1', final_amount: 0, discount_applied: 800, discount_blocked: false, payment_required: false });
     const out = await registerForEdition({
-      phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot', days: ['day1'],
+      phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot', days: ['day1'], quantity: 3,
     });
     expect(out.registration_id).toBe('r1');
+    expect(global.fetch).toHaveBeenCalledWith(`${WORKER_URL}/api/register`, expect.objectContaining({
+      body: expect.stringContaining('"quantity":3'),
+    }));
   });
 });
 

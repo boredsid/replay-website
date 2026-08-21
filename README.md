@@ -85,6 +85,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - one explicit current, published edition;
 - exactly two consecutive days for active editions, while preserving closed historical editions;
 - one scalar price for either one-day choice and one price for the full two-day pass;
+- public bookings support 1–10 tickets in one registration row, with `seats` storing the quantity;
+- Guild Path benefits apply to the member's first eligible ticket in a multi-ticket booking;
 - pending and confirmed registrations both reserve capacity;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
@@ -95,6 +97,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - Continuing from the public form performs a read-only payment preview; closing or abandoning the UPI sheet creates no registration.
 - Clicking “I've paid” creates a pending registration, which then reduces availability.
 - A zero-cost Guild Path registration skips UPI and is confirmed immediately.
+- A booking can contain 1–10 tickets, limited further by live availability for the selected day or days.
+- Guild Path discounts apply only to the buyer's first ticket; additional tickets are charged at full price.
 - An admin confirmation changes it to confirmed and then sends the confirmation email.
 - Two-day passes are unavailable if either event day is sold out.
 - UPI payment opens through a device deep link and a locally rendered QR code.

@@ -12,6 +12,7 @@ export interface ConfirmationInput {
   email: string;
   passType: PassType;
   days: Day[];
+  seats: number;
   amountPaid: number;
   discount: number;
   tier: string | null;
@@ -35,7 +36,7 @@ export async function sendRegistrationConfirmation(
       date_range: shortDateRange(edition.start_date, edition.end_date),
       pass_type: input.passType === 'campaign' ? '2-day pass' : '1-day pass',
       days_label: dayLabel(input.days),
-      seats: 1,
+      seats: input.seats,
       amount_paid: input.amountPaid,
       discount_applied: input.discount,
       guild_tier: capitalize(input.tier ?? ''),

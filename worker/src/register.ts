@@ -15,6 +15,7 @@ import { publicRequestAllowed } from './rate-limit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_TICKET_QUANTITY = 10;
 
 type ServiceClient = ReturnType<typeof serviceClient>;
 type GuildStatus = Awaited<ReturnType<typeof fetchGuildStatus>>;
@@ -26,6 +27,7 @@ interface RegistrationInput {
   editionId: string;
   passType: 'oneshot' | 'campaign';
   days: Array<'day1' | 'day2'>;
+  quantity: number;
   source: Record<string, string> | null;
 }
 
@@ -43,11 +45,11 @@ interface ExistingRegistration {
   user_phone: string;
   pass_type: 'oneshot' | 'campaign';
   days: Array<'day1' | 'day2'>;
+  seats: number;
   amount_paid: number;
   discount_applied: number;
   payment_status: 'confirmed' | 'pending' | 'cancelled';
 }
-
 function readSource(input: unknown): Record<string, string> | null {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'referrer'];
@@ -73,6 +75,9 @@ async function parseRegistrationRequest(req: Request): Promise<{ body: any; inpu
   const editionId = typeof body.edition_id === 'string' ? body.edition_id : '';
   const passType = parsePassType(body.pass_type);
   const days = parseDays(body.days);
+  // Default to one during the rolling deploy so the previous public client
+  // remains compatible while the new quantity field reaches production.
+  const quantity = body.quantity === undefined ? 1 : body.quantity;
 
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
   if (!name || name.length > 120) return jsonResponse({ error: 'invalid name' }, 400);
@@ -80,6 +85,9 @@ async function parseRegistrationRequest(req: Request): Promise<{ body: any; inpu
   if (!editionId) return jsonResponse({ error: 'invalid edition_id' }, 400);
   if (!passType) return jsonResponse({ error: 'invalid pass_type' }, 400);
   if (!days) return jsonResponse({ error: 'invalid days' }, 400);
+  if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TICKET_QUANTITY) {
+    return jsonResponse({ error: 'invalid quantity' }, 400);
+  }
   if (passType === 'campaign' && (days.length !== 2 || !days.includes('day1') || !days.includes('day2'))) {
     return jsonResponse({ error: 'campaign requires both days' }, 400);
   }
@@ -96,6 +104,7 @@ async function parseRegistrationRequest(req: Request): Promise<{ body: any; inpu
       editionId,
       passType,
       days,
+      quantity,
       source: readSource(body.source),
     },
   };
@@ -113,7 +122,8 @@ async function evaluateRegistration(
   }
 
   const pricing = readPricing(edition.pricing);
-  const base = calculateBasePrice(pricing, input.passType, input.days);
+  const ticketPrice = calculateBasePrice(pricing, input.passType, input.days);
+  const base = ticketPrice * input.quantity;
 
   const guild = await fetchGuildStatus(env, input.phone);
   const existingRegsRes = await sb
@@ -129,13 +139,15 @@ async function evaluateRegistration(
   let discount = 0;
   let tierStored: GuildStatus['tier'] = null;
   if (!discountBlocked && guild.active) {
-    discount = calculateDiscount({ base, tier: guild.tier, adventurer_cap: pricing.adventurer_cap });
+    // A Guild Path membership belongs to the buyer, so its benefit applies to
+    // the first ticket rather than every guest ticket in the same booking.
+    discount = calculateDiscount({ base: ticketPrice, tier: guild.tier, adventurer_cap: pricing.adventurer_cap });
     tierStored = guild.tier;
   }
 
   const seatsByDay = await getReservedSeatsByDay(env, input.editionId);
   for (const day of input.days) {
-    if (seatsByDay[day] + 1 > edition.capacity_per_day[day]) {
+    if (seatsByDay[day] + input.quantity > edition.capacity_per_day[day]) {
       return jsonResponse({ error: 'sold_out', day }, 409);
     }
   }
@@ -152,7 +164,7 @@ async function evaluateRegistration(
 async function findExistingRegistration(sb: ServiceClient, registrationId: string): Promise<ExistingRegistration | null | Response> {
   const result = await sb
     .from('registrations')
-    .select('id, edition_id, user_phone, pass_type, days, amount_paid, discount_applied, payment_status')
+    .select('id, edition_id, user_phone, pass_type, days, seats, amount_paid, discount_applied, payment_status')
     .eq('id', registrationId)
     .maybeSingle();
   if (result.error) return jsonResponse({ error: 'registration_lookup_failed' }, 500);
@@ -163,6 +175,7 @@ function sameRegistration(existing: ExistingRegistration, input: RegistrationInp
   return existing.edition_id === input.editionId
     && existing.user_phone === input.phone
     && existing.pass_type === input.passType
+    && existing.seats === input.quantity
     && existing.days.length === input.days.length
     && input.days.every((day) => existing.days.includes(day));
 }
@@ -268,7 +281,7 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
     user_phone: input.phone,
     pass_type: input.passType,
     days: input.days,
-    seats: 1,
+    seats: input.quantity,
     amount_paid: amountPaid,
     discount_applied: discount,
     guild_tier_at_purchase: tierStored,
@@ -300,6 +313,7 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
         email: registrationEmail,
         passType: input.passType,
         days: input.days,
+        seats: input.quantity,
         amountPaid,
         discount,
         tier: tierStored,

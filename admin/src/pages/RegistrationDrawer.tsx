@@ -9,6 +9,7 @@ interface Detail {
   user_phone: string;
   pass_type: string;
   days: string[];
+  seats: number;
   amount_paid: number;
   payment_status: string;
   users?: { name: string | null; email: string | null } | null;
@@ -63,6 +64,7 @@ export default function RegistrationDrawer() {
           <Field k="Email" v={reg.users?.email || '—'} />
           <Field k="Pass" v={reg.pass_type} />
           <Field k="Days" v={reg.days.join(', ')} />
+          <Field k="Tickets" v={String(reg.seats)} />
           <Field k="Amount" v={'₹' + Number(reg.amount_paid).toLocaleString('en-IN')} />
           <Field k="Status" v={reg.payment_status} />
           <div className="flex gap-2 pt-4">

@@ -98,6 +98,7 @@ export interface ApiRegistrationDetails {
   edition_id: string;
   pass_type: PassType;
   days: Day[];
+  quantity: number;
   source?: Record<string, string> | null;
 }
 

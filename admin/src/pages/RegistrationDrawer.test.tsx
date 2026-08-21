@@ -8,11 +8,12 @@ import RegistrationDrawer from './RegistrationDrawer';
 
 it('confirms a pending registration', async () => {
   (fetchAdmin as any).mockImplementation(async (_path: string, init?: any) => {
-    if (!init) return { registration: { id: 'r1', user_phone: '9876543210', pass_type: 'oneshot', days: ['day1'], amount_paid: 800, payment_status: 'pending', users: { name: 'Asha', email: 'a@x.com' } } };
+    if (!init) return { registration: { id: 'r1', user_phone: '9876543210', pass_type: 'oneshot', days: ['day1'], seats: 2, amount_paid: 1600, payment_status: 'pending', users: { name: 'Asha', email: 'a@x.com' } } };
     return { ok: true };
   });
   render(<MemoryRouter initialEntries={["/registrations/r1"]}><Routes><Route path="/registrations/:id" element={<RegistrationDrawer />} /></Routes></MemoryRouter>);
   await waitFor(() => expect(screen.getByText('Asha')).toBeInTheDocument());
+  expect(screen.getByText('Tickets').nextSibling).toHaveTextContent('2');
   await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
   await waitFor(() => expect((fetchAdmin as any)).toHaveBeenCalledWith('/api/admin/registrations/r1', expect.objectContaining({ method: 'PATCH' })));
 });

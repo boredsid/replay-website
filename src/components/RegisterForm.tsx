@@ -11,15 +11,17 @@ export interface RegisterFormProps {
   upiId: string;
 }
 
+const MAX_TICKET_QUANTITY = 10;
+
 function sanitize(p: string): string {
   const d = p.replace(/\D/g, '');
   return d.length >= 10 ? d.slice(-10) : '';
 }
 
 function tierLabel(t: string | null) {
-  if (t === 'guildmaster') return 'Guildmaster (free pass)';
-  if (t === 'adventurer') return 'Adventurer (100% off, ₹1,000 max discount)';
-  if (t === 'initiate') return 'Initiate (20% off)';
+  if (t === 'guildmaster') return 'Guildmaster (first ticket free)';
+  if (t === 'adventurer') return 'Adventurer (first ticket 100% off, ₹1,000 max discount)';
+  if (t === 'initiate') return 'Initiate (20% off the first ticket)';
   return null;
 }
 
@@ -51,6 +53,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [passType, setPassType] = useState<PassType>('oneshot');
   const [days, setDays] = useState<Day[]>([]);
+  const [quantity, setQuantity] = useState(1);
   const [lookup, setLookup] = useState<ApiLookupPhoneResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,8 +82,15 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     if (passType === 'campaign' && campaignUnavailable) {
       setPassType('oneshot');
       setDays([]);
+      return;
     }
-  }, [passType, spots]);
+    if (passType === 'oneshot') {
+      const chosenDay = days[0];
+      if ((chosenDay === 'day1' && spots?.day1.sold_out) || (chosenDay === 'day2' && spots?.day2.sold_out)) {
+        setDays([]);
+      }
+    }
+  }, [days, passType, spots]);
 
   // Debounced phone lookup
   useEffect(() => {
@@ -115,13 +125,27 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     }, 1000);
   }
 
+  const selectedRemaining = passType === 'campaign'
+    ? (spots ? Math.min(spots.day1.remaining, spots.day2.remaining) : null)
+    : days[0] === 'day1'
+      ? spots?.day1.remaining ?? null
+      : days[0] === 'day2'
+        ? spots?.day2.remaining ?? null
+        : null;
+  const quantityLimit = Math.max(1, Math.min(MAX_TICKET_QUANTITY, selectedRemaining ?? MAX_TICKET_QUANTITY));
+
+  useEffect(() => {
+    setQuantity((current) => Math.min(current, quantityLimit));
+  }, [quantityLimit]);
+
   if (success) return <SuccessScreen pending={success.pending} editionName={edition.name} />;
 
-  const base = computePrice(edition, passType, days);
+  const ticketPrice = computePrice(edition, passType, days);
+  const subtotal = ticketPrice * quantity;
   const tier = lookup && lookup.guild.active && !lookup.discount_blocked ? lookup.guild.tier : null;
   const cap = edition.pricing.adventurer_cap ?? Infinity;
-  const discount = computeDiscount(base, tier, cap);
-  const final = base - discount;
+  const discount = computeDiscount(ticketPrice, tier, cap);
+  const final = subtotal - discount;
 
   function toggleDay(d: Day) {
     if (passType === 'campaign') {
@@ -146,7 +170,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     try {
       const request: ApiRegistrationDetails = {
         phone: sanitized, name: name.trim(), email: email.trim(),
-        edition_id: edition.id, pass_type: passType, days: submitDays,
+        edition_id: edition.id, pass_type: passType, days: submitDays, quantity,
       };
       const preview = await previewRegistration(request);
       if (preview.payment_required) {
@@ -167,7 +191,10 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     } catch (err: any) {
       const body = err?.body ?? {};
       if (body.error === 'sold_out') {
-        setError(`${body.day === 'day1' ? weekdayName(edition.start_date) : weekdayName(edition.end_date)} just sold out. Please choose the other day.`);
+        const dayName = body.day === 'day1' ? weekdayName(edition.start_date) : weekdayName(edition.end_date);
+        setError(quantity > 1
+          ? `There aren't enough tickets left for ${dayName}. Reduce the quantity or choose the other day.`
+          : `${dayName} just sold out. Please choose the other day.`);
         try { setSpots(await getEditionSpots(edition.id)); } catch {}
       } else if (body.error === 'registration_closed') {
         setError('Registration just closed. Please refresh.');
@@ -296,11 +323,43 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           </fieldset>
         )}
 
-        {base > 0 && (
+        {ticketPrice > 0 && (
+          <fieldset>
+            <legend className="label-brutal">Tickets</legend>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                aria-label="Decrease ticket quantity"
+                disabled={quantity <= 1}
+                onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                className="btn btn-secondary h-11 min-w-11 px-3 disabled:opacity-50"
+              >
+                −
+              </button>
+              <output aria-live="polite" className="min-w-10 text-center text-2xl font-bold">{quantity}</output>
+              <button
+                type="button"
+                aria-label="Increase ticket quantity"
+                disabled={quantity >= quantityLimit}
+                onClick={() => setQuantity((current) => Math.min(quantityLimit, current + 1))}
+                className="btn btn-secondary h-11 min-w-11 px-3 disabled:opacity-50"
+              >
+                +
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              {selectedRemaining === null
+                ? `Up to ${MAX_TICKET_QUANTITY} tickets per booking.`
+                : `${selectedRemaining} ticket${selectedRemaining === 1 ? '' : 's'} currently available; maximum ${quantityLimit} in this booking.`}
+            </p>
+          </fieldset>
+        )}
+
+        {ticketPrice > 0 && (
           <div className="card-flat p-4 bg-[var(--color-cream-dark)] border-l-[6px] border-[var(--color-orange)]">
-            <div className="flex justify-between text-sm"><span>Base price</span><span>₹{base}</span></div>
+            <div className="flex justify-between text-sm"><span>Tickets ({quantity} × ₹{ticketPrice})</span><span>₹{subtotal}</span></div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm text-[var(--color-orange-dark)] font-bold"><span>Discount</span><span>−₹{discount}</span></div>
+              <div className="flex justify-between text-sm text-[var(--color-orange-dark)] font-bold"><span>Guild Path (first ticket)</span><span>−₹{discount}</span></div>
             )}
             <div className="flex justify-between font-bold text-lg border-t-2 border-[var(--color-ink)] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
           </div>
@@ -309,7 +368,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
         {error && <p role="alert" className="text-sm text-[var(--color-error)] font-medium">{error}</p>}
 
         <button type="submit" disabled={submitting || bothSoldOut} className="btn btn-primary btn-block">
-          {submitting ? 'Submitting…' : 'Register'}
+          {submitting ? 'Submitting…' : `Continue with ${quantity} ticket${quantity === 1 ? '' : 's'}`}
         </button>
       </form>
 

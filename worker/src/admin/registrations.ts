@@ -127,7 +127,7 @@ export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient
 
   if (sendMail && userEmail) {
     try {
-      await sendRegistrationConfirmation(env, edition, { name, email: userEmail, passType, days, amountPaid, discount: 0, tier: null });
+      await sendRegistrationConfirmation(env, edition, { name, email: userEmail, passType, days, seats: 1, amountPaid, discount: 0, tier: null });
     } catch (e) { console.error('email_failed', e); }
   }
 
@@ -140,7 +140,7 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
 
   const before = await sb
     .from('registrations')
-    .select('id, edition_id, user_phone, pass_type, days, payment_status, amount_paid, discount_applied, guild_tier_at_purchase, users(name, email), editions(*)')
+    .select('id, edition_id, user_phone, pass_type, days, seats, payment_status, amount_paid, discount_applied, guild_tier_at_purchase, users(name, email), editions(*)')
     .eq('id', id)
     .maybeSingle();
   if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
@@ -184,6 +184,7 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
           email: user.email,
           passType: detail.pass_type,
           days: detail.days,
+          seats: Number(detail.seats),
           amountPaid: Number((upd.data as any).amount_paid),
           discount: Number(detail.discount_applied || 0),
           tier: detail.guild_tier_at_purchase,

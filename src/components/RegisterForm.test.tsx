@@ -49,6 +49,22 @@ describe('RegisterForm', () => {
     expect(screen.getByLabelText(/2-day pass/i)).toBeDisabled();
   });
 
+  it('limits ticket quantity to live availability', async () => {
+    mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
+      day1: { capacity: 250, remaining: 2, sold_out: false },
+      day2: { capacity: 250, remaining: 50, sold_out: false },
+      both_sold_out: false,
+    });
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await user.click(await screen.findByLabelText(/saturday/i));
+    const increase = screen.getByRole('button', { name: /increase ticket quantity/i });
+    await user.click(increase);
+    expect(increase).toBeDisabled();
+    expect(screen.getByText(/tickets \(2 × ₹700\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 tickets currently available; maximum 2/i)).toBeInTheDocument();
+  });
+
   it('debounces phone lookup and shows guildmaster preview', async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 250, sold_out: false },
@@ -89,7 +105,7 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(screen.getByText(/already registered/i)).toBeInTheDocument(), { timeout: 2000 });
   });
 
-  it("creates a pending registration only after clicking I've paid", async () => {
+  it("previews multiple tickets and creates no registration until I've paid is clicked", async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 250, sold_out: false },
       day2: { capacity: 250, remaining: 250, sold_out: false },
@@ -101,16 +117,17 @@ describe('RegisterForm', () => {
       existing_for_edition: { count: 0, has_confirmed: false },
       discount_blocked: false,
     });
+    const paymentReference = '11111111-1111-4111-8111-111111111111';
     mockRoute((u) => new URL(u).pathname === '/api/register/preview', 200, {
-      payment_reference: '123e4567-e89b-42d3-a456-426614174000',
-      final_amount: 700,
+      payment_reference: paymentReference,
+      final_amount: 2100,
       discount_applied: 0,
       discount_blocked: false,
       payment_required: true,
     });
     mockRoute((u) => new URL(u).pathname === '/api/register', 200, {
-      registration_id: '123e4567-e89b-42d3-a456-426614174000',
-      final_amount: 700,
+      registration_id: paymentReference,
+      final_amount: 2100,
       discount_applied: 0,
       discount_blocked: false,
       payment_required: true,
@@ -121,20 +138,25 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/name/i), 'Smoke');
     await user.type(screen.getByLabelText(/email/i), 'smoke@test.local');
     await user.click(screen.getByLabelText(/saturday/i));
-    await user.click(screen.getByRole('button', { name: /register/i }));
+    await user.click(screen.getByRole('button', { name: /increase ticket quantity/i }));
+    await user.click(screen.getByRole('button', { name: /increase ticket quantity/i }));
+    await user.click(screen.getByRole('button', { name: /continue with 3 tickets/i }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     const registerCalls = () => (global.fetch as any).mock.calls.filter(([url]: [string]) => new URL(url).pathname === '/api/register');
     expect(registerCalls()).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: /i've paid/i }));
     await waitFor(() => expect(screen.getByText(/got it/i)).toBeInTheDocument());
     expect(registerCalls()).toHaveLength(1);
-    expect(JSON.parse(registerCalls()[0][1].body)).toEqual(expect.objectContaining({
-      registration_id: '123e4567-e89b-42d3-a456-426614174000',
-      expected_amount: 700,
-    }));
+    expect(JSON.parse(registerCalls()[0][1].body)).toMatchObject({
+      registration_id: paymentReference,
+      expected_amount: 2100,
+      quantity: 3,
+    });
+    const previewCall = (global.fetch as any).mock.calls.find(([url]: [string]) => new URL(url).pathname === '/api/register/preview');
+    expect(JSON.parse(previewCall[1].body)).toMatchObject({ quantity: 3, days: ['day1'] });
   });
 
-  it('does not create a registration when the payment sheet is closed', async () => {
+  it('closing the payment sheet does not create a registration', async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 250, sold_out: false },
       day2: { capacity: 250, remaining: 250, sold_out: false },
@@ -154,7 +176,7 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/name/i), 'Smoke');
     await user.type(screen.getByLabelText(/email/i), 'smoke@test.local');
     await user.click(screen.getByLabelText(/saturday/i));
-    await user.click(screen.getByRole('button', { name: /register/i }));
+    await user.click(screen.getByRole('button', { name: /continue with 1 ticket/i }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /close/i }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -194,7 +216,7 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/name/i), 'GM');
     await user.type(screen.getByLabelText(/email/i), 'gm@test.local');
     await user.click(screen.getByLabelText(/saturday/i));
-    await user.click(screen.getByRole('button', { name: /register/i }));
+    await user.click(screen.getByRole('button', { name: /continue with 1 ticket/i }));
     await waitFor(() => expect(screen.getByText(/you're in!/i)).toBeInTheDocument());
   });
 

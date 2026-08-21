@@ -118,6 +118,7 @@ function validBody(overrides: Partial<any> = {}) {
     edition_id: 'e1',
     pass_type: 'oneshot',
     days: ['day1'],
+    quantity: 1,
     ...overrides,
   });
 }
@@ -180,6 +181,7 @@ describe('handleRegister', () => {
         user_phone: '9876543210',
         pass_type: 'oneshot',
         days: ['day1'],
+        seats: 1,
         amount_paid: 800,
         discount_applied: 0,
         payment_status: 'pending',
@@ -221,6 +223,25 @@ describe('handleRegister', () => {
     expect(res.status).toBe(400);
   });
 
+  it.each([0, 11, 1.5, '2'])('rejects invalid quantity %s with 400', async (quantity) => {
+    (serviceClient as any).mockReturnValue(mockSupabase({}));
+    const req = new Request('http://x/api/register', { method: 'POST', body: validBody({ quantity }) });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid quantity' });
+  });
+
+  it('defaults a missing quantity to one for rolling-deploy compatibility', async () => {
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({ capture: cap }));
+    const body = JSON.parse(validBody());
+    delete body.quantity;
+    const req = new Request('http://x/api/register', { method: 'POST', body: JSON.stringify(body) });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(200);
+    expect(cap.reg.seats).toBe(1);
+  });
+
   it('rejects when registration_status != open with 409', async () => {
     (getEditionById as any).mockResolvedValue({ ...defaultEdition(), registration_status: 'upcoming' });
     (serviceClient as any).mockReturnValue(mockSupabase({}));
@@ -239,6 +260,15 @@ describe('handleRegister', () => {
     expect(res.status).toBe(409);
     const body: any = await res.json();
     expect(body).toEqual({ error: 'sold_out', day: 'day1' });
+  });
+
+  it('rejects a multi-ticket booking when only fewer seats remain', async () => {
+    (getReservedSeatsByDay as any).mockResolvedValue({ day1: 248, day2: 0 });
+    (serviceClient as any).mockReturnValue(mockSupabase({}));
+    const req = new Request('http://x/api/register', { method: 'POST', body: validBody({ quantity: 3 }) });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'sold_out', day: 'day1' });
   });
 
   it('guildmaster gets full discount and confirmed status + email dispatched', async () => {
@@ -268,6 +298,7 @@ describe('handleRegister', () => {
     expect(call.variables.schedule_url).toBe('https://replaycon.in/schedule');
     expect(call.variables.instagram_url).toBe('https://instagram.com/replaycon');
     expect(call.variables.whatsapp_share_url).toMatch(/^https:\/\/wa\.me\/\?text=/);
+    expect(call.variables.seats).toBe(1);
   });
 
   it('adventurer with cap=1000 against campaign 1400 => final=400 + pending status', async () => {
@@ -280,6 +311,24 @@ describe('handleRegister', () => {
     expect(body.final_amount).toBe(400);
     expect(body.discount_applied).toBe(1000);
     expect(body.payment_required).toBe(true);
+    expect(cap.reg.payment_status).toBe('pending');
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('prices every ticket but applies a Guildmaster benefit only to the first one', async () => {
+    (fetchGuildStatus as any).mockResolvedValue({ tier: 'guildmaster', active: true });
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({ existingUser: { phone: '9876543210', name: 'A', email: 'a@b.c' }, capture: cap }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({ pass_type: 'campaign', days: ['day1', 'day2'], quantity: 3 }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    const body: any = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.final_amount).toBe(2800);
+    expect(body.discount_applied).toBe(1400);
+    expect(cap.reg.seats).toBe(3);
     expect(cap.reg.payment_status).toBe('pending');
     expect(sendEmail).not.toHaveBeenCalled();
   });
