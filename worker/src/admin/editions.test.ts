@@ -51,6 +51,7 @@ describe('handleEdCreate', () => {
       nearest_bus_stop_name: 'Mayo Hall', nearest_bus_stop_distance: '250 m',
       parking_availability: 'Limited basement parking', parking_charges: '₹50 per hour',
       food_details: 'Food court on level 2', water_details: 'Refill point at the library desk',
+      accessibility_details: '  Step-free entrance and accessible toilets.  ',
       game_library_process: 'Borrow one game at a time.', help_on_the_day: 'Ask at the help desk.',
       pricing: PRICING, capacity_per_day: CAP, is_published: false,
     }) });
@@ -61,6 +62,7 @@ describe('handleEdCreate', () => {
     expect(inserted.venue_address).toBe('12 Residency Road, Bengaluru');
     expect(inserted.google_maps_url).toBe('https://maps.app.goo.gl/replay');
     expect(inserted.entrance_details).toBe('Use the north gate.');
+    expect(inserted.accessibility_details).toBe('Step-free entrance and accessible toilets.');
     expect(inserted.game_library_process).toBe('Borrow one game at a time.');
     expect(audit.row.action).toBe('edition.create');
   });

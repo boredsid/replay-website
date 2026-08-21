@@ -12,7 +12,7 @@ type Form = {
   nearest_metro_name: string; nearest_metro_distance: string;
   nearest_bus_stop_name: string; nearest_bus_stop_distance: string;
   parking_availability: string; parking_charges: string;
-  food_details: string; water_details: string;
+  food_details: string; water_details: string; accessibility_details: string;
   game_library_process: string; help_on_the_day: string;
   daily_start_time: string; daily_end_time: string;
   registration_status: EditionRow['registration_status'];
@@ -26,7 +26,7 @@ const EMPTY: Form = {
   slug: '', name: 'REPLAY', start_date: '', end_date: '', venue: 'TBD',
   venue_address: '', google_maps_url: '', entrance_details: '', check_in_location: '',
   nearest_metro_name: '', nearest_metro_distance: '', nearest_bus_stop_name: '', nearest_bus_stop_distance: '',
-  parking_availability: '', parking_charges: '', food_details: '', water_details: '',
+  parking_availability: '', parking_charges: '', food_details: '', water_details: '', accessibility_details: '',
   game_library_process: '', help_on_the_day: '',
   daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
@@ -69,7 +69,7 @@ export default function EditionDrawer() {
           nearest_metro_name: e.nearest_metro_name ?? '', nearest_metro_distance: e.nearest_metro_distance ?? '',
           nearest_bus_stop_name: e.nearest_bus_stop_name ?? '', nearest_bus_stop_distance: e.nearest_bus_stop_distance ?? '',
           parking_availability: e.parking_availability ?? '', parking_charges: e.parking_charges ?? '',
-          food_details: e.food_details ?? '', water_details: e.water_details ?? '',
+          food_details: e.food_details ?? '', water_details: e.water_details ?? '', accessibility_details: e.accessibility_details ?? '',
           game_library_process: e.game_library_process ?? '', help_on_the_day: e.help_on_the_day ?? '',
           daily_start_time: e.daily_start_time?.slice(0, 5) ?? '10:00', daily_end_time: e.daily_end_time?.slice(0, 5) ?? '19:00',
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
@@ -104,7 +104,7 @@ export default function EditionDrawer() {
       nearest_metro_name: form.nearest_metro_name, nearest_metro_distance: form.nearest_metro_distance,
       nearest_bus_stop_name: form.nearest_bus_stop_name, nearest_bus_stop_distance: form.nearest_bus_stop_distance,
       parking_availability: form.parking_availability, parking_charges: form.parking_charges,
-      food_details: form.food_details, water_details: form.water_details,
+      food_details: form.food_details, water_details: form.water_details, accessibility_details: form.accessibility_details,
       game_library_process: form.game_library_process, help_on_the_day: form.help_on_the_day,
       daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
@@ -197,6 +197,9 @@ export default function EditionDrawer() {
         </F>
         <F label="Water details">
           <textarea aria-label="Water details" rows={2} value={form.water_details} onChange={(e) => set('water_details', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+        <F label="Accessibility details">
+          <textarea aria-label="Accessibility details" rows={4} value={form.accessibility_details} onChange={(e) => set('accessibility_details', e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </F>
         <F label="Game library process">
           <textarea aria-label="Game library process" rows={4} value={form.game_library_process} onChange={(e) => set('game_library_process', e.target.value)} className="w-full rounded-md border px-3 py-2" />

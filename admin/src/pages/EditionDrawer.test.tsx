@@ -29,6 +29,7 @@ const TWO_DAY = {
   nearest_bus_stop_name: 'Mayo Hall', nearest_bus_stop_distance: '250 m',
   parking_availability: 'Limited basement parking', parking_charges: '₹50 per hour',
   food_details: 'Food court on level 2', water_details: 'Refill point at the library desk',
+  accessibility_details: 'Step-free entrance and accessible toilets on level 1.',
   game_library_process: 'Borrow one game at a time.', help_on_the_day: 'Ask at the help desk.',
 };
 
@@ -61,10 +62,13 @@ it('loads and saves the Plan Your Visit fields', async () => {
   expect(await screen.findByLabelText('Venue address')).toHaveValue('12 Residency Road, Bengaluru');
   expect(screen.getByLabelText('Google Maps pin')).toHaveValue('https://maps.app.goo.gl/replay');
   expect(screen.getByLabelText('Nearest Metro station')).toHaveValue('MG Road');
+  expect(screen.getByLabelText('Accessibility details')).toHaveValue('Step-free entrance and accessible toilets on level 1.');
   expect(screen.getByLabelText('Game library process')).toHaveValue('Borrow one game at a time.');
 
   await userEvent.clear(screen.getByLabelText('Parking charges'));
   await userEvent.type(screen.getByLabelText('Parking charges'), '₹60 per hour');
+  await userEvent.clear(screen.getByLabelText('Accessibility details'));
+  await userEvent.type(screen.getByLabelText('Accessibility details'), 'Step-free entrance, accessible toilet, and quiet seating area.');
   await userEvent.click(screen.getByRole('button', { name: /save edition/i }));
 
   await waitFor(() => expect((fetchAdmin as any)).toHaveBeenCalledWith('/api/admin/editions/e3', expect.anything()));
@@ -72,6 +76,7 @@ it('loads and saves the Plan Your Visit fields', async () => {
   const payload = JSON.parse(patchCall[1].body);
   expect(payload.google_maps_url).toBe('https://maps.app.goo.gl/replay');
   expect(payload.parking_charges).toBe('₹60 per hour');
+  expect(payload.accessibility_details).toBe('Step-free entrance, accessible toilet, and quiet seating area.');
   expect(payload.help_on_the_day).toBe('Ask at the help desk.');
 });
 
