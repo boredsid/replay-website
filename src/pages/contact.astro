@@ -5,6 +5,7 @@ import { getCurrentEdition, publicDateRange } from '../lib/data';
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+const suranjanaWhatsapp = `https://wa.me/919674282424?text=${encodeURIComponent('Hi Suranjana, I have a question about REPLAY.')}`;
 
 const faqs = [
   {
@@ -96,7 +97,7 @@ const faqJsonLd = JSON.stringify({
     heading="Questions belong at the table too."
     headingLevel="h1"
     body={edition ? `Planning for ${range}? Start with the answers below, then contact the REPLAY team if your question is specific to you.` : 'Start with the answers below, then contact the REPLAY team if your question is specific to you.'}
-    cta={{ text: 'Email the team →', href: 'mailto:hello@replaycon.in', variant: 'primary' }}
+    cta={{ text: 'WhatsApp Suranjana →', href: suranjanaWhatsapp, variant: 'primary', external: true }}
   />
 
   <section class="page-section page-section-yellow" aria-labelledby="contact-options-heading">

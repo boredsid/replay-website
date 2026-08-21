@@ -1,19 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
-import PartnerPurchaseForm from '../components/PartnerPurchaseForm';
 import { getCurrentEdition, publicDateRange } from '../lib/data';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
-import type { PartnerPackageKey } from '../lib/types';
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
-const upiId = import.meta.env.PUBLIC_UPI_ID ?? '';
 const partnerPricing = edition?.partner_pricing ?? DEFAULT_PARTNER_PRICING;
 const money = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
 const boothPackages: Array<{
-  key: PartnerPackageKey;
   name: string;
   price: number;
   duration: string;
@@ -21,7 +17,6 @@ const boothPackages: Array<{
   note?: string;
 }> = [
   {
-    key: 'standard_booth',
     name: 'Standard booth',
     price: partnerPricing.standard_booth,
     duration: 'Full weekend',
@@ -33,7 +28,6 @@ const boothPackages: Array<{
     note: 'For booths using their regular price list during the convention.',
   },
   {
-    key: 'community_booth',
     name: 'Community booth',
     price: partnerPricing.community_booth,
     duration: 'Full weekend',
@@ -47,21 +41,18 @@ const boothPackages: Array<{
 ];
 
 const communityPackages: Array<{
-  key: PartnerPackageKey;
   name: string;
   price: number;
   duration: string;
   inclusions: string[];
 }> = [
   {
-    key: 'standard_engagement',
     name: 'Standard engagement',
     price: partnerPricing.standard_engagement,
     duration: 'Three-hour slot',
     inclusions: ['Four tables for the activity', 'Programme listing once the activity is confirmed'],
   },
   {
-    key: 'patron_engagement',
     name: 'Patron engagement',
     price: partnerPricing.patron_engagement,
     duration: 'Three-hour slot',
@@ -70,6 +61,9 @@ const communityPackages: Array<{
 ];
 
 const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeURIComponent(subject)}`;
+const whatsapp = (phone: string, message: string) => `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+const suranjanaWhatsapp = (message: string) => whatsapp('919674282424', message);
+const coverageWhatsapp = whatsapp('919982200768', "Hi, I'd like to pitch coverage for REPLAY.");
 ---
 
 <Layout title="Get Involved — REPLAY" description="Run an event, book a booth, sponsor REPLAY, or work with the convention as a content creator.">
@@ -128,7 +122,7 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
             <li>Budget range and activation ideas</li>
             <li>Brand, product or exclusivity constraints</li>
           </ul>
-          <a class="btn btn-black" href={mailto('REPLAY sponsorship conversation')}>Talk sponsorship →</a>
+          <a class="btn btn-black" href={suranjanaWhatsapp("Hi Suranjana, I'd like to talk about sponsoring REPLAY.")} target="_blank" rel="noopener noreferrer">Talk sponsorship →</a>
         </article>
 
         <article id="content-creators" class="partner-card partner-card--green">
@@ -142,7 +136,7 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
             <li>Access, interview or filming needs</li>
             <li>Publishing timeline and usage expectations</li>
           </ul>
-          <a class="btn btn-black" href={mailto('REPLAY content creator enquiry')}>Pitch your coverage →</a>
+          <a class="btn btn-black" href={coverageWhatsapp} target="_blank" rel="noopener noreferrer">Pitch your coverage →</a>
         </article>
       </div>
     </div>
@@ -160,7 +154,7 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
             <p class="booth-price">{money(booth.price)} + GST</p>
             <ul class="clean-list">{booth.inclusions.map((item) => <li>{item}</li>)}</ul>
             {booth.note && <p class="booth-note">{booth.note}</p>}
-            <a class="btn btn-primary" href="#partner-checkout" data-partner-package={booth.key}>Buy this booth →</a>
+            <a class="btn btn-primary" href={suranjanaWhatsapp(`Hi Suranjana, I'd like to book the ${booth.name} package for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this booth →</a>
           </article>
         ))}
       </div>
@@ -180,7 +174,7 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
             <h3>{item.name}</h3>
             <p class="booth-price">{money(item.price)} + GST / day</p>
             <ul class="clean-list">{item.inclusions.map((inclusion) => <li>{inclusion}</li>)}</ul>
-            <a class="btn btn-primary" href="#partner-checkout" data-partner-package={item.key}>Buy this engagement pass →</a>
+            <a class="btn btn-primary" href={suranjanaWhatsapp(`Hi Suranjana, I'd like to buy the ${item.name} pass for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this engagement pass →</a>
           </article>
         ))}
       </div>
@@ -188,29 +182,14 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
     </div>
   </section>
 
-  <section id="partner-checkout" class="page-section page-section-paper" aria-labelledby="partner-checkout-heading">
-    <div class="container-x checkout-shell">
-      <div>
-        <span class="section-tag">Partner checkout</span>
-        <h2 id="partner-checkout-heading" class="section-heading">Book directly on the website.</h2>
-        <p class="section-copy">Choose a booth or community engagement pass, share the operating details, and pay the GST-inclusive total by UPI. The team verifies the payment and confirms the booking by email.</p>
-      </div>
-      {edition ? (
-        <PartnerPurchaseForm client:load edition={edition} upiId={upiId} />
-      ) : (
-        <div class="commercial-note">There is no current edition available for online partner checkout. Email hello@replaycon.in to start a conversation.</div>
-      )}
-    </div>
-  </section>
-
   <section class="page-section page-section-blue" aria-labelledby="partner-process-heading">
     <div class="container-x">
       <span class="section-tag">How it works</span>
-      <h2 id="partner-process-heading" class="section-heading">Purchase first, then lock the logistics.</h2>
+      <h2 id="partner-process-heading" class="section-heading">Fit first, logistics second.</h2>
       <div class="info-grid">
-        <article class="info-card"><span class="info-card__kicker">01</span><h3>Choose and pay</h3><p>Buy the relevant package above. Your payment remains pending until the REPLAY team verifies it.</p></article>
-        <article class="info-card"><span class="info-card__kicker">02</span><h3>Watch for confirmation</h3><p>The team reviews the payment, floor-space or schedule constraints, and the operating detail you submitted.</p></article>
-        <article class="info-card"><span class="info-card__kicker">03</span><h3>Lock the operating plan</h3><p>Scope, timings, assets, contacts and on-site ownership are agreed before the booth or activity is published.</p></article>
+        <article class="info-card"><span class="info-card__kicker">01</span><h3>Send the useful detail</h3><p>Choose the relevant route above and include enough information for a real evaluation.</p></article>
+        <article class="info-card"><span class="info-card__kicker">02</span><h3>Confirm the fit</h3><p>The team reviews audience value, schedule or floor-space constraints, staffing and venue requirements.</p></article>
+        <article class="info-card"><span class="info-card__kicker">03</span><h3>Lock the operating plan</h3><p>Nothing is public until scope, timings, commercial terms, assets, contacts and on-site ownership are agreed.</p></article>
       </div>
     </div>
   </section>
@@ -251,7 +230,6 @@ const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeU
   .booth-note { margin-top: 14px; color: rgba(26,26,26,.72); }
   .booth-card .btn { margin-top: 24px; }
   .commercial-note { max-width: 880px; margin-top: 28px; padding: 16px 18px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: var(--color-cream); font-weight: 700; }
-  .checkout-shell { display: grid; gap: 36px; }
 
   @media (min-width: 820px) {
     .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
