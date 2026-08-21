@@ -1,9 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { handleEdCreate, handleEdPatch } from './editions';
+import { handleEdCreate, handleEdList, handleEdPatch } from './editions';
 
 const O = 'https://admin.replaycon.in';
 const PRICING = { oneshot: 800, campaign: 1400, adventurer_cap: 1000 };
 const CAP = { day1: 250, day2: 250 };
+
+const listing = (...rows: any[]): any => ({
+  from: () => ({ select: () => ({ order: async () => ({ data: rows, error: null }) }) }),
+});
+
+describe('handleEdList', () => {
+  // partner_pricing already reached clients raw through the row spread, so the
+  // point here is normalisation: read it the same way `pricing` is read, so a
+  // client always gets a complete object or an explicit error, never a partial.
+  it('substitutes default partner pricing when the column is empty', async () => {
+    const sb = listing({ id: 'e3', slug: 'replay-3', pricing: PRICING, partner_pricing: null });
+    const res = await handleEdList({} as any, sb, O);
+    expect(res.status).toBe(200);
+    const body: any = await res.json();
+    expect(body.editions[0].partner_pricing).toBeTruthy();
+    expect(typeof body.editions[0].partner_pricing.standard_booth).toBe('number');
+  });
+
+  it('rejects a partial partner_pricing column instead of passing it through', async () => {
+    const sb = listing({ id: 'e3', slug: 'replay-3', pricing: PRICING, partner_pricing: { standard_booth: 9000 } });
+    const res = await handleEdList({} as any, sb, O);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'invalid_pricing_data' });
+  });
+
+  it('passes a fully populated partner_pricing column through', async () => {
+    const sb = listing({
+      id: 'e3', slug: 'replay-3', pricing: PRICING,
+      partner_pricing: { gst_rate: 0.18, standard_booth: 9000, community_booth: 6500, standard_engagement: 3000, patron_engagement: 3500 },
+    });
+    const res = await handleEdList({} as any, sb, O);
+    const body: any = await res.json();
+    expect(body.editions[0].partner_pricing.standard_booth).toBe(9000);
+    expect(body.editions[0].pricing.oneshot).toBe(800);
+  });
+});
 
 describe('handleEdCreate', () => {
   it('rejects an invalid slug', async () => {

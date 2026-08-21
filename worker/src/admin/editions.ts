@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { writeAudit, diffRows } from './audit';
 import { readPricing, type Pricing } from '../pricing';
+import { readPartnerPricing } from '../partner-pricing';
 
 const STATUSES = ['upcoming', 'open', 'sold_out', 'closed'];
 
@@ -107,7 +108,11 @@ export async function handleEdList(env: Env, sb: SupabaseClient, origin: string)
   const { data, error } = await sb.from('editions').select('*').order('start_date', { ascending: false });
   if (error) return adminJson({ error: 'query_failed' }, 500, origin);
   try {
-    const editions = (data ?? []).map((edition: any) => ({ ...edition, pricing: readPricing(edition.pricing) }));
+    const editions = (data ?? []).map((edition: any) => ({
+      ...edition,
+      pricing: readPricing(edition.pricing),
+      partner_pricing: readPartnerPricing(edition.partner_pricing),
+    }));
     return adminJson({ editions }, 200, origin);
   } catch {
     return adminJson({ error: 'invalid_pricing_data' }, 500, origin);
