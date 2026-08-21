@@ -8,6 +8,21 @@ export interface EmailPayload {
   variables: Record<string, string | number>;
 }
 
+interface AppsScriptResponse {
+  ok?: boolean;
+  error?: string;
+}
+
+function base64Utf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function hmacSha256Hex(secret: string, body: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -23,7 +38,10 @@ async function hmacSha256Hex(secret: string, body: string): Promise<string> {
 }
 
 export async function sendEmail(env: Env, payload: EmailPayload): Promise<void> {
-  const body = JSON.stringify(payload);
+  // Apps Script may decode non-ASCII request text differently before exposing
+  // e.postData.contents. Sign an ASCII-only envelope so names and subjects with
+  // punctuation or non-Latin characters cannot invalidate the HMAC.
+  const body = JSON.stringify({ payload_base64: base64Utf8(JSON.stringify(payload)) });
   const signature = await hmacSha256Hex(env.APPS_SCRIPT_SECRET, body);
   // Apps Script doPost cannot read custom request headers reliably,
   // so we also pass the signature as a query param. The GAS handler
@@ -38,7 +56,19 @@ export async function sendEmail(env: Env, payload: EmailPayload): Promise<void> 
     },
     body,
   });
+  const responseText = await res.text().catch(() => "");
   if (!res.ok) {
     throw new Error(`Apps Script returned ${res.status}`);
+  }
+
+  let result: AppsScriptResponse | null = null;
+  try {
+    result = JSON.parse(responseText) as AppsScriptResponse;
+  } catch {
+    throw new Error("Apps Script returned an invalid response");
+  }
+
+  if (result?.ok !== true) {
+    throw new Error(`Apps Script rejected email: ${result?.error || "unknown error"}`);
   }
 }
