@@ -144,7 +144,7 @@ Roughly in order of dependency / value.
 ### Secrets (worker)
 Stored via `wrangler secret put`. Visible via `cd worker && npx wrangler secret list`:
 - `SUPABASE_SERVICE_KEY` — RLS bypass for worker
-- `ADMIN_EMAILS` — comma-separated allowlist (5 emails currently)
+- `ADMIN_EMAILS` — comma-separated allowlist (8 emails currently)
 - `REPLAY_TO_BGC_SECRET` — bearer token for cross-calling bgc worker (same value set on bgc worker side)
 - `APPS_SCRIPT_URL` — `/exec` URL of Replay Email Webhook GAS project
 - `APPS_SCRIPT_SECRET` — HMAC secret matching GAS Script Property `WEBHOOK_SECRET`
@@ -157,7 +157,7 @@ Stored via `wrangler secret put`. Visible via `cd worker && npx wrangler secret 
 ### Cloudflare Access
 - Team domain `boardgamecompany.cloudflareaccess.com` (shared with bgc — same Zero Trust org)
 - Replay Admin app AUD: `0983cd2ae4c9939c15d1ebecabe9d57a9630e8b09ada408279a9b17d3ecf132f`
-- Allowlist: `siddhantnarula96@gmail.com`, `amritkochar.007@gmail.com`, `suranjanadatta24@gmail.com`, `swapnilsr21@gmail.com`, `chughyogesh01@gmail.com`
+- Allowlist: `siddhantnarula96@gmail.com`, `musafiramrit@gmail.com`, `suranjanadatta24@gmail.com`, `swapnilsr21@gmail.com`, `chughyogesh01@gmail.com`, `kishorerubik97@gmail.com`, `movinbgiri08@gmail.com`, `rohithdabbiru@gmail.com`
 
 ### Local dev
 - `.env.local` at repo root needs: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `PUBLIC_WORKER_URL=https://api.replaycon.in`, `PUBLIC_UPI_ID=suranjanadatta24-1@okaxis`. Without it, build pauses 30-50s/page on Supabase timeout against placeholder URL.
