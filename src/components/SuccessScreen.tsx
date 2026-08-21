@@ -3,6 +3,8 @@ export interface SuccessScreenProps {
   editionName: string;
 }
 
+const WHATSAPP_COMMUNITY_URL = 'https://chat.whatsapp.com/KMfBSQORNArFC88yvJs5ha?mode=gi_t';
+
 export function SuccessScreen({ pending, editionName }: SuccessScreenProps) {
   return (
     <div className="py-6 text-center">
@@ -13,7 +15,18 @@ export function SuccessScreen({ pending, editionName }: SuccessScreenProps) {
           ? `We'll email you once we confirm your payment for ${editionName}.`
           : `Confirmation for ${editionName} is on its way to your inbox.`}
       </p>
-      <a href="/" className="btn btn-secondary">Back to home</a>
+      <div className="flex flex-col items-center gap-3">
+        <a
+          href={WHATSAPP_COMMUNITY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn max-w-full whitespace-normal text-sm no-underline"
+          style={{ background: '#25D366', color: '#1A1A1A' }}
+        >
+          Join the REPLAY WhatsApp community to stay updated
+        </a>
+        <a href="/" className="btn btn-secondary">Back to home</a>
+      </div>
     </div>
   );
 }
