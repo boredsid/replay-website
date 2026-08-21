@@ -38,13 +38,6 @@ function computeDiscount(base: number, tier: string | null, cap: number): number
   return 0;
 }
 
-function formatDateRange(start: string, end: string): string {
-  const first = new Date(`${start}T00:00:00Z`);
-  const second = new Date(`${end}T00:00:00Z`);
-  if (Number.isNaN(first.valueOf()) || Number.isNaN(second.valueOf())) return `${start} – ${end}`;
-  return `${first.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} – ${second.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
-}
-
 export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
   const [availabilityError, setAvailabilityError] = useState(false);
@@ -243,10 +236,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const storedEmailProtected = Boolean(lookup?.user.found && lookup.user.email);
 
   return (
-    <div className="container-x section max-w-xl">
-      <span className="pill pill-yellow mb-4">Ticket details</span>
-      <h2 className="text-4xl md:text-5xl mb-3">{edition.name}</h2>
-      <p className="text-gray-700 mb-8">{formatDateRange(edition.start_date, edition.end_date)} · {edition.venue}</p>
+    <div>
       {availabilityError && (
         <p role="status" className="mb-4 text-sm font-medium text-[var(--color-error)]">
           Live availability is temporarily unavailable. The form will still prevent overbooking when you submit.
@@ -269,7 +259,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="card-brutal p-8 space-y-5">
+      <form onSubmit={onSubmit} className="space-y-5">
         <div>
           <label htmlFor="phone" className="label-brutal">Phone</label>
           <input id="phone" type="tel" inputMode="numeric" autoComplete="tel" required maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -295,12 +285,12 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
 
         <fieldset>
           <legend className="label-brutal">Pass type</legend>
-          <div className="grid grid-cols-2 gap-3">
-            <label className={`btn ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className={`btn whitespace-normal text-center leading-tight ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
               <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} className="sr-only" />
               1-day pass — ₹{edition.pricing.oneshot}
             </label>
-            <label className={`btn ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${campaignUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className={`btn whitespace-normal text-center leading-tight ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${campaignUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
               <input type="radio" name="passType" value="campaign" checked={passType === 'campaign'} onChange={() => { setPassType('campaign'); setDays(['day1','day2']); }} disabled={campaignUnavailable} className="sr-only" />
               2-day pass — ₹{edition.pricing.campaign}
             </label>
