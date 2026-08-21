@@ -43,7 +43,7 @@ export default function Users() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <h1 className="mb-4 text-2xl font-bold">Users</h1>
       <input
         aria-label="Search users"
@@ -57,16 +57,16 @@ export default function Users() {
       ) : (
         <div className="space-y-2">
           {users.map((u) => (
-            <Link key={u.phone} to={`/users/${u.phone}`} className="flex items-center justify-between rounded-md border p-4 hover:bg-muted">
-              <div>
+            <Link key={u.phone} to={`/users/${u.phone}`} className="flex items-start justify-between gap-3 rounded-md border p-4 hover:bg-muted sm:items-center">
+              <div className="min-w-0">
                 <div className="font-medium">{u.name || <span className="text-muted-foreground">(no name)</span>}</div>
-                <div className="font-mono text-sm text-muted-foreground">{u.phone}{u.email ? ` · ${u.email}` : ''}</div>
+                <div className="break-all font-mono text-sm text-muted-foreground">{u.phone}{u.email ? ` · ${u.email}` : ''}</div>
               </div>
-              <div className="text-sm text-muted-foreground">{u.registration_count} reg{u.registration_count === 1 ? '' : 's'}</div>
+              <div className="shrink-0 text-sm text-muted-foreground">{u.registration_count} reg{u.registration_count === 1 ? '' : 's'}</div>
             </Link>
           ))}
           {users.length === 0 && <div className="text-muted-foreground">No users found.</div>}
-          <div className="flex items-center justify-between pt-2">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-2">
             <button
               disabled={loading || offset === 0}
               onClick={() => load(q.trim(), Math.max(0, offset - PAGE_SIZE))}
@@ -74,7 +74,7 @@ export default function Users() {
             >
               Previous
             </button>
-            <span className="text-sm text-muted-foreground">Showing {offset + 1}–{offset + users.length}</span>
+            <span className="text-center text-xs text-muted-foreground sm:text-sm">{users.length === 0 ? 'No results' : `${offset + 1}–${offset + users.length}`}</span>
             <button
               disabled={loading || !hasMore}
               onClick={() => load(q.trim(), offset + PAGE_SIZE)}

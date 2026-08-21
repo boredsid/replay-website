@@ -1,13 +1,20 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Megaphone, Handshake } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone } from 'lucide-react';
 
 export const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/editions', label: 'Editions', icon: Calendar, end: false },
-  { to: '/programme', label: 'Programme', icon: CalendarDays, end: false },
-  { to: '/announcements', label: 'Announcements', icon: Megaphone, end: false },
-  { to: '/registrations', label: 'Registrations', icon: Ticket, end: false },
-  { to: '/partners', label: 'Partners', icon: Handshake, end: false },
-  { to: '/users', label: 'Users', icon: Users, end: false },
-  { to: '/leads', label: 'Leads', icon: UserPlus, end: false },
-  { to: '/audit', label: 'Audit', icon: ScrollText, end: false },
+  { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0 },
+  { to: '/editions', label: 'Editions', mobileLabel: 'Editions', icon: Calendar, end: false, mobile: 'more', mobileOrder: 0 },
+  { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'primary', mobileOrder: 2 },
+  { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 3 },
+  { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 1 },
+  { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 1 },
+  { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 2 },
+  { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 3 },
+  { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 4 },
 ] as const;
+
+export const MOBILE_PRIMARY_NAV = NAV
+  .filter((item) => item.mobile === 'primary')
+  .sort((a, b) => a.mobileOrder - b.mobileOrder);
+export const MOBILE_MORE_NAV = NAV
+  .filter((item) => item.mobile === 'more')
+  .sort((a, b) => a.mobileOrder - b.mobileOrder);

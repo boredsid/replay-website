@@ -1,23 +1,29 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useWhoAmI } from '@/lib/whoami';
 import Sidebar from './Sidebar';
 import BottomTabBar from './BottomTabBar';
 import TopBar from './TopBar';
+import MobileMoreMenu from './MobileMoreMenu';
+import { OfflineBanner } from './OfflineBanner';
 
 export default function Layout() {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const who = useWhoAmI();
+
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0">
       <div className="hidden md:flex">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopBar />
-        <main
-          className="flex-1 overflow-auto bg-muted/30 p-4 md:p-6 pb-20 md:pb-6"
-          style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
-        >
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar onOpenMenu={() => setMoreOpen(true)} />
+        <OfflineBanner />
+        <main className="app-main flex-1 overflow-x-hidden overflow-y-auto bg-muted/30">
           <Outlet />
         </main>
-        <BottomTabBar />
+        <BottomTabBar moreOpen={moreOpen} onOpenMore={() => setMoreOpen(true)} />
+        <MobileMoreMenu open={moreOpen} onOpenChange={setMoreOpen} email={who?.email} />
       </div>
     </div>
   );

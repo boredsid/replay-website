@@ -1,60 +1,17 @@
-import { useState } from 'react';
 import { useWhoAmI } from '@/lib/whoami';
-import { fetchAdmin, showApiError } from '@/lib/api';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RebuildSiteButton from './RebuildSiteButton';
 
-function RebuildButton() {
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  async function rebuild() {
-    setBusy(true);
-    try {
-      await fetchAdmin('/api/admin/rebuild', { method: 'POST' });
-      toast.success('Site rebuilding (~60s)…');
-      setOpen(false);
-    } catch (e) {
-      showApiError(e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <button
-        disabled={busy}
-        onClick={() => setOpen(true)}
-        className="rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-muted"
-      >
-        {busy ? 'Rebuilding…' : 'Rebuild site'}
-      </button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rebuild the public site?</DialogTitle>
-            <DialogDescription>This publishes the latest edition, sponsor, and schedule data. A rebuild usually takes about a minute.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button onClick={() => setOpen(false)} className="rounded-md border px-3 py-2 text-sm">Cancel</button>
-            <button disabled={busy} onClick={rebuild} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
-              {busy ? 'Rebuilding…' : 'Rebuild now'}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+interface Props {
+  onOpenMenu: () => void;
 }
 
-export default function TopBar() {
+export default function TopBar({ onOpenMenu }: Props) {
   const who = useWhoAmI();
   const email = who?.email ?? null;
   const initials = email ? email.slice(0, 1).toUpperCase() : '?';
 
   return (
-    <header className="h-14 bg-background border-b flex items-center gap-2 px-4 md:px-6">
+    <header className="app-topbar flex shrink-0 items-center gap-2 border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-2 min-w-0 md:hidden">
         <img src="/replay-icon.png" alt="" className="h-6 w-6" />
         <span className="font-heading font-semibold">Admin</span>
@@ -63,7 +20,7 @@ export default function TopBar() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-3 text-sm min-w-0">
-        <RebuildButton />
+        <RebuildSiteButton className="hidden md:inline-flex" />
         <div className="hidden md:flex items-center gap-2">
           {email && (
             <span className="text-muted-foreground truncate max-w-[180px]">{email}</span>
@@ -72,13 +29,15 @@ export default function TopBar() {
             Sign out
           </a>
         </div>
-        <div
-          className="md:hidden h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm"
-          aria-label={email || 'Profile'}
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground md:hidden"
+          aria-label={email ? `Open menu for ${email}` : 'Open account menu'}
           title={email || ''}
         >
           {initials}
-        </div>
+        </button>
       </div>
     </header>
   );

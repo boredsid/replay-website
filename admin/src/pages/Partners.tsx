@@ -72,17 +72,17 @@ export default function Partners() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <input aria-label="Search partners" value={searchInput} onChange={(event) => updateSearch(event.target.value)} placeholder="Organisation / contact / phone" className="rounded-md border px-3 py-1.5 text-sm" />
-        <select aria-label="Edition" value={editionId} onChange={(event) => setEditionId(event.target.value)} className="rounded-md border px-3 py-1.5 text-sm">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <input aria-label="Search partners" value={searchInput} onChange={(event) => updateSearch(event.target.value)} placeholder="Organisation / contact / phone" className="w-full rounded-md border px-3 py-2 text-sm" />
+        <select aria-label="Edition" value={editionId} onChange={(event) => setEditionId(event.target.value)} className="w-full rounded-md border px-3 py-2 text-sm">
           {editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.slug} — {edition.name}</option>)}
         </select>
-        <select aria-label="Partner type" value={kind} onChange={(event) => setKind(event.target.value as PartnerKind | 'all')} className="rounded-md border px-3 py-1.5 text-sm">
+        <select aria-label="Partner type" value={kind} onChange={(event) => setKind(event.target.value as PartnerKind | 'all')} className="w-full rounded-md border px-3 py-2 text-sm">
           <option value="all">All types</option>
           <option value="booth">Booths</option>
           <option value="community_engagement">Community engagement</option>
         </select>
-        <select aria-label="Payment status" value={status} onChange={(event) => setStatus(event.target.value as PaymentStatus | 'all')} className="rounded-md border px-3 py-1.5 text-sm">
+        <select aria-label="Payment status" value={status} onChange={(event) => setStatus(event.target.value as PaymentStatus | 'all')} className="w-full rounded-md border px-3 py-2 text-sm">
           <option value="all">All statuses</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>

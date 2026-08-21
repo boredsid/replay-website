@@ -10,7 +10,7 @@ export default function Leads() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <h1 className="text-2xl font-bold">Leads</h1>
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left"><tr><th className="p-2">Name</th><th className="p-2">Phone</th><th className="p-2">Step</th><th className="p-2">Created</th></tr></thead>
           <tbody>
@@ -19,6 +19,23 @@ export default function Leads() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="space-y-2 md:hidden">
+        {leads.map((lead) => (
+          <div key={lead.id} className="rounded-lg border bg-background p-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium">{lead.name || 'Unnamed lead'}</div>
+                <div className="font-mono text-muted-foreground">{lead.phone}</div>
+              </div>
+              <span className="shrink-0 rounded-full border px-2 py-0.5 text-xs">{lead.step_reached || 'unknown'}</span>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              <span>{new Date(lead.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ))}
+        {leads.length === 0 && <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No unregistered leads.</div>}
       </div>
     </div>
   );

@@ -62,19 +62,19 @@ export default function RegistrationsList() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <input
           aria-label="Search registrations"
           value={searchInput}
           onChange={(e) => updateSearch(e.target.value)}
           placeholder="Search name / phone"
-          className="rounded-md border px-3 py-1.5 text-sm"
+          className="w-full rounded-md border px-3 py-2 text-sm"
         />
         <select
           aria-label="Edition"
           value={edition}
           onChange={(e) => setEdition(e.target.value)}
-          className="rounded-md border px-3 py-1.5 text-sm"
+          className="w-full rounded-md border px-3 py-2 text-sm"
         >
           {editions.map((item) => <option key={item.id} value={item.slug}>{item.slug} — {item.name}</option>)}
         </select>
@@ -82,7 +82,7 @@ export default function RegistrationsList() {
           aria-label="Payment status"
           value={status}
           onChange={(e) => setStatus(e.target.value as PaymentStatus | 'all')}
-          className="rounded-md border px-3 py-1.5 text-sm"
+          className="w-full rounded-md border px-3 py-2 text-sm"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
@@ -158,9 +158,9 @@ export default function RegistrationsList() {
                   <StatusBadge status={r.payment_status} />
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{r.user_phone}</div>
-                <div className="mt-1 flex items-center justify-between text-sm">
-                  <span>{r.seats} ticket{r.seats === 1 ? '' : 's'} · {r.pass_type} · {r.days.join(', ')}</span>
-                  <span>{inr(r.amount_paid)}</span>
+                <div className="mt-1 flex items-start justify-between gap-3 text-sm">
+                  <span className="min-w-0">{r.seats} ticket{r.seats === 1 ? '' : 's'} · {r.pass_type} · {r.days.join(', ')}</span>
+                  <span className="shrink-0">{inr(r.amount_paid)}</span>
                 </div>
               </button>
             ))}

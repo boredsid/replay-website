@@ -84,7 +84,7 @@ export default function Announcements() {
   }), [announcements, severity, state]);
 
   return (
-    <div className="p-2 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Announcements</h1>
@@ -149,7 +149,7 @@ export default function Announcements() {
                     <h2 className="font-semibold">{announcement.title}</h2>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{announcement.body}</p>
                   </div>
-                  <div className="shrink-0 text-right font-mono text-xs text-muted-foreground">
+                  <div className="shrink-0 text-left font-mono text-xs text-muted-foreground sm:text-right">
                     <div>{formatIst(announcement.starts_at)} IST</div>
                     {announcement.ends_at && <div>to {formatIst(announcement.ends_at)} IST</div>}
                   </div>

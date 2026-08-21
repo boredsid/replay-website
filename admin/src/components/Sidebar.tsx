@@ -8,12 +8,12 @@ interface Props {
 
 export default function Sidebar({ onNavigate }: Props) {
   return (
-    <aside className="w-56 shrink-0 bg-background border-r flex flex-col h-full">
+    <aside className="app-sidebar flex h-full w-56 shrink-0 flex-col border-r bg-background">
       <div className="p-4 flex items-center gap-2">
         <img src="/replay-icon.png" alt="" className="h-7 w-7" />
         <span className="font-heading font-semibold text-lg">Admin</span>
       </div>
-      <nav className="flex-1 p-2 space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
         {NAV.map((item) => (
           <NavLink
             key={item.to}

@@ -19,3 +19,4 @@ it('lists partner purchases with status and total', async () => {
   expect(screen.getAllByText('Standard booth').length).toBeGreaterThan(0);
   expect(screen.getAllByText('Pending').length).toBeGreaterThan(0);
 });
+

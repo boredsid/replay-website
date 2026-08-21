@@ -7,7 +7,7 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 - `src/` — Astro public site, React registration and partner-checkout islands, schedule, SEO metadata, and email templates.
 - `app/` — installable Vite/React attendee PWA for the live schedule, local agenda, event status, and organiser announcements.
 - `worker/` — Cloudflare Worker for registration, partner purchases, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
-- `admin/` — Vite/React operations console for registrations, partners, editions, programme data, and scheduled announcements behind Cloudflare Access.
+- `admin/` — installable Vite/React operations console for registrations, partners, editions, programme data, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling. Source CSV files are intentionally ignored.

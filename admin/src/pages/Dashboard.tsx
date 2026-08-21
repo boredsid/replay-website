@@ -11,7 +11,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <h1 className="text-2xl font-bold">{data.edition.name} · {data.edition.registration_status}</h1>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Stat label="Confirmed" value={data.totals.confirmed} />
         <Stat label="Pending" value={data.totals.pending} />
         <Stat label="Cancelled" value={data.totals.cancelled} />
@@ -26,7 +26,7 @@ export default function Dashboard() {
           <h2 className="mb-3 font-semibold">Recent registrations</h2>
           <div className="space-y-2 text-sm">
             {data.recent_registrations.map((registration) => (
-              <div key={registration.id} className="flex items-center justify-between gap-3 border-b pb-2 last:border-0">
+              <div key={registration.id} className="flex flex-col items-start gap-1 border-b pb-2 last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <span className="font-mono">{registration.user_phone}</span>
                 <span className="text-muted-foreground">{registration.pass_type} · {registration.payment_status}</span>
               </div>
@@ -38,7 +38,7 @@ export default function Dashboard() {
           <h2 className="mb-3 font-semibold">Recent leads</h2>
           <div className="space-y-2 text-sm">
             {data.recent_leads.map((lead) => (
-              <div key={lead.id} className="flex items-center justify-between gap-3 border-b pb-2 last:border-0">
+              <div key={lead.id} className="flex flex-col items-start gap-1 border-b pb-2 last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <span>{lead.name || lead.phone}</span>
                 <span className="text-muted-foreground">{lead.step_reached}{lead.converted_at ? ' · converted' : ''}</span>
               </div>
