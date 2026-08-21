@@ -1,6 +1,29 @@
 export type AppTab = 'now' | 'schedule' | 'my-day' | 'map' | 'info';
 
-export interface EditionData {
+/**
+ * Organiser-authored practical guidance, mirroring `EditionVisitDetails` in the
+ * public site's `src/lib/types.ts`. Every field is optional: organisers publish
+ * them incrementally, and the app must say "pending" rather than guess.
+ */
+export interface EditionVisitDetails {
+  venue_address?: string | null;
+  google_maps_url?: string | null;
+  entrance_details?: string | null;
+  check_in_location?: string | null;
+  nearest_metro_name?: string | null;
+  nearest_metro_distance?: string | null;
+  nearest_bus_stop_name?: string | null;
+  nearest_bus_stop_distance?: string | null;
+  parking_availability?: string | null;
+  parking_charges?: string | null;
+  food_details?: string | null;
+  water_details?: string | null;
+  accessibility_details?: string | null;
+  game_library_process?: string | null;
+  help_on_the_day?: string | null;
+}
+
+export interface EditionData extends EditionVisitDetails {
   slug: string;
   name: string;
   start_date: string;
