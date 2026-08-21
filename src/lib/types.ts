@@ -91,7 +91,7 @@ export interface ApiEditionSpotsResponse {
   both_sold_out: boolean;
 }
 
-export interface ApiRegisterRequest {
+export interface ApiRegistrationDetails {
   phone: string;
   name: string;
   email: string;
@@ -99,6 +99,19 @@ export interface ApiRegisterRequest {
   pass_type: PassType;
   days: Day[];
   source?: Record<string, string> | null;
+}
+
+export interface ApiRegisterRequest extends ApiRegistrationDetails {
+  registration_id?: string;
+  expected_amount?: number;
+}
+
+export interface ApiRegisterPreviewResponse {
+  payment_reference: string;
+  final_amount: number;
+  discount_applied: number;
+  discount_blocked: boolean;
+  payment_required: boolean;
 }
 
 export interface ApiRegisterResponse {

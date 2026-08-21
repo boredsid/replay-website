@@ -89,7 +89,7 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(screen.getByText(/already registered/i)).toBeInTheDocument(), { timeout: 2000 });
   });
 
-  it('shows UPI sheet on submit when payment_required', async () => {
+  it("creates a pending registration only after clicking I've paid", async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 250, sold_out: false },
       day2: { capacity: 250, remaining: 250, sold_out: false },
@@ -101,8 +101,19 @@ describe('RegisterForm', () => {
       existing_for_edition: { count: 0, has_confirmed: false },
       discount_blocked: false,
     });
-    mockRoute((u) => u.includes('/api/register'), 200, {
-      registration_id: 'r1', final_amount: 700, discount_applied: 0, discount_blocked: false, payment_required: true,
+    mockRoute((u) => new URL(u).pathname === '/api/register/preview', 200, {
+      payment_reference: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 700,
+      discount_applied: 0,
+      discount_blocked: false,
+      payment_required: true,
+    });
+    mockRoute((u) => new URL(u).pathname === '/api/register', 200, {
+      registration_id: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 700,
+      discount_applied: 0,
+      discount_blocked: false,
+      payment_required: true,
     });
     const user = userEvent.setup();
     render(<RegisterForm {...buildProps()} />);
@@ -112,7 +123,43 @@ describe('RegisterForm', () => {
     await user.click(screen.getByLabelText(/saturday/i));
     await user.click(screen.getByRole('button', { name: /register/i }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
-    expect(screen.getByText(/i've paid/i)).toBeInTheDocument();
+    const registerCalls = () => (global.fetch as any).mock.calls.filter(([url]: [string]) => new URL(url).pathname === '/api/register');
+    expect(registerCalls()).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: /i've paid/i }));
+    await waitFor(() => expect(screen.getByText(/got it/i)).toBeInTheDocument());
+    expect(registerCalls()).toHaveLength(1);
+    expect(JSON.parse(registerCalls()[0][1].body)).toEqual(expect.objectContaining({
+      registration_id: '123e4567-e89b-42d3-a456-426614174000',
+      expected_amount: 700,
+    }));
+  });
+
+  it('does not create a registration when the payment sheet is closed', async () => {
+    mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
+      day1: { capacity: 250, remaining: 250, sold_out: false },
+      day2: { capacity: 250, remaining: 250, sold_out: false },
+      both_sold_out: false,
+    });
+    mockRoute((u) => new URL(u).pathname === '/api/register/preview', 200, {
+      payment_reference: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 700,
+      discount_applied: 0,
+      discount_blocked: false,
+      payment_required: true,
+    });
+    mockRoute((u) => new URL(u).pathname === '/api/register', 200, {});
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await user.type(screen.getByLabelText(/phone/i), '9876543210');
+    await user.type(screen.getByLabelText(/name/i), 'Smoke');
+    await user.type(screen.getByLabelText(/email/i), 'smoke@test.local');
+    await user.click(screen.getByLabelText(/saturday/i));
+    await user.click(screen.getByRole('button', { name: /register/i }));
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /close/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const registerCalls = (global.fetch as any).mock.calls.filter(([url]: [string]) => new URL(url).pathname === '/api/register');
+    expect(registerCalls).toHaveLength(0);
   });
 
   it('shows success screen on amount=0 zero-payment path', async () => {
@@ -127,8 +174,19 @@ describe('RegisterForm', () => {
       existing_for_edition: { count: 0, has_confirmed: false },
       discount_blocked: false,
     });
-    mockRoute((u) => u.includes('/api/register'), 200, {
-      registration_id: 'r1', final_amount: 0, discount_applied: 700, discount_blocked: false, payment_required: false,
+    mockRoute((u) => new URL(u).pathname === '/api/register/preview', 200, {
+      payment_reference: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 0,
+      discount_applied: 700,
+      discount_blocked: false,
+      payment_required: false,
+    });
+    mockRoute((u) => new URL(u).pathname === '/api/register', 200, {
+      registration_id: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 0,
+      discount_applied: 700,
+      discount_blocked: false,
+      payment_required: false,
     });
     const user = userEvent.setup();
     render(<RegisterForm {...buildProps()} />);

@@ -9,11 +9,44 @@ import {
   jsonResponse,
 } from './validation';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
-import { getEditionById, getReservedSeatsByDay } from './editions';
+import { getEditionById, getReservedSeatsByDay, type EditionRow } from './editions';
 import { sendRegistrationConfirmation } from './registration-email';
 import { publicRequestAllowed } from './rate-limit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type ServiceClient = ReturnType<typeof serviceClient>;
+type GuildStatus = Awaited<ReturnType<typeof fetchGuildStatus>>;
+
+interface RegistrationInput {
+  phone: string;
+  name: string;
+  email: string;
+  editionId: string;
+  passType: 'oneshot' | 'campaign';
+  days: Array<'day1' | 'day2'>;
+  source: Record<string, string> | null;
+}
+
+interface RegistrationEvaluation {
+  edition: EditionRow;
+  discount: number;
+  amountPaid: number;
+  discountBlocked: boolean;
+  tierStored: GuildStatus['tier'];
+}
+
+interface ExistingRegistration {
+  id: string;
+  edition_id: string;
+  user_phone: string;
+  pass_type: 'oneshot' | 'campaign';
+  days: Array<'day1' | 'day2'>;
+  amount_paid: number;
+  discount_applied: number;
+  payment_status: 'confirmed' | 'pending' | 'cancelled';
+}
 
 function readSource(input: unknown): Record<string, string> | null {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
@@ -26,7 +59,7 @@ function readSource(input: unknown): Record<string, string> | null {
   return Object.keys(source).length > 0 ? source : null;
 }
 
-export async function handleRegister(req: Request, env: Env): Promise<Response> {
+async function parseRegistrationRequest(req: Request): Promise<{ body: any; input: RegistrationInput } | Response> {
   let body: any;
   try {
     body = await req.json();
@@ -40,7 +73,6 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
   const editionId = typeof body.edition_id === 'string' ? body.edition_id : '';
   const passType = parsePassType(body.pass_type);
   const days = parseDays(body.days);
-  const source = readSource(body.source);
 
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
   if (!name || name.length > 120) return jsonResponse({ error: 'invalid name' }, 400);
@@ -55,116 +87,225 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
     return jsonResponse({ error: 'oneshot requires exactly one day' }, 400);
   }
 
-  if (!(await publicRequestAllowed(env, req, 'register', phone))) {
-    return jsonResponse({ error: 'rate_limited' }, 429);
-  }
+  return {
+    body,
+    input: {
+      phone,
+      name,
+      email,
+      editionId,
+      passType,
+      days,
+      source: readSource(body.source),
+    },
+  };
+}
 
-  const edition = await getEditionById(env, editionId);
+async function evaluateRegistration(
+  env: Env,
+  sb: ServiceClient,
+  input: RegistrationInput,
+): Promise<RegistrationEvaluation | Response> {
+  const edition = await getEditionById(env, input.editionId);
   if (!edition) return jsonResponse({ error: 'edition not found' }, 404);
   if (edition.registration_status !== 'open') {
     return jsonResponse({ error: 'registration_closed' }, 409);
   }
 
   const pricing = readPricing(edition.pricing);
-  const base = calculateBasePrice(pricing, passType, days);
+  const base = calculateBasePrice(pricing, input.passType, input.days);
 
-  // Create a new user or fill only missing identity fields. A public
-  // registration must never replace an existing name or email based solely on
-  // possession of the phone number.
-  const sb = serviceClient(env);
-  const userLookup = await sb.from('users').select('phone, name, email').eq('phone', phone).maybeSingle();
-  if (userLookup.error) return jsonResponse({ error: 'user_lookup_failed' }, 500);
-  let registrationName = name;
-  let registrationEmail = email;
-  if (!userLookup.data) {
-    const insertedUser = await sb.from('users').insert({ phone, name, email }).select().single();
-    if (insertedUser.error || !insertedUser.data) return jsonResponse({ error: 'user_insert_failed' }, 500);
-  } else {
-    const patch: any = {};
-    const storedName = userLookup.data.name?.trim() ?? '';
-    const storedEmail = userLookup.data.email?.trim().toLowerCase() ?? '';
-    if (!storedName) patch.name = name;
-    if (!storedEmail) patch.email = email;
-    if (Object.keys(patch).length > 0) {
-      const updatedUser = await sb.from('users').update(patch).eq('phone', phone);
-      if (updatedUser.error) return jsonResponse({ error: 'user_update_failed' }, 500);
-    }
-    registrationName = storedName || name;
-    registrationEmail = storedEmail || email;
-  }
-
-  // Guild lookup + anti-split + discount
-  const guild = await fetchGuildStatus(env, phone);
+  const guild = await fetchGuildStatus(env, input.phone);
   const existingRegsRes = await sb
     .from('registrations')
     .select('payment_status')
-    .eq('edition_id', editionId)
-    .eq('user_phone', phone)
+    .eq('edition_id', input.editionId)
+    .eq('user_phone', input.phone)
     .neq('payment_status', 'cancelled');
   if (existingRegsRes.error) return jsonResponse({ error: 'registration_lookup_failed' }, 500);
   const existingCount = (existingRegsRes.data ?? []).length;
   const discountBlocked = guild.active && existingCount > 0;
 
   let discount = 0;
-  let tierStored: typeof guild.tier = null;
+  let tierStored: GuildStatus['tier'] = null;
   if (!discountBlocked && guild.active) {
     discount = calculateDiscount({ base, tier: guild.tier, adventurer_cap: pricing.adventurer_cap });
     tierStored = guild.tier;
   }
 
-  // Capacity gate
-  const seatsByDay = await getReservedSeatsByDay(env, editionId);
-  for (const d of days) {
-    if (seatsByDay[d] + 1 > edition.capacity_per_day[d]) {
-      return jsonResponse({ error: 'sold_out', day: d }, 409);
+  const seatsByDay = await getReservedSeatsByDay(env, input.editionId);
+  for (const day of input.days) {
+    if (seatsByDay[day] + 1 > edition.capacity_per_day[day]) {
+      return jsonResponse({ error: 'sold_out', day }, 409);
     }
   }
 
-  const amountPaid = base - discount;
-  const paymentStatus = amountPaid === 0 ? 'confirmed' : 'pending';
+  return {
+    edition,
+    discount,
+    amountPaid: base - discount,
+    discountBlocked,
+    tierStored,
+  };
+}
 
-  const regInsert = await sb
+async function findExistingRegistration(sb: ServiceClient, registrationId: string): Promise<ExistingRegistration | null | Response> {
+  const result = await sb
     .from('registrations')
-    .insert({
-      edition_id: editionId,
-      user_phone: phone,
-      pass_type: passType,
-      days,
-      seats: 1,
-      amount_paid: amountPaid,
-      discount_applied: discount,
-      guild_tier_at_purchase: tierStored,
-      payment_status: paymentStatus,
-      source,
-    })
-    .select()
-    .single();
+    .select('id, edition_id, user_phone, pass_type, days, amount_paid, discount_applied, payment_status')
+    .eq('id', registrationId)
+    .maybeSingle();
+  if (result.error) return jsonResponse({ error: 'registration_lookup_failed' }, 500);
+  return (result.data as ExistingRegistration | null) ?? null;
+}
+
+function sameRegistration(existing: ExistingRegistration, input: RegistrationInput): boolean {
+  return existing.edition_id === input.editionId
+    && existing.user_phone === input.phone
+    && existing.pass_type === input.passType
+    && existing.days.length === input.days.length
+    && input.days.every((day) => existing.days.includes(day));
+}
+
+function existingRegistrationResponse(existing: ExistingRegistration, input: RegistrationInput): Response {
+  if (!sameRegistration(existing, input) || existing.payment_status === 'cancelled') {
+    return jsonResponse({ error: 'registration_reference_conflict' }, 409);
+  }
+  return jsonResponse({
+    registration_id: existing.id,
+    final_amount: Number(existing.amount_paid),
+    discount_applied: Number(existing.discount_applied),
+    discount_blocked: false,
+    payment_required: Number(existing.amount_paid) > 0,
+  });
+}
+
+/**
+ * Read-only pricing and capacity check. The returned payment reference is not
+ * persisted until the attendee clicks "I've paid" and the client calls
+ * handleRegister with that reference.
+ */
+export async function handleRegisterPreview(req: Request, env: Env): Promise<Response> {
+  const parsed = await parseRegistrationRequest(req);
+  if (parsed instanceof Response) return parsed;
+  const { input } = parsed;
+
+  if (!(await publicRequestAllowed(env, req, 'register-preview', input.phone))) {
+    return jsonResponse({ error: 'rate_limited' }, 429);
+  }
+
+  const evaluation = await evaluateRegistration(env, serviceClient(env), input);
+  if (evaluation instanceof Response) return evaluation;
+
+  return jsonResponse({
+    payment_reference: crypto.randomUUID(),
+    final_amount: evaluation.amountPaid,
+    discount_applied: evaluation.discount,
+    discount_blocked: evaluation.discountBlocked,
+    payment_required: evaluation.amountPaid > 0,
+  });
+}
+
+export async function handleRegister(req: Request, env: Env): Promise<Response> {
+  const parsed = await parseRegistrationRequest(req);
+  if (parsed instanceof Response) return parsed;
+  const { body, input } = parsed;
+  const registrationId = typeof body.registration_id === 'string' ? body.registration_id : '';
+  const expectedAmount = body.expected_amount;
+
+  if (registrationId && !UUID_RE.test(registrationId)) {
+    return jsonResponse({ error: 'invalid registration_id' }, 400);
+  }
+  if (expectedAmount !== undefined && (!Number.isFinite(expectedAmount) || expectedAmount < 0)) {
+    return jsonResponse({ error: 'invalid expected_amount' }, 400);
+  }
+  if (!(await publicRequestAllowed(env, req, 'register', input.phone))) {
+    return jsonResponse({ error: 'rate_limited' }, 429);
+  }
+
+  const sb = serviceClient(env);
+  if (registrationId) {
+    const existing = await findExistingRegistration(sb, registrationId);
+    if (existing instanceof Response) return existing;
+    if (existing) return existingRegistrationResponse(existing, input);
+  }
+
+  const evaluation = await evaluateRegistration(env, sb, input);
+  if (evaluation instanceof Response) return evaluation;
+  const { edition, discount, amountPaid, discountBlocked, tierStored } = evaluation;
+
+  if (expectedAmount !== undefined && Number(expectedAmount) !== amountPaid) {
+    return jsonResponse({ error: 'amount_changed', final_amount: amountPaid }, 409);
+  }
+
+  // Create a new user or fill only missing identity fields. A public
+  // registration must never replace an existing name or email based solely on
+  // possession of the phone number.
+  const userLookup = await sb.from('users').select('phone, name, email').eq('phone', input.phone).maybeSingle();
+  if (userLookup.error) return jsonResponse({ error: 'user_lookup_failed' }, 500);
+  let registrationName = input.name;
+  let registrationEmail = input.email;
+  if (!userLookup.data) {
+    const insertedUser = await sb.from('users').insert({ phone: input.phone, name: input.name, email: input.email }).select().single();
+    if (insertedUser.error || !insertedUser.data) return jsonResponse({ error: 'user_insert_failed' }, 500);
+  } else {
+    const patch: Record<string, string> = {};
+    const storedName = userLookup.data.name?.trim() ?? '';
+    const storedEmail = userLookup.data.email?.trim().toLowerCase() ?? '';
+    if (!storedName) patch.name = input.name;
+    if (!storedEmail) patch.email = input.email;
+    if (Object.keys(patch).length > 0) {
+      const updatedUser = await sb.from('users').update(patch).eq('phone', input.phone);
+      if (updatedUser.error) return jsonResponse({ error: 'user_update_failed' }, 500);
+    }
+    registrationName = storedName || input.name;
+    registrationEmail = storedEmail || input.email;
+  }
+
+  const paymentStatus = amountPaid === 0 ? 'confirmed' : 'pending';
+  const registration: Record<string, unknown> = {
+    edition_id: input.editionId,
+    user_phone: input.phone,
+    pass_type: input.passType,
+    days: input.days,
+    seats: 1,
+    amount_paid: amountPaid,
+    discount_applied: discount,
+    guild_tier_at_purchase: tierStored,
+    payment_status: paymentStatus,
+    source: input.source,
+  };
+  if (registrationId) registration.id = registrationId;
+
+  const regInsert = await sb.from('registrations').insert(registration).select().single();
   if (regInsert.error || !regInsert.data) {
-    const match = regInsert.error?.message?.match(/capacity_exceeded:(day1|day2)/);
-    if (match) return jsonResponse({ error: 'sold_out', day: match[1] }, 409);
+    const capacityMatch = regInsert.error?.message?.match(/capacity_exceeded:(day1|day2)/);
+    if (capacityMatch) return jsonResponse({ error: 'sold_out', day: capacityMatch[1] }, 409);
+    if (registrationId && regInsert.error?.code === '23505') {
+      const existing = await findExistingRegistration(sb, registrationId);
+      if (existing instanceof Response) return existing;
+      if (existing) return existingRegistrationResponse(existing, input);
+    }
     return jsonResponse({ error: 'registration_insert_failed' }, 500);
   }
   const reg = regInsert.data as { id: string };
 
-  // Convert any matching lead
-  const leadConversion = await sb.from('leads').update({ converted_at: new Date().toISOString() }).eq('edition_id', editionId).eq('phone', phone);
+  const leadConversion = await sb.from('leads').update({ converted_at: new Date().toISOString() }).eq('edition_id', input.editionId).eq('phone', input.phone);
   if (leadConversion.error) console.error('lead_conversion_failed', leadConversion.error.message);
 
-  // Email if zero-payment
   if (amountPaid === 0) {
     try {
       await sendRegistrationConfirmation(env, edition, {
         name: registrationName,
         email: registrationEmail,
-        passType,
-        days,
+        passType: input.passType,
+        days: input.days,
         amountPaid,
         discount,
         tier: tierStored,
       });
-    } catch (e) {
-      // Email failure should not break registration; log and continue.
-      console.error('email_failed', e);
+    } catch (error) {
+      console.error('email_failed', error);
     }
   }
 

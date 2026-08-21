@@ -6,8 +6,10 @@ export interface UpiBottomSheetProps {
   upiId: string;
   payeeName: string;
   transactionRef: string;
-  onPaid: () => void;
+  onPaid: () => void | Promise<void>;
   onClose: () => void;
+  isSubmitting?: boolean;
+  error?: string | null;
 }
 
 function buildUpiUrl(
@@ -21,7 +23,16 @@ function buildUpiUrl(
   return `${scheme}://${path}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
 }
 
-export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPaid, onClose }: UpiBottomSheetProps) {
+export function UpiBottomSheet({
+  amount,
+  upiId,
+  payeeName,
+  transactionRef,
+  onPaid,
+  onClose,
+  isSubmitting = false,
+  error = null,
+}: UpiBottomSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
   const gpayUrl = buildUpiUrl('tez', 'upi/', amount, upiId, payeeName, transactionRef);
@@ -46,7 +57,7 @@ export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPai
       ref={dialogRef}
       aria-labelledby="upi-dialog-title"
       aria-describedby="upi-dialog-description"
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onCancel={(event) => { event.preventDefault(); if (!isSubmitting) onClose(); }}
       className="m-0 h-full w-full max-w-none bg-transparent p-0 backdrop:bg-black/50"
     >
       <div className="flex min-h-full items-end justify-center md:items-center">
@@ -56,7 +67,7 @@ export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPai
             <span className="pill pill-accent mb-2">Pay ₹{amount}</span>
             <h2 id="upi-dialog-title" className="text-2xl mt-2">Scan or pay with an app</h2>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-2xl leading-none font-bold">✕</button>
+          <button onClick={onClose} disabled={isSubmitting} aria-label="Close" className="text-2xl leading-none font-bold disabled:opacity-50">✕</button>
         </div>
         <div className="card-flat p-3 mb-4 text-center">
           <QRCodeSVG
@@ -101,7 +112,10 @@ export function UpiBottomSheet({ amount, upiId, payeeName, transactionRef, onPai
             </a>
           </div>
         </div>
-        <button onClick={onPaid} className="btn btn-primary btn-block">I've paid</button>
+        {error && <p role="alert" className="mb-4 text-sm font-medium text-[var(--color-error)]">{error}</p>}
+        <button onClick={onPaid} disabled={isSubmitting} className="btn btn-primary btn-block">
+          {isSubmitting ? 'Recording…' : "I've paid"}
+        </button>
         </div>
       </div>
     </dialog>

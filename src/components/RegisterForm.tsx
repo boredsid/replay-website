@@ -1,7 +1,7 @@
 // src/components/RegisterForm.tsx
 import { useEffect, useRef, useState } from 'react';
-import { getEditionSpots, lookupPhone, registerForEdition, captureLead } from '../lib/worker';
-import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, EditionRow, Day, PassType } from '../lib/types';
+import { getEditionSpots, lookupPhone, previewRegistration, registerForEdition, captureLead } from '../lib/worker';
+import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, ApiRegistrationDetails, EditionRow, Day, PassType } from '../lib/types';
 import { UpiBottomSheet } from './UpiBottomSheet';
 import { SuccessScreen } from './SuccessScreen';
 import { weekdayName } from '../lib/edition-format';
@@ -54,7 +54,13 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const [lookup, setLookup] = useState<ApiLookupPhoneResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [upiOpen, setUpiOpen] = useState<{ amount: number; regId: string } | null>(null);
+  const [upiOpen, setUpiOpen] = useState<{
+    amount: number;
+    paymentReference: string;
+    request: ApiRegistrationDetails;
+  } | null>(null);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ pending: boolean } | null>(null);
   const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,13 +144,24 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
 
     setSubmitting(true);
     try {
-      const res = await registerForEdition({
+      const request: ApiRegistrationDetails = {
         phone: sanitized, name: name.trim(), email: email.trim(),
         edition_id: edition.id, pass_type: passType, days: submitDays,
-      });
-      if (res.payment_required) {
-        setUpiOpen({ amount: res.final_amount, regId: res.registration_id });
+      };
+      const preview = await previewRegistration(request);
+      if (preview.payment_required) {
+        setPaymentError(null);
+        setUpiOpen({
+          amount: preview.final_amount,
+          paymentReference: preview.payment_reference,
+          request,
+        });
       } else {
+        await registerForEdition({
+          ...request,
+          registration_id: preview.payment_reference,
+          expected_amount: preview.final_amount,
+        });
         setSuccess({ pending: false });
       }
     } catch (err: any) {
@@ -159,6 +176,32 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onPaymentClaimed() {
+    if (!upiOpen) return;
+    setPaymentSubmitting(true);
+    setPaymentError(null);
+    try {
+      await registerForEdition({
+        ...upiOpen.request,
+        registration_id: upiOpen.paymentReference,
+        expected_amount: upiOpen.amount,
+      });
+      setUpiOpen(null);
+      setSuccess({ pending: true });
+    } catch (err: any) {
+      const body = err?.body ?? {};
+      if (body.error === 'sold_out') {
+        setPaymentError(`We couldn't record this because ${body.day === 'day1' ? weekdayName(edition.start_date) : weekdayName(edition.end_date)} just sold out. Don't pay again. Contact the REPLAY team with reference ${upiOpen.paymentReference}.`);
+      } else if (body.error === 'amount_changed') {
+        setPaymentError(`The amount changed before we could record this payment. Don't pay again. Contact the REPLAY team with reference ${upiOpen.paymentReference}.`);
+      } else {
+        setPaymentError(`We couldn't record your payment yet. Don't pay again. Retry this button, or contact the REPLAY team with reference ${upiOpen.paymentReference}.`);
+      }
+    } finally {
+      setPaymentSubmitting(false);
     }
   }
 
@@ -275,9 +318,11 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           amount={upiOpen.amount}
           upiId={upiId}
           payeeName="REPLAY Convention"
-          transactionRef={upiOpen.regId}
-          onPaid={() => { setUpiOpen(null); setSuccess({ pending: true }); }}
-          onClose={() => setUpiOpen(null)}
+          transactionRef={upiOpen.paymentReference}
+          onPaid={onPaymentClaimed}
+          onClose={() => { setPaymentError(null); setUpiOpen(null); }}
+          isSubmitting={paymentSubmitting}
+          error={paymentError}
         />
       )}
     </div>

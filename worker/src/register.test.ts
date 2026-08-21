@@ -13,7 +13,7 @@ import { serviceClient } from './supabase';
 import { fetchGuildStatus } from './bgc-client';
 import { sendEmail } from './apps-script';
 import { getEditionById, getReservedSeatsByDay } from './editions';
-import { handleRegister } from './register';
+import { handleRegister, handleRegisterPreview } from './register';
 
 function mockEnv() {
   return { SUPABASE_URL: 'x', SUPABASE_SERVICE_KEY: 'x', BGC_WORKER_URL: 'x', REPLAY_TO_BGC_SECRET: 'x', APPS_SCRIPT_URL: 'x', APPS_SCRIPT_SECRET: 'x' } as any;
@@ -40,6 +40,7 @@ function defaultEdition() {
 function mockSupabase(opts: {
   existingUser?: any;
   existingRegs?: Array<{ payment_status: string }>;
+  existingRegistration?: any;
   insertedUser?: any;
   insertedReg?: any;
   leadConverted?: boolean;
@@ -74,17 +75,19 @@ function mockSupabase(opts: {
       if (table === 'registrations') {
         return {
           select: () => ({
-            eq: () => ({
-              eq: () => ({
-                neq: async () => ({ data: opts.existingRegs ?? [], error: null }),
-              }),
-            }),
+            eq: (column: string) => column === 'id'
+              ? { maybeSingle: async () => ({ data: opts.existingRegistration ?? null, error: null }) }
+              : {
+                  eq: () => ({
+                    neq: async () => ({ data: opts.existingRegs ?? [], error: null }),
+                  }),
+                },
           }),
           insert: (row: any) => ({
             select: () => ({
               single: async () => {
                 cap.reg = row;
-                return { data: { id: 'reg-1', ...row }, error: null };
+                return { data: opts.insertedReg ?? { id: 'reg-1', ...row }, error: null };
               },
             }),
           }),
@@ -127,7 +130,90 @@ beforeEach(() => {
   (sendEmail as any).mockResolvedValue(undefined);
 });
 
+describe('handleRegisterPreview', () => {
+  it('prices a paid registration without creating any records', async () => {
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({ capture: cap }));
+    const req = new Request('http://x/api/register/preview', { method: 'POST', body: validBody() });
+    const res = await handleRegisterPreview(req, mockEnv());
+    expect(res.status).toBe(200);
+    const body: any = await res.json();
+    expect(body).toEqual(expect.objectContaining({
+      final_amount: 800,
+      discount_applied: 0,
+      payment_required: true,
+    }));
+    expect(body.payment_reference).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(cap.user).toBeUndefined();
+    expect(cap.reg).toBeUndefined();
+    expect(cap.leadUpdate).toBeUndefined();
+  });
+});
+
 describe('handleRegister', () => {
+  it('creates a pending registration only when the payment reference is claimed', async () => {
+    const cap: any = {};
+    const registrationId = '123e4567-e89b-42d3-a456-426614174000';
+    (serviceClient as any).mockReturnValue(mockSupabase({ capture: cap }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({ registration_id: registrationId, expected_amount: 800 }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(200);
+    expect(cap.reg).toEqual(expect.objectContaining({
+      id: registrationId,
+      payment_status: 'pending',
+      amount_paid: 800,
+    }));
+    expect(cap.leadUpdate).toHaveProperty('converted_at');
+  });
+
+  it('treats a repeated payment claim as an idempotent retry', async () => {
+    const registrationId = '123e4567-e89b-42d3-a456-426614174000';
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({
+      capture: cap,
+      existingRegistration: {
+        id: registrationId,
+        edition_id: 'e1',
+        user_phone: '9876543210',
+        pass_type: 'oneshot',
+        days: ['day1'],
+        amount_paid: 800,
+        discount_applied: 0,
+        payment_status: 'pending',
+      },
+    }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({ registration_id: registrationId, expected_amount: 800 }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(expect.objectContaining({ registration_id: registrationId, final_amount: 800 }));
+    expect(cap.user).toBeUndefined();
+    expect(cap.reg).toBeUndefined();
+    expect(cap.leadUpdate).toBeUndefined();
+  });
+
+  it('rejects a payment claim if the amount changed after preview', async () => {
+    const cap: any = {};
+    (serviceClient as any).mockReturnValue(mockSupabase({ capture: cap }));
+    const req = new Request('http://x/api/register', {
+      method: 'POST',
+      body: validBody({
+        registration_id: '123e4567-e89b-42d3-a456-426614174000',
+        expected_amount: 700,
+      }),
+    });
+    const res = await handleRegister(req, mockEnv());
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'amount_changed', final_amount: 800 });
+    expect(cap.user).toBeUndefined();
+    expect(cap.reg).toBeUndefined();
+  });
+
   it('rejects invalid phone with 400', async () => {
     (serviceClient as any).mockReturnValue(mockSupabase({}));
     const req = new Request('http://x/api/register', { method: 'POST', body: validBody({ phone: '12' }) });

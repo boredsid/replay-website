@@ -2,7 +2,9 @@
 import type {
   ApiLookupPhoneResponse,
   ApiEditionSpotsResponse,
+  ApiRegistrationDetails,
   ApiRegisterRequest,
+  ApiRegisterPreviewResponse,
   ApiRegisterResponse,
   StepReached,
 } from './types';
@@ -45,6 +47,10 @@ export async function getEditionSpots(editionId: string): Promise<ApiEditionSpot
 
 export async function registerForEdition(input: ApiRegisterRequest): Promise<ApiRegisterResponse> {
   return jsonPost<ApiRegisterResponse>('/api/register', input);
+}
+
+export async function previewRegistration(input: ApiRegistrationDetails): Promise<ApiRegisterPreviewResponse> {
+  return jsonPost<ApiRegisterPreviewResponse>('/api/register/preview', input);
 }
 
 export async function cancelRegistration(registrationId: string, phone: string): Promise<{ ok: true; registration_id: string }> {

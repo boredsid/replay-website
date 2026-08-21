@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { lookupPhone, getEditionSpots, registerForEdition, captureLead, cancelRegistration } from './worker';
+import { lookupPhone, getEditionSpots, previewRegistration, registerForEdition, captureLead, cancelRegistration } from './worker';
 
 const WORKER_URL = 'https://api.replaycon.in';
 
@@ -50,6 +50,27 @@ describe('registerForEdition', () => {
       phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot', days: ['day1'],
     });
     expect(out.registration_id).toBe('r1');
+  });
+});
+
+describe('previewRegistration', () => {
+  it('POSTs registration details to /api/register/preview', async () => {
+    mockFetch(200, {
+      payment_reference: '123e4567-e89b-42d3-a456-426614174000',
+      final_amount: 800,
+      discount_applied: 0,
+      discount_blocked: false,
+      payment_required: true,
+    });
+    const input = {
+      phone: '9876543210', name: 'A', email: 'a@b.c', edition_id: 'e1', pass_type: 'oneshot' as const, days: ['day1' as const],
+    };
+    const out = await previewRegistration(input);
+    expect(out.payment_reference).toBe('123e4567-e89b-42d3-a456-426614174000');
+    expect(global.fetch).toHaveBeenCalledWith(`${WORKER_URL}/api/register/preview`, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify(input),
+    }));
   });
 });
 

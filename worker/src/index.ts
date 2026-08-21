@@ -1,7 +1,7 @@
 // worker/src/index.ts
 import { jsonResponse, CORS_HEADERS } from './validation';
 import { handleLookupPhone } from './lookup-phone';
-import { handleRegister } from './register';
+import { handleRegister, handleRegisterPreview } from './register';
 import { handleEditionSpots } from './edition-spots';
 import { handleCancelRegistration } from './cancel-registration';
 import { handleLead } from './lead';
@@ -100,6 +100,9 @@ export default {
       }
       if (path === '/api/register' && req.method === 'POST') {
         return await handleRegister(req, env);
+      }
+      if (path === '/api/register/preview' && req.method === 'POST') {
+        return await handleRegisterPreview(req, env);
       }
       if (path.startsWith('/api/edition-spots/') && req.method === 'GET') {
         const editionId = path.split('/api/edition-spots/')[1];

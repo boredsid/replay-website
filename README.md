@@ -92,8 +92,9 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 
 ## Registration and payment behavior
 
-- The public form creates a pending reservation for a paid pass.
-- Pending reservations reduce availability immediately.
+- Continuing from the public form performs a read-only payment preview; closing or abandoning the UPI sheet creates no registration.
+- Clicking “I've paid” creates a pending registration, which then reduces availability.
+- A zero-cost Guild Path registration skips UPI and is confirmed immediately.
 - An admin confirmation changes it to confirmed and then sends the confirmation email.
 - Two-day passes are unavailable if either event day is sold out.
 - UPI payment opens through a device deep link and a locally rendered QR code.
