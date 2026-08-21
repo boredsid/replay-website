@@ -9,4 +9,5 @@ it('renders leads', async () => {
   render(<Leads />);
   await waitFor(() => expect(screen.getByText('Bo')).toBeInTheDocument());
   expect(screen.getByText('phone_entered')).toBeInTheDocument();
+  expect(screen.queryByText('Converted')).not.toBeInTheDocument();
 });

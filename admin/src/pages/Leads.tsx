@@ -12,10 +12,10 @@ export default function Leads() {
       <h1 className="text-2xl font-bold">Leads</h1>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
-          <thead className="bg-muted text-left"><tr><th className="p-2">Name</th><th className="p-2">Phone</th><th className="p-2">Step</th><th className="p-2">Created</th><th className="p-2">Converted</th></tr></thead>
+          <thead className="bg-muted text-left"><tr><th className="p-2">Name</th><th className="p-2">Phone</th><th className="p-2">Step</th><th className="p-2">Created</th></tr></thead>
           <tbody>
             {leads.map((l) => (
-              <tr key={l.id} className="border-t"><td className="p-2">{l.name || '—'}</td><td className="p-2">{l.phone}</td><td className="p-2">{l.step_reached || '—'}</td><td className="p-2">{new Date(l.created_at).toLocaleDateString()}</td><td className="p-2">{l.converted_at ? '✓' : '—'}</td></tr>
+              <tr key={l.id} className="border-t"><td className="p-2">{l.name || '—'}</td><td className="p-2">{l.phone}</td><td className="p-2">{l.step_reached || '—'}</td><td className="p-2">{new Date(l.created_at).toLocaleDateString()}</td></tr>
             ))}
           </tbody>
         </table>
