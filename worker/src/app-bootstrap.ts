@@ -5,6 +5,44 @@ const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=300';
 const SECTION_ORDER = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'];
 const SEVERITY_ORDER = ['incident', 'urgent', 'info'];
 
+/**
+ * Practical visit guidance the public Plan Your Visit page already renders.
+ *
+ * These are organiser-authored, already-public fields, so serving them to the
+ * app discloses nothing new — but it is what stops the at-venue app from being
+ * worse than the marketing site at answering at-venue questions.
+ */
+const VISIT_DETAIL_FIELDS = [
+  'venue_address',
+  'google_maps_url',
+  'entrance_details',
+  'check_in_location',
+  'nearest_metro_name',
+  'nearest_metro_distance',
+  'nearest_bus_stop_name',
+  'nearest_bus_stop_distance',
+  'parking_availability',
+  'parking_charges',
+  'food_details',
+  'water_details',
+  'accessibility_details',
+  'game_library_process',
+  'help_on_the_day',
+] as const;
+
+/**
+ * Copy the visit fields across as an explicit allowlist, normalising blank
+ * strings to null so the app has a single "not published yet" check.
+ */
+function visitDetails(edition: Record<string, unknown>): Record<string, string | null> {
+  const details: Record<string, string | null> = {};
+  for (const field of VISIT_DETAIL_FIELDS) {
+    const value = edition[field];
+    details[field] = typeof value === 'string' && value.trim() ? value : null;
+  }
+  return details;
+}
+
 function response(body: unknown, status = 200, cacheControl = PUBLIC_CACHE): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -25,7 +63,7 @@ function response(body: unknown, status = 200, cacheControl = PUBLIC_CACHE): Res
 export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): Promise<Response> {
   const editionResult = await sb
     .from('editions')
-    .select('id, slug, name, start_date, end_date, daily_start_time, daily_end_time, venue')
+    .select(`id, slug, name, start_date, end_date, daily_start_time, daily_end_time, venue, ${VISIT_DETAIL_FIELDS.join(', ')}`)
     .eq('is_current', true)
     .eq('is_published', true)
     .maybeSingle();
@@ -126,6 +164,7 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
       daily_start_time: edition.daily_start_time,
       daily_end_time: edition.daily_end_time,
       venue: edition.venue,
+      ...visitDetails(edition),
     },
     schedule,
     announcements,

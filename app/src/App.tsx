@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScheduleCard } from './components/ScheduleCard';
 import { Announcements } from './components/Announcements';
 import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
-import { fetchBootstrap } from './lib/api';
+import { visibleAnnouncements } from './lib/announcements';
+import { isStale, useEventData } from './lib/use-event-data';
 import { filterSchedule, uniqueValues } from './lib/schedule';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
-import type { AppTab, BootstrapData, ScheduleFilters, ScheduleItem } from './types';
+import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
 
 const TABS: Array<{ id: AppTab; label: string; icon: string }> = [
   { id: 'now', label: 'Now', icon: '◉' },
@@ -154,64 +155,162 @@ function MyDayView({ data, saved, onToggle }: {
   );
 }
 
+/** A labelled block that renders nothing until organisers publish the value. */
+function Detail({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return <div className="detail-block"><small>{label}</small><p>{value}</p></div>;
+}
+
+/** Joins two related values, tolerating either half being unpublished. */
+function place(name?: string | null, distance?: string | null): string | null {
+  return [name, distance].filter(Boolean).join(' · ') || null;
+}
+
+/**
+ * Resolve a transit block's heading and body.
+ *
+ * In practice organisers use the `_name` column as a heading ("Nearest Metro
+ * Station") and put the actual place and walking time in the `_distance`
+ * column, which is how the public Plan Your Visit page renders them.
+ * Concatenating the two produces a redundant line, so follow that convention
+ * and fall back to the generic label when only one half is published.
+ */
+function transitDetail(label: string, name?: string | null, distance?: string | null):
+  { label: string; value: string } | null {
+  const value = distance || name;
+  if (!value) return null;
+  return { label: distance && name ? name : label, value };
+}
+
+function mapsHref(edition: EditionData): string {
+  // Prefer the pin organisers actually published. A name search resolves an
+  // office park by guesswork, which is the wrong answer to give someone who is
+  // already on the road.
+  if (edition.google_maps_url) return edition.google_maps_url;
+  const target = edition.venue_address || `${edition.venue}, Bangalore`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(target)}`;
+}
+
 function MapView({ data }: { data: BootstrapData }) {
-  const venue = data.edition?.venue;
-  const confirmed = Boolean(venue && venue !== 'TBD');
-  const mapUrl = confirmed ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${venue}, Bangalore`)}` : '';
+  const edition = data.edition;
+  const confirmed = Boolean(edition && edition.venue && edition.venue !== 'TBD');
+  const metro = transitDetail('Nearest metro', edition?.nearest_metro_name, edition?.nearest_metro_distance);
+  const bus = transitDetail('Nearest bus stop', edition?.nearest_bus_stop_name, edition?.nearest_bus_stop_distance);
+  const parking = place(edition?.parking_availability, edition?.parking_charges);
+  const hasRoute = Boolean(metro || bus || parking);
+
   return (
     <>
-      <header className="screen-header"><span className="eyebrow">Find your table</span><h1>Map</h1><p>Venue and floor-plan information will stay available after the app has been loaded once.</p></header>
+      <header className="screen-header"><span className="eyebrow">Find your table</span><h1>Getting there</h1><p>Saved on this device, so it still works when the venue network does not.</p></header>
+
       <section className="map-card" aria-labelledby="venue-heading">
         <div className="map-card__art" aria-hidden="true"><span>⌖</span><i /><i /><i /></div>
-        <div><span className="eyebrow">Venue</span><h2 id="venue-heading">{confirmed ? venue : 'To be announced'}</h2>{confirmed ? <a className="button button--dark" href={mapUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a> : <p>The address, arrival route, transit, and parking details are still being confirmed.</p>}</div>
+        <div>
+          <span className="eyebrow">Venue</span>
+          <h2 id="venue-heading">{confirmed ? edition!.venue : 'To be announced'}</h2>
+          {edition?.venue_address && <p className="map-card__address">{edition.venue_address}</p>}
+          {confirmed && edition
+            ? <a className="button button--dark" href={mapsHref(edition)} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>
+            : <p>The address, arrival route, transit, and parking details are still being confirmed.</p>}
+        </div>
       </section>
-      <section className="pending-card"><span className="tag tag--soft">Floor plan pending</span><h2>Rooms and help points come next.</h2><p>Organisers still need to publish the rooms, play zones, help desk, food/water, accessibility points, and exits. The app will not guess these locations.</p></section>
+
+      {(edition?.entrance_details || edition?.check_in_location) && (
+        <section className="screen-section" aria-labelledby="arrival-heading">
+          <div className="section-heading-row"><div><span className="eyebrow">On arrival</span><h2 id="arrival-heading">Finding the door</h2></div></div>
+          <div className="detail-stack">
+            <Detail label="Entrance" value={edition?.entrance_details} />
+            <Detail label="Check-in" value={edition?.check_in_location} />
+          </div>
+        </section>
+      )}
+
+      {hasRoute && (
+        <section className="screen-section" aria-labelledby="route-heading">
+          <div className="section-heading-row"><div><span className="eyebrow">Public transport</span><h2 id="route-heading">Choose your route</h2></div></div>
+          <div className="detail-stack">
+            {metro && <Detail label={metro.label} value={metro.value} />}
+            {bus && <Detail label={bus.label} value={bus.value} />}
+            <Detail label="Parking" value={parking} />
+          </div>
+        </section>
+      )}
+
+      <section className="pending-card"><span className="tag tag--soft">Floor plan pending</span><h2>Rooms and help points come next.</h2><p>Organisers still need to publish the rooms, play zones, help desk, and exits. The app will not guess these locations.</p></section>
     </>
   );
 }
 
 function InfoView({ data }: { data: BootstrapData }) {
   const edition = data.edition;
+
   return (
     <>
       <header className="screen-header"><span className="eyebrow">Event essentials</span><h1>Info</h1><p>Keep this guidance handy for arrival and support.</p></header>
       {edition && <section className="fact-grid"><div><small>Dates</small><strong>{formatDate(edition.start_date)}–{formatDate(edition.end_date, { day: 'numeric', month: 'short' })}</strong></div><div><small>Hours</small><strong>{formatClock(edition.daily_start_time)}–{formatClock(edition.daily_end_time)}</strong></div><div><small>Venue</small><strong>{edition.venue === 'TBD' ? 'To be announced' : edition.venue}</strong></div></section>}
+
       <section className="info-stack">
-        <article><span className="info-number">1</span><div><h2>Check in with your registered phone number.</h2><p>Keep your confirmation email available as a second reference, especially if somebody else booked for you.</p></div></article>
+        <article><span className="info-number">1</span><div><h2>Check in with your registered phone number.</h2><p>{edition?.check_in_location || 'Keep your confirmation email available as a second reference, especially if somebody else booked for you.'}</p></div></article>
         <article><span className="info-number">2</span><div><h2>Ask for an orientation.</h2><p>If you are new to board games or visiting alone, the team can help you find the library, programme, and a suitable table.</p></div></article>
-        <article><span className="info-number">3</span><div><h2>Confirm venue policies before travelling.</h2><p>Accessibility, food/water, age policy, re-entry, transport, prohibited items, and same-day support are still being finalised.</p><a className="text-link" href="https://replaycon.in/plan-your-visit/" target="_blank" rel="noreferrer">Read Plan Your Visit ↗</a></div></article>
       </section>
-      <section className="help-card"><span className="eyebrow">Need help?</span><h2>Email the REPLAY team.</h2><p>The same-day escalation route will be added once an owner is assigned.</p><a className="button button--light" href="mailto:hello@replaycon.in">hello@replaycon.in</a></section>
+
+      {edition?.game_library_process && (
+        <section className="screen-section" aria-labelledby="library-heading">
+          <div className="section-heading-row"><div><span className="eyebrow">Game library</span><h2 id="library-heading">Borrowing a game</h2></div></div>
+          <div className="detail-stack"><div className="detail-block"><p>{edition.game_library_process}</p></div></div>
+        </section>
+      )}
+
+      {edition && (
+        <section className="screen-section" aria-labelledby="at-venue-heading">
+          <div className="section-heading-row"><div><span className="eyebrow">At the venue</span><h2 id="at-venue-heading">Food, water and access</h2></div></div>
+          <div className="detail-stack">
+            <Detail label="Food" value={edition.food_details} />
+            <Detail label="Water" value={edition.water_details} />
+            {/* Accessibility always renders. Someone planning around an access
+                need is worse off with silence than with an honest "not
+                confirmed yet, ask us" and a route to a human. */}
+            <div className="detail-block">
+              <small>Accessibility</small>
+              {edition.accessibility_details
+                ? <p>{edition.accessibility_details}</p>
+                : <p>Step-free access, accessible toilets, seating, sensory considerations, and accommodation contacts are still being confirmed. <a className="text-link" href="mailto:hello@replaycon.in">Email us</a> if you need to plan around a specific requirement.</p>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="info-stack">
+        <article><span className="info-number">!</span><div><h2>Some policies are still being confirmed.</h2><p>Age policy, guardian rules, re-entry, last entry, and prohibited items are not final. Check before you travel.</p><a className="text-link" href="https://replaycon.in/plan-your-visit/" target="_blank" rel="noreferrer">Read Plan Your Visit ↗</a></div></article>
+      </section>
+
+      <section className="help-card">
+        <span className="eyebrow">Need help?</span>
+        <h2>{edition?.help_on_the_day ? 'Find us on the day.' : 'Email the REPLAY team.'}</h2>
+        <p>{edition?.help_on_the_day || 'The same-day escalation route will be added once an owner is assigned.'}</p>
+        <a className="button button--light" href="mailto:hello@replaycon.in">hello@replaycon.in</a>
+      </section>
     </>
   );
 }
 
 export default function App() {
   const [tab, setTab] = useState<AppTab>(initialTab);
-  const [data, setData] = useState<BootstrapData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<Set<string>>(() => loadAgenda(window.localStorage));
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const online = useOnline();
   const now = useMinuteClock();
+  const { data, error, loading, refreshing, fetchedAt, refresh } = useEventData();
+  const mainRef = useRef<HTMLElement>(null);
 
-  const load = useCallback(async () => {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 12_000);
-    setLoading(true);
-    try {
-      setData(await fetchBootstrap(controller.signal));
-      setError(null);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'request_failed');
-    } finally {
-      window.clearTimeout(timeout);
-      setLoading(false);
-    }
-  }, []);
+  // Recomputed against the minute clock so a notice aimed at the other day
+  // disappears when the date rolls over, without needing a refetch.
+  const notices = useMemo(
+    () => (data ? visibleAnnouncements(data.announcements, data.edition, now) : []),
+    [data, now],
+  );
+  const stale = isStale(fetchedAt, now.getTime());
 
-  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const onHash = () => setTab(initialTab());
     window.addEventListener('hashchange', onHash);
@@ -230,6 +329,9 @@ export default function App() {
     setTab(next);
     window.location.hash = next;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Without this a keyboard or screen-reader user stays parked in the old
+    // tab's content while the visible screen changes underneath them.
+    mainRef.current?.focus();
   };
   const handleToggle = (id: string) => {
     setSaved((current) => {
@@ -245,25 +347,39 @@ export default function App() {
     setInstallPrompt(null);
   };
 
+  const snapshot = data && fetchedAt !== null
+    ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: data.timezone }).format(new Date(fetchedAt))
+    : null;
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
-        <div className="topbar__actions">{installPrompt && <button type="button" className="install-button" onClick={install}>Install</button>}<span className={`network-dot ${online ? '' : 'network-dot--offline'}`} title={online ? 'Online' : 'Offline'}><i />{online ? 'Live' : 'Offline'}</span></div>
+        <div className="topbar__actions">
+          {installPrompt && <button type="button" className="install-button" onClick={install}>Install</button>}
+          <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
+            <span aria-hidden="true" className={refreshing ? 'refresh-button__icon refresh-button__icon--spinning' : 'refresh-button__icon'}>↻</span>
+          </button>
+          <span className={`network-dot ${online ? '' : 'network-dot--offline'}`} title={online ? 'Online' : 'Offline'}><i />{online ? 'Live' : 'Offline'}</span>
+        </div>
       </header>
       {!online && <div className="offline-banner" role="status">You are offline. Showing the last event data saved on this device.</div>}
+      {online && stale && data && <div className="offline-banner offline-banner--stale" role="status">This event data is more than 10 minutes old. <button type="button" className="text-button" onClick={refresh}>Refresh now</button></div>}
 
-      <main id="main-content" className="main-content">
-        {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={() => void load()}>Try again</button></div> : data ? (
+      <main id="main-content" className="main-content" ref={mainRef} tabIndex={-1}>
+        {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={refresh}>Try again</button></div> : data ? (
           <>
-            <Announcements announcements={data.announcements} timezone={data.timezone} />
+            <Announcements announcements={notices} timezone={data.timezone} />
             {tab === 'now' && <NowView data={data} saved={saved} onToggle={handleToggle} now={now} />}
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} />}
             {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} />}
             {tab === 'map' && <MapView data={data} />}
             {tab === 'info' && <InfoView data={data} />}
-            <p className="updated-at">Programme snapshot updated {new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: data.timezone }).format(new Date(data.generated_at))} IST</p>
+            <p className="updated-at" aria-live="polite">
+              {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}
+              {error ? ' · last refresh failed' : ''}
+            </p>
           </>
         ) : null}
       </main>

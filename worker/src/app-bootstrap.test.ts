@@ -94,6 +94,14 @@ describe('handleAppBootstrap', () => {
     expect(body.edition).toEqual({
       slug: 'replay-3', name: 'REPLAY', start_date: '2026-09-12', end_date: '2026-09-13',
       daily_start_time: '10:00:00', daily_end_time: '19:00:00', venue: 'TBD',
+      // Unpublished visit guidance is present but null, so the app has a single
+      // "not confirmed yet" check rather than distinguishing missing from blank.
+      venue_address: null, google_maps_url: null, entrance_details: null, check_in_location: null,
+      nearest_metro_name: null, nearest_metro_distance: null,
+      nearest_bus_stop_name: null, nearest_bus_stop_distance: null,
+      parking_availability: null, parking_charges: null,
+      food_details: null, water_details: null, accessibility_details: null,
+      game_library_process: null, help_on_the_day: null,
     });
     expect(body.edition).not.toHaveProperty('id');
     expect(body.edition).not.toHaveProperty('pricing');
@@ -103,6 +111,60 @@ describe('handleAppBootstrap', () => {
       id: 'notice-1', title: 'Room change', body: 'Meet in Room B', severity: 'urgent', audience: 'day1',
       starts_at: '2026-08-20T11:00:00.000Z', ends_at: null, updated_at: '2026-08-20T11:01:00.000Z',
     }]);
+  });
+
+  it('serves published visit guidance so the at-venue app matches the public site', async () => {
+    const { sb, editionQuery } = client({
+      data: {
+        ...edition,
+        venue: 'Indiqube Symphony, MG Road',
+        venue_address: 'Craig Park Layout, Ashok Nagar, Bangalore',
+        google_maps_url: 'https://maps.google.com/?cid=123',
+        entrance_details: 'Terrace on the 7th floor, rear building.',
+        check_in_location: 'Registration booth at the con entrance.',
+        nearest_metro_name: 'Trinity (Purple line)',
+        nearest_metro_distance: '5 min walk',
+        nearest_bus_stop_name: 'Mayo Hall',
+        nearest_bus_stop_distance: '10 min walk',
+        parking_availability: 'Available at the venue',
+        parking_charges: '₹100 per hour',
+        food_details: 'Restaurants and cafes in the campus.',
+        water_details: 'Water jugs provided; bring a bottle.',
+        accessibility_details: 'Step-free access via the lift.',
+        game_library_process: 'Borrow at the library desk.',
+        help_on_the_day: 'Look for a How Can I Help sticker.',
+        // Blank strings are organiser drafts, not published guidance.
+        nearest_bus_stop_name_unused: 'ignored',
+      },
+      error: null,
+    });
+
+    const res = await handleAppBootstrap(sb, new Date('2026-08-20T12:00:00.000Z'));
+    const body: any = await res.json();
+
+    expect(editionQuery.select).toHaveBeenCalledWith(expect.stringContaining('venue_address'));
+    expect(editionQuery.select).toHaveBeenCalledWith(expect.stringContaining('help_on_the_day'));
+    expect(body.edition.google_maps_url).toBe('https://maps.google.com/?cid=123');
+    expect(body.edition.entrance_details).toBe('Terrace on the 7th floor, rear building.');
+    expect(body.edition.nearest_metro_name).toBe('Trinity (Purple line)');
+    expect(body.edition.parking_charges).toBe('₹100 per hour');
+    expect(body.edition.help_on_the_day).toBe('Look for a How Can I Help sticker.');
+    // Still an allowlist: unknown columns never reach the public payload.
+    expect(body.edition).not.toHaveProperty('nearest_bus_stop_name_unused');
+    expect(body.edition).not.toHaveProperty('id');
+  });
+
+  it('treats blank visit fields as unpublished', async () => {
+    const { sb } = client({
+      data: { ...edition, venue_address: '   ', food_details: '', help_on_the_day: 'Ask a volunteer.' },
+      error: null,
+    });
+
+    const body: any = await (await handleAppBootstrap(sb)).json();
+
+    expect(body.edition.venue_address).toBeNull();
+    expect(body.edition.food_details).toBeNull();
+    expect(body.edition.help_on_the_day).toBe('Ask a volunteer.');
   });
 
   it('fails closed without cache when the edition query fails', async () => {
