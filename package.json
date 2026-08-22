@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "audit:data": "tsx scripts/audit-data-sanity.ts",
     "audit:placeholders": "tsx scripts/reconcile-placeholder-users.ts",
-    "import:historical": "tsx scripts/import-historical.ts"
+    "import:historical": "tsx scripts/import-historical.ts",
+    "normalize:logos": "tsx scripts/normalize-sponsor-logos.ts"
   },
   "repository": {
     "type": "git",
@@ -52,6 +53,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "jsdom": "^29.1.1",
+    "sharp": "^0.35.3",
     "tailwindcss": "4.2",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
