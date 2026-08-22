@@ -18,3 +18,6 @@ supabase/.temp/
 # Canvas exports are regenerable from the .dc.html artboards and run to megabytes
 # because they inline every asset as a data URI.
 design/instagram/replay-tickets-live-post.html
+
+# Normalised sponsor logo tiles, regenerated from sponsor-logos/ on every build.
+src/generated/

@@ -7,7 +7,17 @@ export interface PartnerLogo {
 
 type LogoModule = { default: ImageMetadata };
 
-const logoModules = import.meta.glob<LogoModule>(
+// Preferred source: tiles written by `scripts/normalize-sponsor-logos.ts`, each
+// one the mark trimmed out of its original canvas and re-seated on a shared
+// 3:2 canvas with fixed padding. Generated at build time, gitignored.
+// Both globs must stay string literals — Vite parses them statically.
+const normalizedModules = import.meta.glob<LogoModule>('../generated/sponsor-logos/*.png', { eager: true });
+
+// Fallback: the raw folder. The normaliser runs from the `prebuild`/`predev`
+// npm hooks, so this only matters if the site is built by invoking `astro
+// build` directly. Rendering un-normalised logos is the pre-normaliser
+// behaviour — visibly inconsistent, but far better than an empty logo wall.
+const rawModules = import.meta.glob<LogoModule>(
   '../../sponsor-logos/*.{avif,AVIF,jpeg,JPEG,jpg,JPG,png,PNG,svg,SVG,webp,WEBP}',
   { eager: true },
 );
@@ -21,7 +31,16 @@ function nameFromPath(path: string): string {
     .trim();
 }
 
-export const partnerLogos: PartnerLogo[] = Object.entries(logoModules)
+const usingNormalized = Object.keys(normalizedModules).length > 0;
+
+if (!usingNormalized && Object.keys(rawModules).length > 0) {
+  console.warn(
+    '[sponsor-logos] no normalised tiles found; falling back to raw artwork. ' +
+      'Run `npm run normalize:logos` (or build via `npm run build`) for a consistent logo wall.',
+  );
+}
+
+export const partnerLogos: PartnerLogo[] = Object.entries(usingNormalized ? normalizedModules : rawModules)
   .map(([path, module]) => ({
     name: nameFromPath(path),
     image: module.default,

@@ -11,7 +11,7 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling. Source CSV files are intentionally ignored.
-- `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically.
+- `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically. Artwork does not need to be pre-cropped or transparent: `npm run normalize:logos` (run automatically before `dev` and `build`) trims each mark out of its canvas and re-seats it on a shared 480x320 tile in `src/generated/sponsor-logos/`. Marks on a solid dark or coloured background are left untrimmed on purpose — see `src/lib/logo-normalize.ts`.
 
 ## Current stack
 
