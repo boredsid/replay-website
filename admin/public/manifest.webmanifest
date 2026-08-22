@@ -7,7 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "background_color": "#FFF8E7",
-  "theme_color": "#1A0088",
+  "theme_color": "#FFF8E7",
   "lang": "en-IN",
   "categories": ["business", "productivity", "events"],
   "icons": [

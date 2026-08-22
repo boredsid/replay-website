@@ -3,7 +3,7 @@
 // Shell entries are served cache-first, so bump this version whenever anything
 // in the list below changes: an installed app keeps serving its cached copy
 // until the cache name changes, however many times the asset is redeployed.
-const SHELL_CACHE = 'replay-admin-shell-v1';
+const SHELL_CACHE = 'replay-admin-shell-v2';
 const SHELL = [
   '/',
   '/index.html',
