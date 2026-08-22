@@ -21,6 +21,7 @@ import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSche
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
+import { handlePassStatus } from './pass-status';
 import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch } from './admin/partners';
 
 export interface Env {
@@ -113,6 +114,9 @@ export default {
       }
       if (path === '/api/app/bootstrap' && req.method === 'GET') {
         return await handleAppBootstrap(serviceClient(env));
+      }
+      if (path === '/api/pass-status' && req.method === 'POST') {
+        return await handlePassStatus(req, env);
       }
       if (path === '/api/lookup-phone' && req.method === 'POST') {
         return await handleLookupPhone(req, env);

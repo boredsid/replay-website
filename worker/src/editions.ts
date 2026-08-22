@@ -101,3 +101,25 @@ export async function getCurrentEdition(env: Env): Promise<EditionRow | null> {
   if (error) throw new Error(`editions: ${error.message}`);
   return (data as EditionRow) ?? null;
 }
+
+/**
+ * The latest edition, used by cross-site perks (e.g. BGC events that are free
+ * for REPLAY pass holders). Prefers the flagged current edition; falls back to
+ * the newest by start date so the perk keeps working between editions, before
+ * the next one is flagged current.
+ */
+export async function getLatestEdition(env: Env): Promise<EditionRow | null> {
+  const sb = serviceClient(env);
+  const current = await sb.from('editions').select('*').eq('is_current', true).maybeSingle();
+  if (current.error) throw new Error(`editions: ${current.error.message}`);
+  if (current.data) return current.data as EditionRow;
+
+  const latest = await sb
+    .from('editions')
+    .select('*')
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latest.error) throw new Error(`editions: ${latest.error.message}`);
+  return (latest.data as EditionRow) ?? null;
+}
