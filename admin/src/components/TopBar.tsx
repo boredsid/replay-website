@@ -11,7 +11,10 @@ export default function TopBar({ onOpenMenu }: Props) {
   const initials = email ? email.slice(0, 1).toUpperCase() : '?';
 
   return (
-    <header className="app-topbar flex shrink-0 items-center gap-2 border-b bg-background px-4 md:px-6">
+    // Navy on phones so the strip iOS draws its status bar over is flat brand
+    // colour with nothing for its edge treatment to smear. Desktop keeps the
+    // light bar: its children assume a light background and it has no status bar.
+    <header className="app-topbar flex shrink-0 items-center gap-2 border-b bg-secondary px-4 text-secondary-foreground md:bg-background md:px-6 md:text-foreground">
       <div className="flex items-center gap-2 min-w-0 md:hidden">
         <img src="/replay-icon.png" alt="" className="h-6 w-6" />
         <span className="font-heading font-semibold">Admin</span>
