@@ -6,8 +6,13 @@
 // folder, so the wall receives ten identically-framed tiles instead of ten
 // arbitrary canvases.
 //
-// Runs automatically via the `prebuild`/`predev` npm lifecycle hooks. Output is
-// gitignored and regenerated from source every time.
+// Triggered from the `sponsorLogos()` integration in astro.config.mjs on
+// `astro:config:setup`, so it runs for both `astro dev` and `astro build` no
+// matter which command the host invokes — Cloudflare Pages running a bare
+// `astro build` would skip an npm lifecycle hook, and the resulting fallback
+// to un-normalised artwork is silent. Also runnable directly via
+// `npm run normalize:logos`. Output is gitignored and rebuilt from source
+// every time.
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,7 +76,7 @@ async function normalizeOne(filename: string): Promise<Result> {
   return { source: filename, output, plan, sourceSize: `${info.width}x${info.height}`, bytes: buffer.length };
 }
 
-async function main(): Promise<void> {
+export async function normalizeSponsorLogos(): Promise<void> {
   let sources: string[];
   try {
     sources = readdirSync(sourceDir)
@@ -131,7 +136,14 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+// Direct invocation (`npm run normalize:logos`) only; importing this module
+// from the Astro config must not kick off a run as a side effect.
+const invokedDirectly =
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invokedDirectly) {
+  normalizeSponsorLogos().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

@@ -13,10 +13,11 @@ type LogoModule = { default: ImageMetadata };
 // Both globs must stay string literals — Vite parses them statically.
 const normalizedModules = import.meta.glob<LogoModule>('../generated/sponsor-logos/*.png', { eager: true });
 
-// Fallback: the raw folder. The normaliser runs from the `prebuild`/`predev`
-// npm hooks, so this only matters if the site is built by invoking `astro
-// build` directly. Rendering un-normalised logos is the pre-normaliser
-// behaviour — visibly inconsistent, but far better than an empty logo wall.
+// Fallback: the raw folder. The `sponsorLogos()` integration in
+// astro.config.mjs regenerates the tiles on every dev and build, so this only
+// engages if that integration is removed or fails. Rendering un-normalised
+// logos is the pre-normaliser behaviour — visibly inconsistent, but far
+// better than an empty logo wall.
 const rawModules = import.meta.glob<LogoModule>(
   '../../sponsor-logos/*.{avif,AVIF,jpeg,JPEG,jpg,JPG,png,PNG,svg,SVG,webp,WEBP}',
   { eager: true },

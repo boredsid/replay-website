@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "description": "Official website for REPLAY, Bangalore's board game convention. Astro 7 + React 19 + Cloudflare Pages + Supabase.",
   "scripts": {
-    "predev": "npm run normalize:logos",
     "dev": "astro dev",
     "dev:app": "vite --config app/vite.config.ts",
-    "prebuild": "npm run normalize:logos",
     "build": "astro build",
     "build:app": "vite build --config app/vite.config.ts",
     "check:app": "tsc -p app/tsconfig.json --noEmit",
