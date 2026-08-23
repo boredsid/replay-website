@@ -40,7 +40,7 @@ const [users, editions, registrations, orders, products, schedule, leads] = awai
   read('orders', 'id,user_phone,edition_id,total,payment_status'),
   read('products', 'id,edition_id,mrp,reselling_price,stock'),
   read('schedule_items', 'id,edition_id,day,start_time,end_time'),
-  read('leads', 'id,edition_id,phone,converted_at'),
+  read('leads', 'id,edition_id,phone,converted_at,created_at'),
 ]);
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -111,6 +111,24 @@ const activeEditionShapeIssues = editions.filter((edition) => {
     || !Number.isFinite(edition.pricing?.campaign);
 });
 
+function dateInKolkata(value: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+const editionsByStart = [...editions].sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
+const leadAttributionMismatches = leads.filter((lead) => {
+  const createdDate = dateInKolkata(lead.created_at);
+  const target = editionsByStart.find((edition) => edition.end_date >= createdDate);
+  return (target?.id ?? null) !== (lead.edition_id ?? null);
+});
+const leadsMissingConversionTag = leads.filter((lead) => !lead.converted_at && registrations.some(
+  (registration) => registration.edition_id === lead.edition_id && registration.user_phone === lead.phone,
+));
+
 const summary = {
   totals: {
     users: users.length,
@@ -138,6 +156,8 @@ const summary = {
     capacity_overage: capacityOverages.length,
     current_published_editions: editions.filter((edition) => edition.is_current && edition.is_published).length,
     pending_registrations: registrations.filter((registration) => registration.payment_status === 'pending').length,
+    lead_attribution_mismatch: leadAttributionMismatches.length,
+    lead_missing_conversion_tag: leadsMissingConversionTag.length,
   },
   duplicate_emails: duplicateEmails,
   pending_registrations: registrations

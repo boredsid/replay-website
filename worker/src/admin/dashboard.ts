@@ -27,7 +27,7 @@ export async function handleDashboard(req: Request, env: Env, sb: SupabaseClient
 
   const recentRegsRes = await sb
     .from('registrations')
-    .select('id, user_phone, pass_type, days, payment_status, amount_paid, created_at')
+    .select('id, user_phone, pass_type, days, payment_status, amount_paid, created_at, users(name)')
     .eq('edition_id', edition.id)
     .order('created_at', { ascending: false })
     .limit(10);

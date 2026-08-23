@@ -18,11 +18,13 @@ export interface RegistrationRow {
 
 export interface LeadRow {
   id: string;
+  edition_id: string | null;
   phone: string;
   name: string | null;
   step_reached: string;
   created_at: string;
   converted_at: string | null;
+  editions?: { slug: string; name: string; start_date: string } | null;
 }
 
 export interface AuditEntry {

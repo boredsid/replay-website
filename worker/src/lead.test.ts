@@ -10,7 +10,6 @@ function env(overrides: Record<string, unknown> = {}) {
 
 function mockSupabase(opts: {
   editionExists?: boolean;
-  existingLead?: any;
   upsertCapture?: { row: any; onConflict: string | null };
 }) {
   const eventExists = opts.editionExists ?? true;
@@ -27,13 +26,6 @@ function mockSupabase(opts: {
       }
       if (table === 'leads') {
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: opts.existingLead ?? null, error: null }),
-              }),
-            }),
-          }),
           upsert: (row: any, opts2: any) => {
             if (opts.upsertCapture) {
               opts.upsertCapture.row = row;
@@ -87,16 +79,13 @@ describe('handleLead', () => {
     expect(cap.row.step_reached).toBe('name_entered');
   });
 
-  it('skips writes when lead is already converted', async () => {
+  it('always upserts so the database can start a new future lead after the supplied edition ends', async () => {
     const cap: any = { row: null, onConflict: null };
-    (serviceClient as any).mockReturnValue(mockSupabase({
-      existingLead: { id: 'L1', converted_at: '2026-05-01T00:00:00Z' },
-      upsertCapture: cap,
-    }));
+    (serviceClient as any).mockReturnValue(mockSupabase({ upsertCapture: cap }));
     const req = new Request('http://x', { method: 'POST', body: JSON.stringify({ phone: '9876543210', edition_id: 'e1', step_reached: 'phone_entered' }) });
     const res = await handleLead(req, env());
     expect(res.status).toBe(200);
-    expect(cap.row).toBeNull();
+    expect(cap.row).toEqual(expect.objectContaining({ edition_id: 'e1', phone: '9876543210' }));
   });
 
   it('returns 429 when Cloudflare rejects the subject rate limit', async () => {

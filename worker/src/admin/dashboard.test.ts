@@ -16,7 +16,7 @@ describe('handleDashboard', () => {
     // leads:        .select('*').eq(editionId).order().limit()
     const regEq = () => {
       const builder: any = {
-        order: () => ({ limit: async () => ({ data: [{ id: 'r1', payment_status: 'confirmed' }], error: null }) }),
+        order: () => ({ limit: async () => ({ data: [{ id: 'r1', payment_status: 'confirmed', users: { name: 'Asha' } }], error: null }) }),
         then: (resolve: any) => resolve({ data: [{ payment_status: 'confirmed', amount_paid: 800 }], error: null }),
       };
       return builder;
@@ -37,5 +37,6 @@ describe('handleDashboard', () => {
     const body: any = await res.json();
     expect(body.spots_by_day.day1.remaining).toBe(240);
     expect(body.totals.revenue).toBe(800);
+    expect(body.recent_registrations[0].users.name).toBe('Asha');
   });
 });

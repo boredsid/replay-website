@@ -27,7 +27,7 @@ export default function Dashboard() {
           <div className="space-y-2 text-sm">
             {data.recent_registrations.map((registration) => (
               <div key={registration.id} className="flex flex-col items-start gap-1 border-b pb-2 last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                <span className="font-mono">{registration.user_phone}</span>
+                <span>{registration.users?.name || registration.user_phone}</span>
                 <span className="text-muted-foreground">{registration.pass_type} · {registration.payment_status}</span>
               </div>
             ))}

@@ -28,17 +28,9 @@ export async function handleLead(req: Request, env: Env): Promise<Response> {
   if (editionRow.error) return jsonResponse({ error: 'edition_lookup_failed' }, 500);
   if (!editionRow.data) return jsonResponse({ error: 'edition not found' }, 400);
 
-  const existing = await sb
-    .from('leads')
-    .select('id, converted_at')
-    .eq('edition_id', editionId)
-    .eq('phone', phone)
-    .maybeSingle();
-  if (existing.error) return jsonResponse({ error: 'lead_lookup_failed' }, 500);
-  if ((existing.data as any)?.converted_at) {
-    return jsonResponse({ ok: true });
-  }
-
+  // The database derives the actual edition from created_at. The supplied
+  // edition only proves the request came from a real edition page; after that
+  // edition ends, this same upsert becomes the single untagged future lead.
   const upsertRow: any = { edition_id: editionId, phone, step_reached: step };
   if (name) upsertRow.name = name;
   const { error } = await sb.from('leads').upsert(upsertRow, { onConflict: 'edition_id,phone' });
