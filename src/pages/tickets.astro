@@ -58,13 +58,13 @@ const statusCopy = edition?.registration_status === 'open'
   </section>
 
   {edition && (
-    <section class="page-section page-section-yellow" aria-labelledby="availability-heading">
+    <section class="page-section page-section-yellow" id="availability-section" aria-labelledby="availability-heading" hidden>
       <div class="availability-shell">
         <div class="availability-card">
           <span class="section-tag">Capacity</span>
           <h2 id="availability-heading">Live availability</h2>
           <p>Capacity is tracked separately for each event day.</p>
-          <LiveSpotsBadge client:load editionId={edition.id} day1Label={day1Name} day2Label={day2Name} />
+          <LiveSpotsBadge client:load editionId={edition.id} day1Label={day1Name} day2Label={day2Name} revealTargetId="availability-section" />
         </div>
       </div>
     </section>

@@ -2,13 +2,22 @@ import { useEffect, useState } from 'react';
 import { getEditionSpots } from '../lib/worker';
 import type { ApiEditionSpotsResponse } from '../lib/types';
 
+/** Don't show live numbers until the event is at least this full. */
+export const REVEAL_THRESHOLD_PCT = 50;
+
 export interface LiveSpotsBadgeProps {
   editionId: string;
   day1Label?: string;
   day2Label?: string;
+  /**
+   * Id of the server-rendered wrapper around this island (heading, copy, etc.).
+   * It starts hidden and is revealed only once the edition is past the reveal
+   * threshold, so a quiet event never leaves an orphaned heading behind.
+   */
+  revealTargetId?: string;
 }
 
-export function LiveSpotsBadge({ editionId, day1Label = 'Day 1', day2Label = 'Day 2' }: LiveSpotsBadgeProps) {
+export function LiveSpotsBadge({ editionId, day1Label = 'Day 1', day2Label = 'Day 2', revealTargetId }: LiveSpotsBadgeProps) {
   const [spots, setSpots] = useState<ApiEditionSpotsResponse | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -21,15 +30,23 @@ export function LiveSpotsBadge({ editionId, day1Label = 'Day 1', day2Label = 'Da
     return () => { cancelled = true; };
   }, [editionId]);
 
+  // Combined capacity across both days (matches bgc's single-event bar pattern)
+  const totalCapacity = spots ? spots.day1.capacity + spots.day2.capacity : 0;
+  const totalRemaining = spots ? spots.day1.remaining + spots.day2.remaining : 0;
+  const used = Math.max(0, totalCapacity - totalRemaining);
+  const fillPct = totalCapacity > 0 ? Math.min(100, (used / totalCapacity) * 100) : 0;
+  const pastThreshold = !!spots && totalCapacity > 0 && fillPct >= REVEAL_THRESHOLD_PCT;
+
+  useEffect(() => {
+    if (!revealTargetId) return;
+    const target = document.getElementById(revealTargetId);
+    if (target) target.hidden = !pastThreshold;
+  }, [revealTargetId, pastThreshold]);
+
   if (error) return <p role="status" className="text-sm font-medium">Live availability is temporarily unavailable.</p>;
   if (loading) return <span className="text-sm text-[#1A1A1A]/70">Loading…</span>;
   if (!spots) return null;
-
-  // Combined capacity across both days (matches bgc's single-event bar pattern)
-  const totalCapacity = spots.day1.capacity + spots.day2.capacity;
-  const totalRemaining = spots.day1.remaining + spots.day2.remaining;
-  const used = Math.max(0, totalCapacity - totalRemaining);
-  const fillPct = totalCapacity > 0 ? Math.min(100, (used / totalCapacity) * 100) : 0;
+  if (!pastThreshold) return null;
 
   const bothSoldOut = spots.both_sold_out;
   const almostFull = !bothSoldOut && totalRemaining > 0 && totalRemaining <= 5;

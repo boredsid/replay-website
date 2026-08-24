@@ -110,8 +110,8 @@ const eventJsonLd = edition ? JSON.stringify({
         <div class="event-capacity__eyebrow">▸ {editionOrdinalLabel.toUpperCase()}</div>
         <h2 class="event-capacity__heading">{dateRange}</h2>
         <p class="event-capacity__sub">Bangalore · {edition.venue === 'TBD' ? 'venue to be announced' : edition.venue} · {dailyHours} daily</p>
-        <div class="event-capacity__bar">
-          <LiveSpotsBadge client:load editionId={edition.id} day1Label={day1Name} day2Label={day2Name} />
+        <div class="event-capacity__bar" id="event-capacity-bar" hidden>
+          <LiveSpotsBadge client:load editionId={edition.id} day1Label={day1Name} day2Label={day2Name} revealTargetId="event-capacity-bar" />
         </div>
         <div class="event-capacity__cta-row">
           <a href="/tickets" class="btn btn-black">

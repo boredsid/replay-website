@@ -17,11 +17,43 @@ function mockFetch(status: number, body: unknown) {
 
 describe('LiveSpotsBadge', () => {
   it('shows loading initially then renders combined remaining spots', async () => {
-    mockFetch(200, { day1: { capacity: 250, remaining: 248, sold_out: false }, day2: { capacity: 250, remaining: 245, sold_out: false }, both_sold_out: false });
+    mockFetch(200, { day1: { capacity: 250, remaining: 60, sold_out: false }, day2: { capacity: 250, remaining: 40, sold_out: false }, both_sold_out: false });
     render(<LiveSpotsBadge editionId="e1" day1Label="Saturday" day2Label="Sunday" />);
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
-    // 248 + 245 = 493 remaining out of 500 total
-    await waitFor(() => expect(screen.getByText(/493 of 500/)).toBeInTheDocument());
+    // 60 + 40 = 100 remaining out of 500 total
+    await waitFor(() => expect(screen.getByText(/100 of 500/)).toBeInTheDocument());
+  });
+
+  it('renders nothing while under half of capacity is used', async () => {
+    mockFetch(200, { day1: { capacity: 250, remaining: 200, sold_out: false }, day2: { capacity: 250, remaining: 200, sold_out: false }, both_sold_out: false });
+    const { container } = render(<LiveSpotsBadge editionId="e1" />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders once exactly half of capacity is used', async () => {
+    mockFetch(200, { day1: { capacity: 250, remaining: 125, sold_out: false }, day2: { capacity: 250, remaining: 125, sold_out: false }, both_sold_out: false });
+    render(<LiveSpotsBadge editionId="e1" />);
+    await waitFor(() => expect(screen.getByText(/250 of 500/)).toBeInTheDocument());
+  });
+
+  it('reveals its wrapper only past the threshold', async () => {
+    const wrapper = document.createElement('div');
+    wrapper.id = 'availability-section';
+    wrapper.hidden = true;
+    document.body.appendChild(wrapper);
+
+    mockFetch(200, { day1: { capacity: 250, remaining: 200, sold_out: false }, day2: { capacity: 250, remaining: 200, sold_out: false }, both_sold_out: false });
+    const quiet = render(<LiveSpotsBadge editionId="e1" revealTargetId="availability-section" />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(wrapper.hidden).toBe(true);
+    quiet.unmount();
+
+    mockFetch(200, { day1: { capacity: 250, remaining: 20, sold_out: false }, day2: { capacity: 250, remaining: 20, sold_out: false }, both_sold_out: false });
+    render(<LiveSpotsBadge editionId="e1" revealTargetId="availability-section" />);
+    await waitFor(() => expect(wrapper.hidden).toBe(false));
+
+    wrapper.remove();
   });
 
   it('renders "Event full" when both days are sold out', async () => {
