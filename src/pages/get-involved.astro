@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
+import { whatsappContactUrl } from '../lib/contact';
 import { getCurrentEdition, publicDateRange } from '../lib/data';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
 
@@ -61,9 +62,7 @@ const communityPackages: Array<{
 ];
 
 const mailto = (subject: string) => `mailto:hello@replaycon.in?subject=${encodeURIComponent(subject)}`;
-const whatsapp = (phone: string, message: string) => `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-const suranjanaWhatsapp = (message: string) => whatsapp('919674282424', message);
-const coverageWhatsapp = whatsapp('919982200768', "Hi, I'd like to pitch coverage for REPLAY.");
+const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for REPLAY.");
 ---
 
 <Layout title="Get Involved — REPLAY" description="Run an event, book a booth, sponsor REPLAY, or work with the convention as a content creator.">
@@ -122,7 +121,7 @@ const coverageWhatsapp = whatsapp('919982200768', "Hi, I'd like to pitch coverag
             <li>Budget range and activation ideas</li>
             <li>Brand, product or exclusivity constraints</li>
           </ul>
-          <a class="btn btn-black" href={suranjanaWhatsapp("Hi Suranjana, I'd like to talk about sponsoring REPLAY.")} target="_blank" rel="noopener noreferrer">Talk sponsorship →</a>
+          <a class="btn btn-black" href={whatsappContactUrl("Hi, I'd like to talk about sponsoring REPLAY.")} target="_blank" rel="noopener noreferrer">Talk sponsorship →</a>
         </article>
 
         <article id="content-creators" class="partner-card partner-card--green">
@@ -154,7 +153,7 @@ const coverageWhatsapp = whatsapp('919982200768', "Hi, I'd like to pitch coverag
             <p class="booth-price">{money(booth.price)} + GST</p>
             <ul class="clean-list">{booth.inclusions.map((item) => <li>{item}</li>)}</ul>
             {booth.note && <p class="booth-note">{booth.note}</p>}
-            <a class="btn btn-primary" href={suranjanaWhatsapp(`Hi Suranjana, I'd like to book the ${booth.name} package for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this booth →</a>
+            <a class="btn btn-primary" href={whatsappContactUrl(`Hi, I'd like to book the ${booth.name} package for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this booth →</a>
           </article>
         ))}
       </div>
@@ -174,7 +173,7 @@ const coverageWhatsapp = whatsapp('919982200768', "Hi, I'd like to pitch coverag
             <h3>{item.name}</h3>
             <p class="booth-price">{money(item.price)} + GST / day</p>
             <ul class="clean-list">{item.inclusions.map((inclusion) => <li>{inclusion}</li>)}</ul>
-            <a class="btn btn-primary" href={suranjanaWhatsapp(`Hi Suranjana, I'd like to buy the ${item.name} pass for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this engagement pass →</a>
+            <a class="btn btn-primary" href={whatsappContactUrl(`Hi, I'd like to buy the ${item.name} pass for REPLAY.`)} target="_blank" rel="noopener noreferrer">Buy this engagement pass →</a>
           </article>
         ))}
       </div>
