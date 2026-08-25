@@ -10,7 +10,7 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 - `admin/` — installable Vite/React operations console for registrations, partners, editions, programme data, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
-- `scripts/` — historical import tooling. Source CSV files are intentionally ignored.
+- `scripts/` — historical import tooling plus the build-time image steps (sponsor-logo normalisation, link-preview rendering) and the vendored Space Grotesk TTFs those steps draw with. Source CSV files are intentionally ignored.
 - `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically. Artwork does not need to be pre-cropped or transparent: an Astro integration in `astro.config.mjs` (also runnable directly as `npm run normalize:logos`) trims each mark out of its canvas and re-seats it on a shared 480x320 tile in `src/generated/sponsor-logos/`. Marks on a solid dark or coloured background are left untrimmed on purpose — see `src/lib/logo-normalize.ts`.
 
 ## Current stack
@@ -142,6 +142,10 @@ service worker retains the most recent successful event bootstrap for offline
 use. Announcements are live runtime data and do not require rebuilding the
 public website or attendee app. Edition and programme changes baked into the
 static public site still require the protected admin rebuild action.
+
+The social link preview at `/link-preview.png` is drawn during the build from
+the current edition, so a rebuild also refreshes the dates and venue shown
+when someone shares a link. There is no per-edition artwork to export.
 
 Keep all of the following in Cloudflare/Apps Script secret storage only:
 
