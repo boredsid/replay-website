@@ -117,6 +117,10 @@ describe('wrapToLines', () => {
 });
 
 describe('linkPreviewContent', () => {
+  it('sets the tagline the card is meant to carry', () => {
+    expect(LINK_PREVIEW_TAGLINE).toBe('Bangalore’s Offline Gaming Convention');
+  });
+
   it('builds the card from the current edition', () => {
     expect(linkPreviewContent(edition())).toEqual({
       eyebrow: '3RD EDITION',

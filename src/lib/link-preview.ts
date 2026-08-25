@@ -9,7 +9,7 @@ import { editionOrdinal } from './data';
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-export const LINK_PREVIEW_TAGLINE = "Bangalore's Gaming Convention";
+export const LINK_PREVIEW_TAGLINE = 'Bangalore’s Offline Gaming Convention';
 
 export interface LinkPreviewField {
   label: string;
