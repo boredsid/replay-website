@@ -6,6 +6,24 @@ import tailwindcss from "@tailwindcss/vite";
 import { normalizeSponsorLogos } from "./scripts/normalize-sponsor-logos.ts";
 
 /**
+ * Cache-busting stamp for the generated link-preview card, exposed to pages as
+ * `import.meta.env.PUBLIC_LINK_PREVIEW_VERSION`.
+ *
+ * `/link-preview.png` is redrawn on every build but keeps the same path, and
+ * `public/_headers` caches `/*.png` for a week. Without a changing URL the old
+ * card survives in browsers, at the Cloudflare edge, and in every social
+ * scraper that already fetched it — which is exactly how a REPLAY 2 card
+ * outlived REPLAY 2. Appending this to the `og:image` URL makes each build
+ * advertise an address nothing has cached yet.
+ *
+ * Deliberately a timestamp and NOT the commit SHA: the admin's rebuild action
+ * redeploys the same commit with new edition data, which is precisely the case
+ * that has to bust the cache. Set at module scope so Astro's env loader picks
+ * it up, and so every page in a build stamps the same value.
+ */
+process.env.PUBLIC_LINK_PREVIEW_VERSION ||= Date.now().toString(36);
+
+/**
  * Rebuild `src/generated/sponsor-logos/` before Vite resolves the glob that
  * reads it.
  *
