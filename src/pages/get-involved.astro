@@ -4,6 +4,7 @@ import DarkBand from '../components/DarkBand.astro';
 import { whatsappContactUrl } from '../lib/contact';
 import { getCurrentEdition, publicDateRange } from '../lib/data';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
+import { SPONSOR_TIERS, SPONSOR_BASELINE } from '../lib/sponsor-tiers';
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
@@ -114,14 +115,14 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
           <span class="partner-number">03</span>
           <span class="pill pill-purple">Sponsor REPLAY</span>
           <h3>Support the whole weekend.</h3>
-          <p>Sponsorship is tailored to the brand, the audience and the outcome you want. Start a conversation rather than choosing a generic checkout package.</p>
+          <p>Put your name in front of the event, own a zone, or back the community year-round. Five tiers, each with a defined set of deliverables.</p>
           <ul class="clean-list">
             <li>Your organisation and category</li>
             <li>The audience or outcome you care about</li>
-            <li>Budget range and activation ideas</li>
+            <li>The tier you are looking at, and any activation ideas</li>
             <li>Brand, product or exclusivity constraints</li>
           </ul>
-          <a class="btn btn-black" href={whatsappContactUrl("Hi, I'd like to talk about sponsoring REPLAY.")} target="_blank" rel="noopener noreferrer">Talk sponsorship →</a>
+          <a class="btn btn-black" href="#sponsorship">See sponsorship tiers ↓</a>
         </article>
 
         <article id="content-creators" class="partner-card partner-card--green">
@@ -181,6 +182,49 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
     </div>
   </section>
 
+  <section id="sponsorship" class="page-section page-section-soft" aria-labelledby="sponsorship-heading">
+    <div class="container-x">
+      <span class="section-tag">Sponsorship</span>
+      <h2 id="sponsorship-heading" class="section-heading">Five levels of ownership.</h2>
+      <p class="section-copy">Every sponsor gets the same baseline. Each tier adds to it.</p>
+
+      <div class="baseline-card">
+        <span class="tier-card__stage-label">Every tier includes</span>
+        <ul class="clean-list">{SPONSOR_BASELINE.map((item) => <li>{item}</li>)}</ul>
+      </div>
+
+      <div class="tier-grid">
+        {SPONSOR_TIERS.map((tier) => (
+          <article class={`tier-card${tier.status ? ' tier-card--closed' : ''}`}>
+            <span class="pill pill-purple">{tier.slots}</span>
+            <h3>{tier.name}</h3>
+            {tier.price === null ? (
+              <p class="booth-price booth-price--words">{tier.priceNote}</p>
+            ) : (
+              <p class="booth-price">{money(tier.price)} <span class="tier-card__price-note">{tier.priceNote ?? '+ GST'}</span></p>
+            )}
+            {tier.billing && <p class="tier-card__billing">{tier.billing}</p>}
+            <p class="tier-card__summary">{tier.summary}</p>
+
+            {tier.status && <p class="tier-card__status"><strong>{tier.status.label}.</strong> {tier.status.detail}</p>}
+
+            <span class="tier-card__stage-label">Adds</span>
+            <ul class="clean-list">{tier.adds.map((item) => <li>{item}</li>)}</ul>
+            <p class="tier-card__passes">{tier.passes} complimentary two-day passes</p>
+
+            {tier.status ? (
+              <a class="btn btn-secondary" href={whatsappContactUrl(`Hi, I'd like to be considered as the ${tier.name} for a future REPLAY edition.`)} target="_blank" rel="noopener noreferrer">Ask about the next edition →</a>
+            ) : (
+              <a class="btn btn-primary" href={whatsappContactUrl(`Hi, I'd like to talk about the ${tier.name} tier for REPLAY.`)} target="_blank" rel="noopener noreferrer">Talk about this tier →</a>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <p class="commercial-note">Tiers are a starting point, not a fixed menu. To trade one deliverable for another, or bring product, prizes or media instead of cash, say so in the first message.</p>
+    </div>
+  </section>
+
   <section class="page-section page-section-blue" aria-labelledby="partner-process-heading">
     <div class="container-x">
       <span class="section-tag">How it works</span>
@@ -230,8 +274,42 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
   .booth-card .btn { margin-top: 24px; }
   .commercial-note { max-width: 880px; margin-top: 28px; padding: 16px 18px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: var(--color-cream); font-weight: 700; }
 
+  /* `align-items: start` lets each card stop at its own content. Stretching
+     them to a shared row height left ~300px of dead space inside the shorter
+     tiers, which read as a layout fault rather than as breathing room. */
+  .tier-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 36px; align-items: start; }
+
+  .baseline-card { margin-top: 28px; padding: clamp(24px, 4vw, 32px); border: 4px solid var(--color-ink); border-radius: var(--radius-lg); background: var(--color-yellow); box-shadow: var(--shadow-lg); }
+
+  /* A flex column, so margins never collapse: every margin below is the literal
+     gap between two elements. `.clean-list` ships its own 16px margin-top, which
+     is why the list margin is overridden rather than spaced from the label. */
+  .tier-card { display: flex; flex-direction: column; align-items: flex-start; padding: clamp(24px, 4vw, 32px); border: 4px solid var(--color-ink); border-radius: var(--radius-lg); background: var(--color-cream); box-shadow: var(--shadow-lg); }
+  .tier-card--closed { background: var(--color-green); }
+  .tier-card h3 { margin-top: 16px; font-size: clamp(1.5rem, 3vw, 2rem); }
+  .tier-card .booth-price { margin-top: 6px; font-size: 2.4rem; line-height: 1.05; }
+  .booth-price--words { font-size: 1.9rem; }
+  .tier-card__price-note { font-family: var(--font-body); font-size: .9rem; font-weight: 700; white-space: nowrap; }
+  .tier-card__billing { margin-top: 14px; font-family: var(--font-heading); font-size: 1.02rem; font-weight: 800; }
+  .tier-card__summary { margin-top: 6px; color: rgba(26, 26, 26, .72); }
+  .tier-card__status { margin-top: 20px; padding: 12px 14px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: var(--color-cream); }
+  .tier-card__stage-label { display: block; margin-top: 28px; font-family: var(--font-heading); font-size: .9rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+  .baseline-card .tier-card__stage-label { margin-top: 0; }
+  .baseline-card .clean-list,
+  .tier-card .clean-list { margin: 10px 0 0; }
+  .tier-card__passes { margin-top: 20px; margin-bottom: 24px; font-weight: 700; }
+  /* The gap above the button belongs on the passes line. Putting it on the
+     button as padding-top made it 72px tall against the 62px used everywhere
+     else on the page, with the label visibly off-centre. */
+  .tier-card > .btn { margin-top: auto; }
+
   @media (min-width: 820px) {
     .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .partner-card { padding: 38px; min-height: 540px; }
+    .tier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1120px) {
+    .tier-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 </style>
