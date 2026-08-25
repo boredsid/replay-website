@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScheduleCard } from './components/ScheduleCard';
 import { Announcements } from './components/Announcements';
+import { VenueMap } from './components/VenueMap';
 import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
@@ -236,7 +237,7 @@ function MapView({ data }: { data: BootstrapData }) {
         </section>
       )}
 
-      <section className="pending-card"><span className="tag tag--soft">Floor plan pending</span><h2>Rooms and help points come next.</h2><p>Organisers still need to publish the rooms, play zones, help desk, and exits. The app will not guess these locations.</p></section>
+      <VenueMap />
     </>
   );
 }

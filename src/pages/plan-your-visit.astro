@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
+import VenueMap from '../components/VenueMap.astro';
 import { getCurrentEdition, publicDateRange } from '../lib/data';
 import { clockTime, eventDayLabel } from '../lib/edition-format';
 
@@ -84,6 +85,8 @@ const helpOnTheDay = text(edition?.help_on_the_day);
       </div>
     </div>
   </section>
+
+  <VenueMap />
 
   <section class="page-section page-section-blue" aria-labelledby="library-heading">
     <div class="container-x two-column">

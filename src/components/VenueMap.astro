@@ -1,0 +1,158 @@
+---
+/**
+ * VenueMap
+ * -----------------------------------------------------------------
+ * Floor map for the REPLAY venue: the five play zones, the Cassette
+ * Corridor, and the amenities on the service side.
+ *
+ * The drawing itself comes from `src/lib/venue-map.ts`, which is shared
+ * verbatim with the attendee app so both surfaces show the same plan.
+ * This component supplies the page furniture around it: the key, which is
+ * where each place's second line lives. The plan's own text alternative
+ * rides in the SVG's <desc>.
+ */
+import { KEY_ITEMS, buildVenueMapSvg } from '../lib/venue-map';
+
+export interface Props {
+  /** Section chrome, overridable so the map can be reused under a different framing. */
+  eyebrow?: string;
+  heading?: string;
+  intro?: string;
+}
+
+const {
+  eyebrow = 'The floor',
+  heading = 'Know the floor before you arrive.',
+  intro = 'One long terrace floor, and almost all of it is a single open room. Play zones run down one side, everything you need runs down the other, and the Cassette Corridor connects them end to end.',
+} = Astro.props;
+
+const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
+---
+
+<section class="page-section venue-map-section" aria-labelledby="venue-map-heading">
+  <div class="container-x">
+    <span class="section-tag">{eyebrow}</span>
+    <h2 id="venue-map-heading" class="section-heading">{heading}</h2>
+    <p class="section-copy">{intro}</p>
+
+    <div class="venue-map">
+      <figure class="venue-map__figure">
+        <div class="venue-map__frame" set:html={svg} />
+      </figure>
+
+      <div class="venue-map__key">
+        <h3 class="venue-map__key-heading">Play zones</h3>
+        <ul class="venue-map__zone-list">
+          {
+            KEY_ITEMS.map((item) => (
+              <li class="venue-map__zone-item">
+                <span class="venue-map__swatch" style={`background:${item.fill};`} aria-hidden="true" />
+                <span>
+                  <strong>{item.name}</strong>
+                  <span class="venue-map__zone-meta">{item.blurb}</span>
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .venue-map {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    margin-top: 36px;
+    align-items: start;
+  }
+
+  @media (min-width: 900px) {
+    .venue-map {
+      grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+      gap: 40px;
+    }
+
+    .venue-map__key {
+      position: sticky;
+      top: 96px;
+    }
+  }
+
+  .venue-map__figure {
+    margin: 0;
+  }
+
+  .venue-map-section {
+    background: #E9E3D5;
+  }
+
+  /* A printed sheet lying on a table, not a brutalist card: the plan's own
+     linework already carries the heavy black. */
+  .venue-map__frame {
+    border-radius: 3px;
+    background: var(--color-cream);
+    box-shadow: 0 18px 48px rgb(40 36 26 / 0.22);
+    padding: clamp(14px, 2.2vw, 26px);
+    overflow: hidden;
+  }
+
+  .venue-map__frame :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .venue-map__key-heading {
+    margin: 0 0 12px;
+    font-size: 0.74rem;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+
+  .venue-map__zone-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .venue-map__zone-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: var(--border);
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+  }
+
+  .venue-map__swatch {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--color-ink);
+    border-radius: 6px;
+  }
+
+  .venue-map__zone-item strong {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 1rem;
+  }
+
+  .venue-map__zone-meta {
+    display: block;
+    font-size: 0.82rem;
+    color: rgba(26, 26, 26, 0.68);
+  }
+
+</style>
