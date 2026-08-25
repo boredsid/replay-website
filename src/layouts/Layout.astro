@@ -26,6 +26,19 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
+
+/**
+ * The card is redrawn every build but keeps its path, and `_headers` caches
+ * `/*.png` for a week — so the URL has to change or the previous edition's
+ * card keeps being served from caches we do not control. The stamp is set in
+ * `astro.config.mjs`; see the note there for why it is not the commit SHA.
+ */
+const linkPreviewVersion = import.meta.env.PUBLIC_LINK_PREVIEW_VERSION;
+const ogImageUrl = new URL(ogImage, Astro.site ?? 'https://replaycon.in');
+if (ogImage === DEFAULT_OG_IMAGE && linkPreviewVersion) {
+  ogImageUrl.searchParams.set('v', linkPreviewVersion);
+}
+const ogImageHref = ogImageUrl.toString();
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 const nav = [
   { href: '/', label: 'Home' },
@@ -49,7 +62,7 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
+    <meta property="og:image" content={ogImageHref} />
     {ogImage === DEFAULT_OG_IMAGE && (
       <>
         <meta property="og:image:width" content="1200" />
@@ -60,7 +73,7 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL(ogImage, Astro.site ?? 'https://replaycon.in').toString()} />
+    <meta name="twitter:image" content={ogImageHref} />
     <link rel="icon" type="image/png" href="/replay-icon.png" />
   </head>
   <body>
