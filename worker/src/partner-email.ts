@@ -3,13 +3,13 @@ import type { EditionRow } from './editions';
 import { sendEmail } from './apps-script';
 import { dayLabel } from './editions';
 import { editionOrdinal, shortDateRange } from './format';
-import { PARTNER_PACKAGE_LABELS, type PartnerPackageKey } from './partner-pricing';
+import { PARTNER_OFFER_LABELS, type PartnerOfferKey } from './partner-offers';
 
 export interface PartnerConfirmationInput {
   organizationName: string;
   contactName: string;
   email: string;
-  packageKey: PartnerPackageKey;
+  packageKey: PartnerOfferKey;
   days: Array<'day1' | 'day2'>;
   baseAmount: number;
   gstAmount: number;
@@ -34,7 +34,7 @@ export async function sendPartnerConfirmation(
       edition_name: editionName,
       venue: edition.venue,
       date_range: shortDateRange(edition.start_date, edition.end_date),
-      package_name: PARTNER_PACKAGE_LABELS[input.packageKey],
+      package_name: PARTNER_OFFER_LABELS[input.packageKey],
       days_label: dayLabel(input.days),
       base_amount: input.baseAmount.toLocaleString('en-IN'),
       gst_amount: input.gstAmount.toLocaleString('en-IN'),

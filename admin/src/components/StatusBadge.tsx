@@ -1,9 +1,11 @@
 import { cn } from '@/lib/utils';
 
-export type Status = 'confirmed' | 'pending' | 'cancelled' | 'paid' | 'draft' | 'published';
+export type Status = 'confirmed' | 'pending' | 'cancelled' | 'paid' | 'draft' | 'published' | 'lead' | 'prospective';
 
 const styles: Record<Status, string> = {
   confirmed: 'bg-status-confirmed text-status-confirmed-foreground',
+  lead: 'bg-status-lead text-status-lead-foreground',
+  prospective: 'bg-status-prospective text-status-prospective-foreground',
   pending: 'bg-status-pending text-status-pending-foreground',
   cancelled: 'bg-status-cancelled text-status-cancelled-foreground',
   paid: 'bg-status-paid text-status-paid-foreground',
@@ -13,6 +15,8 @@ const styles: Record<Status, string> = {
 
 const labels: Record<Status, string> = {
   confirmed: 'Confirmed',
+  lead: 'Lead',
+  prospective: 'Prospective',
   pending: 'Pending',
   cancelled: 'Cancelled',
   paid: 'Paid',

@@ -25,8 +25,17 @@ export type ScheduleKind =
 export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 export type StepReached = 'phone_entered' | 'name_entered' | 'details_entered';
-export type PartnerKind = 'booth' | 'community_engagement';
+export type PartnerKind = 'booth' | 'community_engagement' | 'sponsorship';
 export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
+export type PartnerSponsorKey =
+  | 'title_sponsor'
+  | 'association_sponsor'
+  | 'zone_sponsor'
+  | 'gaming_sponsor'
+  | 'venue_sponsor';
+/** Everything an admin can sell a partner: the four packages plus the sponsorship ladder. */
+export type PartnerOfferKey = PartnerPackageKey | PartnerSponsorKey;
+export type PartnerStage = 'lead' | 'prospective' | 'confirmed' | 'cancelled';
 
 export interface EditionPricing {
   oneshot: number;
@@ -189,5 +198,45 @@ export interface ApiPartnerPurchaseResponse {
 export interface ApiErrorResponse {
   error: string;
   field?: string;
+  day?: Day;
+}
+
+export interface ApiPartnerInvite {
+  organization_name: string;
+  offer_key: PartnerOfferKey;
+  offer_label: string;
+  kind: PartnerKind;
+  /** Whether the offer covers the whole weekend or one day the partner picks. */
+  days_rule: 'weekend' | 'single';
+  days: Day[];
+  stage: PartnerStage;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  website_url: string | null;
+  gstin: string | null;
+  details: string | null;
+  base_amount: number;
+  gst_amount: number;
+  total_amount: number;
+  payment_required: boolean;
+  payment_claimed: boolean;
+  payment_reference: string;
+  edition: {
+    name: string;
+    venue: string;
+    start_date: string;
+    end_date: string;
+    date_range: string;
+  } | null;
+}
+
+export interface ApiPartnerInviteSubmission {
+  contact_name: string;
+  phone: string;
+  email: string;
+  website_url?: string | null;
+  gstin?: string | null;
+  details: string;
   day?: Day;
 }

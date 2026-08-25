@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PartnerInviteForm from '../components/PartnerInviteForm';
+
+// This page is one static build for every partner. The link's token arrives in
+// `?t=`, which only exists at request time, so the island reads it on the
+// client and fetches the invite from the Worker.
+const upiId = import.meta.env.PUBLIC_UPI_ID ?? '';
+---
+
+<Layout
+  title="Partner with REPLAY"
+  description="Confirm your REPLAY partnership: your details, your package and payment."
+  noindex
+>
+  <section class="partner-invite" aria-labelledby="partner-invite-heading">
+    <h2 id="partner-invite-heading" class="sr-only">Confirm your REPLAY partnership</h2>
+    <div class="partner-invite__shell">
+      <PartnerInviteForm client:load upiId={upiId} />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .partner-invite { padding: 56px 20px 96px; background: var(--color-cream); }
+  .partner-invite__shell { max-width: 860px; margin: 0 auto; }
+  @media (min-width: 768px) {
+    .partner-invite { padding: 88px 32px 120px; }
+  }
+</style>

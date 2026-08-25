@@ -25,7 +25,7 @@ it('adds a partner with the package pricing snapshot', async () => {
   await userEvent.type(screen.getByLabelText('Primary contact'), 'Asha');
   await userEvent.type(screen.getByLabelText('Phone'), '9876543210');
   await userEvent.type(screen.getByLabelText('Email'), 'asha@example.com');
-  await userEvent.selectOptions(screen.getByLabelText('Package'), 'community_booth');
+  await userEvent.selectOptions(screen.getByLabelText('Partner type'), 'community_booth');
   await userEvent.click(screen.getByRole('button', { name: /add partner/i }));
 
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/partners', expect.objectContaining({ method: 'POST' })));

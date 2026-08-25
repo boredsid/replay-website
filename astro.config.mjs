@@ -29,6 +29,8 @@ function sponsorLogos() {
 
 export default defineConfig({
   site: "https://replaycon.in",
-  integrations: [sponsorLogos(), react(), mdx(), sitemap()],
+  // `/partner/` is only reachable through a link an admin sends; it has nothing
+  // to say to a crawler.
+  integrations: [sponsorLogos(), react(), mdx(), sitemap({ filter: (page) => !page.includes('/partner/') })],
   vite: { plugins: [tailwindcss()] },
 });

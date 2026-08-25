@@ -1,4 +1,13 @@
-export type PartnerKind = 'booth' | 'community_engagement';
+import {
+  PARTNER_OFFER_LABELS,
+  partnerOfferKind,
+  type PartnerKind,
+  type PartnerOfferKey,
+} from './partner-offers';
+
+export type { PartnerKind };
+
+/** The subset of `PartnerOfferKey` whose price lives on the edition. */
 export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
 
 export interface PartnerPricing {
@@ -17,14 +26,16 @@ export const DEFAULT_PARTNER_PRICING: PartnerPricing = {
   patron_engagement: 3500,
 };
 
-export const PARTNER_PACKAGE_LABELS: Record<PartnerPackageKey, string> = {
-  standard_booth: 'Standard booth',
-  community_booth: 'Community booth',
-  standard_engagement: 'Standard engagement',
-  patron_engagement: 'Patron engagement',
-};
+const PACKAGE_KEYS: PartnerPackageKey[] = [
+  'standard_booth',
+  'community_booth',
+  'standard_engagement',
+  'patron_engagement',
+];
 
-const PACKAGE_KEYS = Object.keys(PARTNER_PACKAGE_LABELS) as PartnerPackageKey[];
+export const PARTNER_PACKAGE_LABELS = Object.fromEntries(
+  PACKAGE_KEYS.map((key) => [key, PARTNER_OFFER_LABELS[key]]),
+) as Record<PartnerPackageKey, string>;
 
 export function parsePartnerPackage(value: unknown): PartnerPackageKey | null {
   return typeof value === 'string' && PACKAGE_KEYS.includes(value as PartnerPackageKey)
@@ -32,10 +43,8 @@ export function parsePartnerPackage(value: unknown): PartnerPackageKey | null {
     : null;
 }
 
-export function partnerKind(packageKey: PartnerPackageKey): PartnerKind {
-  return packageKey === 'standard_booth' || packageKey === 'community_booth'
-    ? 'booth'
-    : 'community_engagement';
+export function partnerKind(packageKey: PartnerOfferKey): PartnerKind {
+  return partnerOfferKind(packageKey);
 }
 
 export function readPartnerPricing(input: unknown): PartnerPricing {

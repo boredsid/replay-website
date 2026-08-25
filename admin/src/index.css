@@ -38,6 +38,10 @@
   --color-status-cancelled-foreground: #7F1D1D;
   --color-status-paid: #DBEAFE;
   --color-status-paid-foreground: #1E3A8A;
+  --color-status-lead: #EDE9FE;
+  --color-status-lead-foreground: #4C1D95;
+  --color-status-prospective: #DBEAFE;
+  --color-status-prospective-foreground: #1E3A8A;
   --color-status-draft: #F1F5F9;
   --color-status-draft-foreground: #334155;
   --color-status-published: #DCFCE7;

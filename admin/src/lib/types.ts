@@ -1,8 +1,18 @@
 export type PaymentStatus = 'confirmed' | 'pending' | 'cancelled';
 export type PassType = 'oneshot' | 'campaign';
 export type Day = 'day1' | 'day2';
-export type PartnerKind = 'booth' | 'community_engagement';
+export type PartnerKind = 'booth' | 'community_engagement' | 'sponsorship';
 export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
+export type PartnerSponsorKey =
+  | 'title_sponsor'
+  | 'association_sponsor'
+  | 'zone_sponsor'
+  | 'gaming_sponsor'
+  | 'venue_sponsor';
+/** Everything an admin can sell a partner: the four packages plus the sponsorship ladder. */
+export type PartnerOfferKey = PartnerPackageKey | PartnerSponsorKey;
+/** Where a partner is in the funnel. Generated in Postgres — never written directly. */
+export type PartnerStage = 'lead' | 'prospective' | 'confirmed' | 'cancelled';
 
 export interface RegistrationRow {
   id: string;
@@ -178,13 +188,14 @@ export interface PartnerRow {
   id: string;
   edition_id: string;
   organization_name: string;
-  contact_name: string;
-  phone: string;
-  email: string;
+  /** Null until the partner fills in their own link. */
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
   website_url: string | null;
   gstin: string | null;
   kind: PartnerKind;
-  package_key: PartnerPackageKey;
+  package_key: PartnerOfferKey;
   days: Day[];
   details: string | null;
   internal_notes: string | null;
@@ -192,6 +203,14 @@ export interface PartnerRow {
   gst_amount: number;
   total_amount: number;
   payment_status: PaymentStatus;
+  stage: PartnerStage;
+  invite_token: string | null;
+  /** Built by the Worker from the token — this is what gets sent to a partner. */
+  invite_url: string | null;
+  invite_created_by: string | null;
+  invite_expires_at: string | null;
+  submitted_at: string | null;
+  payment_claimed_at: string | null;
   source: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;

@@ -10,6 +10,8 @@ import type {
   ApiPartnerPurchaseRequest,
   ApiPartnerPurchasePreviewResponse,
   ApiPartnerPurchaseResponse,
+  ApiPartnerInvite,
+  ApiPartnerInviteSubmission,
   StepReached,
 } from './types';
 
@@ -63,6 +65,27 @@ export async function purchasePartnerPackage(input: ApiPartnerPurchaseRequest): 
 
 export async function previewPartnerPackage(input: ApiPartnerPurchaseDetails): Promise<ApiPartnerPurchasePreviewResponse> {
   return jsonPost<ApiPartnerPurchasePreviewResponse>('/api/partner-purchase/preview', input);
+}
+
+/** Admin-issued partner links. The token is the only credential the page has. */
+export async function getPartnerInvite(token: string): Promise<{ invite: ApiPartnerInvite }> {
+  const res = await fetch(`${base()}/api/partner-invite/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    const err = new Error(`worker /api/partner-invite returned ${res.status}`);
+    (err as any).status = res.status;
+    (err as any).body = errBody;
+    throw err;
+  }
+  return (await res.json()) as { invite: ApiPartnerInvite };
+}
+
+export async function submitPartnerInvite(token: string, input: ApiPartnerInviteSubmission): Promise<{ invite: ApiPartnerInvite }> {
+  return jsonPost(`/api/partner-invite/${encodeURIComponent(token)}`, input);
+}
+
+export async function claimPartnerInvitePayment(token: string): Promise<{ invite: ApiPartnerInvite }> {
+  return jsonPost(`/api/partner-invite/${encodeURIComponent(token)}/payment-claimed`, {});
 }
 
 export async function cancelRegistration(registrationId: string, phone: string): Promise<{ ok: true; registration_id: string }> {

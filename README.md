@@ -104,6 +104,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - pending and confirmed registrations both reserve capacity;
 - partner package pricing is stored per edition, while every partner purchase preserves its base, GST, and final totals as a transaction snapshot;
 - partner purchases are operational records in the private `partners` table, separate from the build-time homepage logo source;
+- a partner's stage (`lead` → `prospective` → `confirmed`, or `cancelled`) is a generated column derived from `submitted_at` and the payment status, so it can never drift from them;
+- the `partners` table also carries the sponsorship ladder; sponsorship amounts are negotiated per partner rather than read from `editions.partner_pricing`;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
 - public programme host, location, sign-up method, and display ordering managed through the protected admin.
@@ -121,6 +123,15 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - UPI payment opens through a device deep link and a locally rendered QR code.
 - Booth and community-engagement buyers use the same preview-then-record UPI handoff on Get Involved: opening or abandoning UPI creates no row, “I've paid” creates the pending partner record, and admins then verify or cancel it.
 - Confirming a pending partner record in admin sends the partner confirmation email; editing a confirmed record does not resend it.
+
+### Partner invite links
+
+- An admin creates a link from **Partners → Create link** with three facts: partner name, partner type, and the amount. That row is a **lead**.
+- The link is `https://replaycon.in/partner/?t=<token>` and is sent to the partner by WhatsApp or email. The page is `noindex` and excluded from the sitemap.
+- The partner fills in contact details, what they will run, and (for a single-day engagement) their day. Saving those makes them **prospective**; they then pay the link's amount by UPI and press “I've paid”, which records a payment claim without confirming it.
+- The amount is never taken from the partner's browser: the link carries the price the admin agreed, and only an admin can change it.
+- An admin verifies the money and sets the payment status to confirmed, which makes the partner **confirmed** and sends the partner confirmation email.
+- Filling a lead's contact details in by hand in admin promotes it to prospective the same way the link does.
 
 ## Deployment and secrets
 

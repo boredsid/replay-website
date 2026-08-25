@@ -245,6 +245,10 @@ export async function handlePartnerPurchase(req: Request, env: Env): Promise<Res
     base_amount: evaluation.amounts.base,
     gst_amount: evaluation.amounts.gst,
     payment_status: 'pending',
+    // The website checkout only reaches this point once the buyer has filled
+    // the form and claimed the UPI transfer, so the row is born prospective.
+    submitted_at: new Date().toISOString(),
+    payment_claimed_at: new Date().toISOString(),
     source: { channel: 'website' },
   };
   const inserted = await sb

@@ -7,12 +7,15 @@ export interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  /** Keeps a page out of search results — for pages only reachable by a link we send. */
+  noindex?: boolean;
 }
 
 const {
   title,
   description = "REPLAY is Bangalore's board-game convention: a weekend of open play, community-run events, and a library of 200+ games.",
   ogImage = '/link-preview.png',
+  noindex = false,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://replaycon.in').toString();
@@ -33,6 +36,7 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
