@@ -52,3 +52,19 @@ it('creates an all-day draft without sending fake times and offers a rebuild', a
   });
   expect(await screen.findByText(/rebuild the public site\?/i)).toBeInTheDocument();
 });
+
+it('offers story-game as an activity type and sends it on create', async () => {
+  render(
+    <MemoryRouter initialEntries={['/programme/new?edition_id=e3']}>
+      <Routes><Route path="/programme/new" element={<ProgrammeDrawer />} /></Routes>
+    </MemoryRouter>,
+  );
+
+  await userEvent.type(await screen.findByLabelText('Title'), 'Fiasco one-shot');
+  await userEvent.selectOptions(screen.getByLabelText('Activity type'), 'story-game');
+  await userEvent.click(screen.getByRole('button', { name: /create item/i }));
+
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/schedule', expect.objectContaining({ method: 'POST' })));
+  const call = (fetchAdmin as any).mock.calls.find((entry: any[]) => entry[0] === '/api/admin/schedule');
+  expect(JSON.parse(call[1].body)).toMatchObject({ title: 'Fiasco one-shot', kind: 'story-game' });
+});

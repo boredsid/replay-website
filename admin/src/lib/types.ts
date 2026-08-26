@@ -116,7 +116,7 @@ export interface EditionRow extends EditionVisitDetails {
 }
 
 export type ScheduleSection = 'always-on' | 'programme' | 'playtesting' | 'publisher-showcase' | 'event-floor';
-export type ScheduleKind = 'workshop' | 'tournament' | 'open-play' | 'meal' | 'talk' | 'ttrpg' | 'puzzle' | 'quiz' | 'social-game' | 'playtest' | 'publisher-showcase' | 'booth' | 'food' | 'merch' | 'amenity' | 'special';
+export type ScheduleKind = 'workshop' | 'tournament' | 'open-play' | 'meal' | 'talk' | 'ttrpg' | 'story-game' | 'puzzle' | 'quiz' | 'social-game' | 'playtest' | 'publisher-showcase' | 'booth' | 'food' | 'merch' | 'amenity' | 'special';
 export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 

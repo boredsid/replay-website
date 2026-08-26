@@ -3,7 +3,7 @@ import { adminJson } from './auth';
 import { diffRows, writeAudit } from './audit';
 
 const SECTIONS = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'] as const;
-const KINDS = ['workshop', 'tournament', 'open-play', 'meal', 'talk', 'ttrpg', 'puzzle', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'special'] as const;
+const KINDS = ['workshop', 'tournament', 'open-play', 'meal', 'talk', 'ttrpg', 'story-game', 'puzzle', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'special'] as const;
 const SIGNUP_MODES = ['none', 'walk-in', 'advance', 'on-site'] as const;
 const PUBLIC_STATUSES = ['draft', 'published', 'cancelled'] as const;
 
