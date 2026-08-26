@@ -50,7 +50,7 @@ const SECTION_OPTIONS: Array<[ScheduleSection, string]> = [
   ['event-floor', 'Event floor'],
 ];
 
-const KIND_OPTIONS: ScheduleKind[] = ['open-play', 'ttrpg', 'puzzle', 'workshop', 'tournament', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'talk', 'meal', 'special'];
+const KIND_OPTIONS: ScheduleKind[] = ['open-play', 'ttrpg', 'story-game', 'puzzle', 'workshop', 'tournament', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'talk', 'meal', 'special'];
 
 function datesForEdition(edition?: EditionRow): string[] {
   if (!edition) return [];

@@ -12,6 +12,7 @@ export type ScheduleKind =
   | 'meal'
   | 'talk'
   | 'ttrpg'
+  | 'story-game'
   | 'puzzle'
   | 'quiz'
   | 'social-game'

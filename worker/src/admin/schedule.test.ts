@@ -51,6 +51,38 @@ describe('handleScheduleCreate', () => {
     expect(await res.json()).toEqual({ error: 'invalid_times' });
   });
 
+  it('accepts story-game as an activity type and rejects an unknown one', async () => {
+    let inserted: any = null;
+    const sb: any = {
+      from: (table: string) => {
+        if (table === 'editions') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { start_date: '2026-09-12', end_date: '2026-09-13' }, error: null }) }) }),
+        };
+        if (table === 'schedule_items') return {
+          insert: (row: any) => {
+            inserted = row;
+            return { select: () => ({ single: async () => ({ data: { id: 'item-2', ...row }, error: null }) }) };
+          },
+        };
+        if (table === 'admin_audit_log') return { insert: async () => ({ error: null }) };
+        return {};
+      },
+    };
+    const body = { ...BASE, section: 'programme', kind: 'story-game', is_all_day: false, start_time: '14:00', end_time: '17:00' };
+    const ok = await handleScheduleCreate(new Request('https://x/api/admin/schedule', { method: 'POST', body: JSON.stringify(body) }), sb, 'sid@x.com', ORIGIN);
+    expect(ok.status).toBe(200);
+    expect(inserted.kind).toBe('story-game');
+
+    const bad = await handleScheduleCreate(
+      new Request('https://x/api/admin/schedule', { method: 'POST', body: JSON.stringify({ ...body, kind: 'story game' }) }),
+      sb,
+      'sid@x.com',
+      ORIGIN,
+    );
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'invalid_kind' });
+  });
+
   it('rejects a day outside the selected edition', async () => {
     const sb: any = {
       from: () => ({
