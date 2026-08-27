@@ -345,3 +345,36 @@ h1, h2, h3, h4 {
   .page-section { padding: 88px 24px; }
   .two-column { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px; }
 }
+
+/* ---------- Game library filter panel (/library) ---------- */
+/*
+ * These live here rather than in `library.astro` because the panel is rendered
+ * by a React island, which Astro's scoped styles cannot reach. Putting them in
+ * this file rather than an `is:global` block on the page keeps to the repo's
+ * rule that shared rules belong in global.css.
+ *
+ * The toggle is only for narrow viewports; above the breakpoint GameLibrary.tsx
+ * forces the panel open, so the summary is hidden rather than merely inert.
+ */
+.library-filters__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.library-filters__summary::-webkit-details-marker { display: none; }
+
+.library-filters__summary::after {
+  content: '+';
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.library-filters[open] > .library-filters__summary::after { content: '−'; }
+
+@media (min-width: 640px) {
+  .library-filters__summary { display: none; }
+}

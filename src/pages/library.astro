@@ -1,0 +1,137 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DarkBand from '../components/DarkBand.astro';
+import GameLibrary from '../components/GameLibrary';
+import { getCurrentEdition } from '../lib/data';
+import type { LibrarySnapshot } from '../lib/game-library';
+import snapshotJson from '../data/game-library.json';
+
+/**
+ * A committed snapshot, not a live read. `npm run sync:library` rebuilds it
+ * from the BGC Supabase library and the four BoardGameGeek collections — see
+ * `scripts/sync-game-library.ts` for why that merge cannot run at build time.
+ */
+const snapshot = snapshotJson as LibrarySnapshot;
+const games = snapshot.games;
+
+const edition = await getCurrentEdition();
+const libraryProcess = edition?.game_library_process?.trim() || null;
+
+/** Physical copies on the shelf — more than the number of distinct games. */
+const copyTotal = games.reduce((total, game) => total + game.copies, 0);
+
+const snapshotDate = new Date(`${snapshot.generatedAt}T00:00:00Z`).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+<Layout
+  title="Game Library — REPLAY"
+  description={`Browse the ${games.length}+ board games on REPLAY's shared shelf. Filter by player count, length and complexity before you arrive.`}
+>
+  <DarkBand
+    eyebrow="▸ GAME LIBRARY"
+    eyebrowColor="var(--color-green)"
+    heading="Every game on the shelf."
+    headingLevel="h1"
+    body={`${games.length} games, all of them coming to the venue. Filter by who you are playing with and how long you have.`}
+    cta={{ text: 'Plan your visit →', href: '/plan-your-visit', variant: 'primary' }}
+  />
+
+  <section class="page-section page-section-soft" aria-labelledby="browse-heading">
+    <div class="container-x">
+      <span class="section-tag">Browse</span>
+      <h2 id="browse-heading" class="section-heading">Find your next table.</h2>
+      <p class="section-copy">
+        Pick the player count you actually have, the time you actually have, and how heavy a rulebook the table is up
+        for. Titles link out to BoardGameGeek if you want to read up before the weekend.
+      </p>
+
+      <div class="library-mount">
+        <GameLibrary client:load games={games} />
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section-blue" aria-labelledby="borrowing-heading">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Borrowing</span>
+        <h2 id="borrowing-heading" class="section-heading">Borrow it. Play it. Bring it back.</h2>
+        <p class="section-copy">
+          Games are borrowed from the library desk and returned there when you finish, so the next table can have a
+          turn. Nothing here is reservable in advance — it is first come, first served on the day.
+        </p>
+      </div>
+      <div class="info-card">
+        <span class="info-card__kicker">How borrowing works</span>
+        <h3>{libraryProcess ? 'At the library desk.' : 'The circulation process is being prepared.'}</h3>
+        <p class="rich-copy">
+          {libraryProcess ??
+            'Collection point, loan duration, return process, and the offline fallback will be published before doors open.'}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section-paper" aria-labelledby="sources-heading">
+    <div class="container-x">
+      <span class="section-tag">Where this list comes from</span>
+      <h2 id="sources-heading" class="section-heading section-heading-small">Five shelves, one list.</h2>
+      <p class="section-copy">
+        Snapshot taken {snapshotDate}. Player counts, play times and complexity come from BoardGameGeek, so they
+        describe the game rather than any one copy.
+      </p>
+      <div class="info-grid">
+        {snapshot.sources.map((source) => (
+          <article class="info-card">
+            <span class="info-card__kicker">{source.count} entries</span>
+            <h3>{source.label}</h3>
+            <p>{source.detail}</p>
+          </article>
+        ))}
+        <article class="info-card">
+          <span class="info-card__kicker">{copyTotal} copies</span>
+          <h3>{games.length} distinct games</h3>
+          <p>
+            The same game often arrives from more than one shelf. Duplicates are merged into a single entry here, so
+            this list counts games rather than boxes.
+          </p>
+        </article>
+      </div>
+      <p class="notice library-notice">
+        This is a snapshot, not a live inventory. Games are added between updates, and a game listed here may already
+        be out on another table — ask at the library desk and the team will help you find something.
+      </p>
+    </div>
+  </section>
+
+  <section class="page-section page-section-purple" aria-labelledby="lend-heading">
+    <div class="container-x two-column">
+      <div>
+        <span class="section-tag">Lend a game</span>
+        <h2 id="lend-heading" class="section-heading">Want your shelf on this page?</h2>
+        <p class="section-copy">
+          Everything on this page is here because someone pooled their collection for the weekend. If you would like
+          to lend yours, tell us what you are bringing and we will add it to the library desk and to this list.
+        </p>
+      </div>
+      <div class="button-row">
+        <a href="mailto:hello@replaycon.in?subject=Lending%20games%20to%20the%20REPLAY%20library" class="btn btn-black">
+          Email hello@replaycon.in
+        </a>
+        <a href="/get-involved" class="btn btn-secondary">Other ways to help →</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .library-mount { margin-top: 36px; }
+  .rich-copy { white-space: pre-line; }
+  .section-heading-small { max-width: 760px; }
+  .library-notice { margin-top: 32px; }
+</style>
