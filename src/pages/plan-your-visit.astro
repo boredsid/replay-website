@@ -4,6 +4,13 @@ import DarkBand from '../components/DarkBand.astro';
 import VenueMap from '../components/VenueMap.astro';
 import { getCurrentEdition, publicDateRange } from '../lib/data';
 import { clockTime, eventDayLabel } from '../lib/edition-format';
+import librarySnapshot from '../data/game-library.json';
+
+/**
+ * Rounded down to the nearest 50 from the same snapshot `/library` renders, so
+ * the headline claim on this page can never outrun the shelf behind it.
+ */
+const libraryCount = Math.floor(librarySnapshot.games.length / 50) * 50;
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
@@ -93,12 +100,16 @@ const helpOnTheDay = text(edition?.help_on_the_day);
       <div>
         <span class="section-tag">Game library</span>
         <h2 id="library-heading" class="section-heading">Borrow a game. Return with a favourite.</h2>
-        <p class="section-copy">REPLAY has a shared library of 200+ games. You will be able to browse what is available, borrow a copy while you are at the convention, and return it to the library desk when you finish.</p>
+        <p class="section-copy">REPLAY has a shared library of {libraryCount}+ games, pooled from the Bangalore Games Club collection and collectors who bring their own shelves. Browse the full list before you arrive, borrow a copy while you are at the convention, and return it to the library desk when you finish.</p>
+        <div class="button-row">
+          <a href="/library" class="btn btn-black">Browse the game library →</a>
+        </div>
       </div>
       <div class="info-card">
         <span class="info-card__kicker">Borrowing details</span>
         <h3>{libraryProcess ? 'How borrowing works.' : 'The circulation process is being prepared.'}</h3>
         <p class="rich-copy">{libraryProcess ?? 'Collection point, loan duration, return process, and the offline fallback will be published before doors open.'}</p>
+        <p><a class="text-link" href="/library">See what is on the shelf →</a></p>
       </div>
     </div>
   </section>
