@@ -103,6 +103,25 @@ The "Where this list comes from" section credits sources without naming them
 wants to credit lenders by name, that is a deliberate change in both the sync
 script and the page — not something to restore by accident.
 
+## Box art is loaded from BoardGameGeek, and CSP must allow it
+
+Cards point `<img src>` straight at `https://cf.geekdo-images.com`. The site
+ships a strict CSP in `public/_headers`, so that host has to be listed in
+`img-src` or every cover is blocked and the grid renders as empty tiles.
+
+**`astro dev` does not apply `public/_headers`.** Neither does `astro preview`.
+That file is a Cloudflare Pages feature, so a CSP mistake is invisible in local
+development and only appears in production. To test headers locally, build and
+serve the output through Wrangler:
+
+```bash
+npm run build && npx wrangler pages dev dist --port 4321
+```
+
+Then load `/library` and check the console for
+`violates the following Content Security Policy directive`. Any change that
+adds a third-party image, font, script, or fetch target needs this check.
+
 ## Games with no box art
 
 Box art comes from BoardGameGeek, so a game only has a picture if it has a BGG
