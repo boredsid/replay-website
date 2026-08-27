@@ -1,4 +1,4 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0 },
@@ -7,9 +7,10 @@ export const NAV = [
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 1 },
   { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 1 },
-  { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 2 },
-  { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 3 },
-  { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 4 },
+  { to: '/sponsors', label: 'Sponsors', mobileLabel: 'Sponsors', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 2 },
+  { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 3 },
+  { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 4 },
+  { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 5 },
 ] as const;
 
 export const MOBILE_PRIMARY_NAV = NAV

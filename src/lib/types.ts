@@ -93,6 +93,8 @@ export interface SponsorRow {
   name: string;
   tier: SponsorTier;
   logo_url: string;
+  /** Object key in the `sponsor-logos` bucket, or null if hosted elsewhere. */
+  logo_path: string | null;
   website_url: string | null;
   display_order: number;
 }

@@ -12,7 +12,7 @@ export function pickAdminOrigin(req: Request, env: Env): string {
 export function adminCorsHeaders(origin: string): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Cf-Access-Jwt-Assertion',
     'Access-Control-Allow-Credentials': 'true',
     Vary: 'Origin',

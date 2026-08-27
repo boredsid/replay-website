@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import { loadEnv } from "vite";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import mdx from "@astrojs/mdx";
@@ -39,7 +40,15 @@ function sponsorLogos() {
     name: "sponsor-logos-normalize",
     hooks: {
       "astro:config:setup": async () => {
-        await normalizeSponsorLogos();
+        // The hook runs before Astro exposes `import.meta.env`, and the
+        // normaliser needs the anon key to read the uploaded sponsor rows, so
+        // load the env here the way Vite would. Cloudflare Pages supplies the
+        // same names as real environment variables.
+        const env = { ...loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), ""), ...process.env };
+        await normalizeSponsorLogos({
+          supabaseUrl: env.PUBLIC_SUPABASE_URL,
+          supabaseAnonKey: env.PUBLIC_SUPABASE_ANON_KEY,
+        });
       },
     },
   };

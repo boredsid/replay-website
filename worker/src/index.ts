@@ -24,6 +24,14 @@ import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-p
 import { handlePassStatus } from './pass-status';
 import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch, handlePartnerInviteCreate } from './admin/partners';
 import { handlePartnerInviteGet, handlePartnerInvitePaymentClaimed, handlePartnerInviteSubmit } from './partner-invite';
+import {
+  handleSponsorList,
+  handleSponsorGet,
+  handleSponsorCreate,
+  handleSponsorPatch,
+  handleSponsorDelete,
+  handleSponsorLogoUpload,
+} from './admin/sponsors';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -83,6 +91,16 @@ export default {
         const partnerMatch = path.match(/^\/api\/admin\/partners\/([^/]+)$/);
         if (partnerMatch && req.method === 'GET') return await handlePartnerGet(env, sb, partnerMatch[1], origin);
         if (partnerMatch && req.method === 'PATCH') return await handlePartnerPatch(req, env, sb, partnerMatch[1], email, origin);
+
+        // The logo body is raw image bytes, so this route is matched before the
+        // `/sponsors/:id` pattern that would otherwise swallow it.
+        if (path === '/api/admin/sponsors/logo' && req.method === 'POST') return await handleSponsorLogoUpload(req, sb, email, origin);
+        if (path === '/api/admin/sponsors' && req.method === 'GET') return await handleSponsorList(req, sb, origin);
+        if (path === '/api/admin/sponsors' && req.method === 'POST') return await handleSponsorCreate(req, sb, email, origin);
+        const sponsorMatch = path.match(/^\/api\/admin\/sponsors\/([^/]+)$/);
+        if (sponsorMatch && req.method === 'GET') return await handleSponsorGet(sb, sponsorMatch[1], origin);
+        if (sponsorMatch && req.method === 'PATCH') return await handleSponsorPatch(req, sb, sponsorMatch[1], email, origin);
+        if (sponsorMatch && req.method === 'DELETE') return await handleSponsorDelete(sb, sponsorMatch[1], email, origin);
 
         if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, sb, origin);
         if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);

@@ -1,7 +1,11 @@
 ---
 /**
  * One unified partners-and-sponsors logo wall.
- * The sponsor-logos directory is the only source of truth.
+ *
+ * The logos, their order and their links come from `partnerLogos` — sponsor
+ * rows uploaded in the admin console, plus any legacy artwork still in
+ * `sponsor-logos/`. A logo with a link becomes an anchor; one without stays a
+ * plain cell, so nothing looks clickable that isn't.
  */
 import { Image } from 'astro:assets';
 import type { PartnerLogo } from '../lib/partner-logos';
@@ -23,19 +27,27 @@ const { logos } = Astro.props;
         </h2>
 
         <div class="sponsors-band__grid">
-          {logos.map((logo) => (
-            <div class="sponsors-band__logo-cell">
-              <Image
-                src={logo.image}
-                alt={logo.name}
-                width={240}
-                format="webp"
-                quality={82}
-                loading="lazy"
-                class="sponsors-band__logo"
-              />
-            </div>
-          ))}
+          {logos.map((logo) => {
+            const Cell = logo.href ? 'a' : 'div';
+            return (
+              <Cell
+                class:list={['sponsors-band__logo-cell', logo.href && 'sponsors-band__logo-cell--link']}
+                href={logo.href ?? undefined}
+                target={logo.href ? '_blank' : undefined}
+                rel={logo.href ? 'noopener noreferrer' : undefined}
+              >
+                <Image
+                  src={logo.image}
+                  alt={logo.name}
+                  width={240}
+                  format="webp"
+                  quality={82}
+                  loading="lazy"
+                  class="sponsors-band__logo"
+                />
+              </Cell>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -82,6 +94,27 @@ const { logos } = Astro.props;
     border: 2px solid rgba(26, 26, 26, 0.14);
     border-radius: var(--radius-md);
     background: #fff;
+  }
+
+  .sponsors-band__logo-cell--link {
+    transition: border-color 120ms ease, transform 120ms ease;
+  }
+
+  .sponsors-band__logo-cell--link:hover,
+  .sponsors-band__logo-cell--link:focus-visible {
+    border-color: var(--color-ink);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sponsors-band__logo-cell--link {
+      transition: border-color 120ms ease;
+    }
+
+    .sponsors-band__logo-cell--link:hover,
+    .sponsors-band__logo-cell--link:focus-visible {
+      transform: none;
+    }
   }
 
   .sponsors-band__logo {

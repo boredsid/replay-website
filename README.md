@@ -7,11 +7,11 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 - `src/` — Astro public site, React registration and partner-checkout islands, schedule, SEO metadata, and email templates.
 - `app/` — installable Vite/React attendee PWA for the live schedule, local agenda, event status, and organiser announcements.
 - `worker/` — Cloudflare Worker for registration, partner purchases, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
-- `admin/` — installable Vite/React operations console for registrations, partners, editions, programme data, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
+- `admin/` — installable Vite/React operations console for registrations, partners, editions, programme data, sponsor logos, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling plus the build-time image steps (sponsor-logo normalisation, link-preview rendering) and the vendored Space Grotesk TTFs those steps draw with. Source CSV files are intentionally ignored.
-- `sponsor-logos/` — canonical homepage partner/sponsor logos. Add or remove image files here; the next public-site build updates the logo wall automatically. Artwork does not need to be pre-cropped or transparent: an Astro integration in `astro.config.mjs` (also runnable directly as `npm run normalize:logos`) trims each mark out of its canvas and re-seats it on a shared 480x320 tile in `src/generated/sponsor-logos/`. Marks on a solid dark or coloured background are left untrimmed on purpose — see `src/lib/logo-normalize.ts`.
+- `sponsor-logos/` — legacy homepage partner/sponsor logos. The wall's primary source is now the `sponsors` table, which admins fill in from the console's **Sponsors** page: they upload the artwork (stored in the public `sponsor-logos` Supabase bucket), set the link the logo opens, and order the wall by tier. Files still in this folder are appended after the uploaded sponsors, so artwork nobody has migrated keeps showing; a sponsor row of the same name replaces its file, which is then safe to delete. Either way the next public-site build updates the wall — the wall is baked in at build time, so an upload reaches replaycon.in only after a rebuild. Artwork does not need to be pre-cropped or transparent: an Astro integration in `astro.config.mjs` (also runnable directly as `npm run normalize:logos`) trims each mark out of its canvas and re-seats it on a shared 480x320 tile in `src/generated/sponsor-logos/`. Marks on a solid dark or coloured background are left untrimmed on purpose — see `src/lib/logo-normalize.ts`.
 
 ## Current stack
 
@@ -103,7 +103,8 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - Guild Path benefits apply to the member's first eligible ticket in a multi-ticket booking;
 - pending and confirmed registrations both reserve capacity;
 - partner package pricing is stored per edition, while every partner purchase preserves its base, GST, and final totals as a transaction snapshot;
-- partner purchases are operational records in the private `partners` table, separate from the build-time homepage logo source;
+- partner purchases are operational records in the private `partners` table, separate from the `sponsors` table that drives the homepage logo wall;
+- sponsor logos are uploaded through the admin, held in the public `sponsor-logos` storage bucket, and each carries an optional link the public logo opens in a new tab;
 - a partner's stage (`lead` → `prospective` → `confirmed`, or `cancelled`) is a generated column derived from `submitted_at` and the payment status, so it can never drift from them;
 - the `partners` table also carries the sponsorship ladder; sponsorship amounts are negotiated per partner rather than read from `editions.partner_pricing`;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.
