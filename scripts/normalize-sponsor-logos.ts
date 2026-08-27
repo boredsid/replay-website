@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { DEFAULT_OPTIONS, planNormalization, type NormalizePlan } from '../src/lib/logo-normalize.ts';
 import { buildWall, type SponsorWallRow, type WallEntry } from '../src/lib/sponsor-wall.ts';
+import { restUrl } from '../src/lib/supabase-rest.ts';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = join(repoRoot, 'sponsor-logos');
@@ -55,10 +56,11 @@ async function supabaseSelect(
   { supabaseUrl, supabaseAnonKey }: Required<NormalizeSources>,
   path: string,
 ): Promise<any[]> {
-  const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/${path}`, {
+  const key = supabaseAnonKey.trim();
+  const response = await fetch(restUrl(supabaseUrl, path), {
     headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${supabaseAnonKey}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
       Accept: 'application/json',
     },
   });
