@@ -17,7 +17,8 @@
     "audit:data": "tsx scripts/audit-data-sanity.ts",
     "audit:placeholders": "tsx scripts/reconcile-placeholder-users.ts",
     "import:historical": "tsx scripts/import-historical.ts",
-    "normalize:logos": "tsx scripts/normalize-sponsor-logos.ts"
+    "normalize:logos": "tsx scripts/normalize-sponsor-logos.ts",
+    "seed:sponsor-logos": "tsx scripts/seed-sponsor-logos.ts"
   },
   "repository": {
     "type": "git",
