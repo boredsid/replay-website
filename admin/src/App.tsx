@@ -52,9 +52,9 @@ export function App() {
               <Route path="/partners/new" element={<><Partners /><PartnerDrawer /></>} />
               <Route path="/partners/invite" element={<><Partners /><PartnerInviteDrawer /></>} />
               <Route path="/partners/:id" element={<><Partners /><PartnerDrawer /></>} />
-              <Route path="/sponsors" element={<Sponsors />} />
-              <Route path="/sponsors/new" element={<><Sponsors /><SponsorDrawer /></>} />
-              <Route path="/sponsors/:id" element={<><Sponsors /><SponsorDrawer /></>} />
+              <Route path="/partner-logos" element={<Sponsors />} />
+              <Route path="/partner-logos/new" element={<><Sponsors /><SponsorDrawer /></>} />
+              <Route path="/partner-logos/:id" element={<><Sponsors /><SponsorDrawer /></>} />
               <Route path="/users" element={<Users />} />
               <Route path="/users/:phone" element={<><Users /><UserDrawer /></>} />
               <Route path="/leads" element={<Leads />} />

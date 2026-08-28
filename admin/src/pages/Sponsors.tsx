@@ -71,16 +71,16 @@ export default function Sponsors() {
     <div className="p-4 md:p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Sponsor logos</h1>
+          <h1 className="text-2xl font-bold">Partner logos</h1>
           <p className="text-sm text-muted-foreground">
             The logo wall on replaycon.in. Upload artwork, set where each logo links, and pick a tier — the wall ranks by tier and sorts by name inside it.
           </p>
         </div>
         <Link
-          to={`/sponsors/new?edition_id=${encodeURIComponent(editionId)}`}
+          to={`/partner-logos/new?edition_id=${encodeURIComponent(editionId)}`}
           className={`rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground ${!editionId ? 'pointer-events-none opacity-50' : ''}`}
         >
-          New sponsor
+          New partner
         </Link>
       </div>
 
@@ -111,9 +111,9 @@ export default function Sponsors() {
         <div className="text-muted-foreground">Loading…</div>
       ) : sponsors.length === 0 ? (
         <div className="rounded-md border bg-background p-6">
-          <h2 className="font-semibold">No sponsor logos yet</h2>
+          <h2 className="font-semibold">No partner logos yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add one and it joins the wall on the next rebuild. With no sponsors for this edition the wall hides itself.
+            Add one and it joins the wall on the next rebuild. With no partners for this edition the wall hides itself.
           </p>
         </div>
       ) : (
@@ -121,7 +121,7 @@ export default function Sponsors() {
           {sponsors.map((sponsor) => (
             <Link
               key={sponsor.id}
-              to={`/sponsors/${sponsor.id}`}
+              to={`/partner-logos/${sponsor.id}`}
               className="block rounded-md border bg-background p-4 hover:bg-muted"
             >
               <div className="mb-3 flex h-24 items-center justify-center rounded-md border bg-white p-3">

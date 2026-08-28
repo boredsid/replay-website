@@ -7,7 +7,7 @@ export const NAV = [
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 1 },
   { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 1 },
-  { to: '/sponsors', label: 'Sponsors', mobileLabel: 'Sponsors', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 2 },
+  { to: '/partner-logos', label: 'Partner logos', mobileLabel: 'Logos', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 2 },
   { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 3 },
   { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 4 },
   { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 5 },

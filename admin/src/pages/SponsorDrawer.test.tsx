@@ -44,25 +44,25 @@ beforeEach(() => {
 
 function renderNew() {
   return render(
-    <MemoryRouter initialEntries={['/sponsors/new?edition_id=e3']}>
+    <MemoryRouter initialEntries={['/partner-logos/new?edition_id=e3']}>
       <Routes>
-        <Route path="/sponsors/new" element={<SponsorDrawer />} />
-        <Route path="/sponsors" element={<div>Sponsor list</div>} />
+        <Route path="/partner-logos/new" element={<SponsorDrawer />} />
+        <Route path="/partner-logos" element={<div>Partner logo list</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-it('uploads the artwork first, then saves the sponsor pointing at it', async () => {
+it('uploads the artwork first, then saves the partner pointing at it', async () => {
   const user = userEvent.setup();
   renderNew();
 
-  await screen.findByRole('heading', { name: 'New sponsor' });
+  await screen.findByRole('heading', { name: 'New partner' });
   const file = new File(['png-bytes'], 'Dice Hard.png', { type: 'image/png' });
   await user.upload(screen.getByLabelText('Logo'), file);
   await user.type(screen.getByLabelText('Links to (optional)'), 'https://dicehard.in');
   await user.selectOptions(screen.getByLabelText('Tier'), 'venue');
-  await user.click(screen.getByRole('button', { name: 'Add sponsor' }));
+  await user.click(screen.getByRole('button', { name: 'Add partner' }));
 
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith(
     '/api/admin/sponsors',
@@ -82,38 +82,38 @@ it('uploads the artwork first, then saves the sponsor pointing at it', async () 
     logo_url: 'https://cdn.example/sponsor-logos/e3/new.png',
     logo_path: 'e3/new.png',
   });
-  expect(await screen.findByText('Sponsor list')).toBeInTheDocument();
+  expect(await screen.findByText('Partner logo list')).toBeInTheDocument();
 });
 
-it('refuses to save a new sponsor with no artwork', async () => {
+it('refuses to save a new partner with no artwork', async () => {
   const user = userEvent.setup();
   renderNew();
 
-  await screen.findByRole('heading', { name: 'New sponsor' });
+  await screen.findByRole('heading', { name: 'New partner' });
   await user.type(screen.getByLabelText('Name'), 'Nameless');
-  await user.click(screen.getByRole('button', { name: 'Add sponsor' }));
+  await user.click(screen.getByRole('button', { name: 'Add partner' }));
 
   await waitFor(() => expect(
     (fetchAdmin as any).mock.calls.filter(([path]: [string]) => path.startsWith('/api/admin/sponsors')),
   ).toHaveLength(0));
 });
 
-it('edits an existing sponsor without re-uploading its artwork', async () => {
+it('edits an existing partner without re-uploading its artwork', async () => {
   const user = userEvent.setup();
   render(
-    <MemoryRouter initialEntries={['/sponsors/s1']}>
+    <MemoryRouter initialEntries={['/partner-logos/s1']}>
       <Routes>
-        <Route path="/sponsors/:id" element={<SponsorDrawer />} />
-        <Route path="/sponsors" element={<div>Sponsor list</div>} />
+        <Route path="/partner-logos/:id" element={<SponsorDrawer />} />
+        <Route path="/partner-logos" element={<div>Partner logo list</div>} />
       </Routes>
     </MemoryRouter>,
   );
 
-  await screen.findByRole('heading', { name: 'Edit sponsor' });
+  await screen.findByRole('heading', { name: 'Edit partner' });
   const link = screen.getByLabelText('Links to (optional)');
   await user.clear(link);
   await user.type(link, 'https://boardgamecompany.in/replay');
-  await user.click(screen.getByRole('button', { name: 'Save sponsor' }));
+  await user.click(screen.getByRole('button', { name: 'Save partner' }));
 
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith(
     '/api/admin/sponsors/s1',
@@ -134,17 +134,17 @@ it('edits an existing sponsor without re-uploading its artwork', async () => {
 it('clears the link when the field is emptied, so the logo stops being clickable', async () => {
   const user = userEvent.setup();
   render(
-    <MemoryRouter initialEntries={['/sponsors/s1']}>
+    <MemoryRouter initialEntries={['/partner-logos/s1']}>
       <Routes>
-        <Route path="/sponsors/:id" element={<SponsorDrawer />} />
-        <Route path="/sponsors" element={<div>Sponsor list</div>} />
+        <Route path="/partner-logos/:id" element={<SponsorDrawer />} />
+        <Route path="/partner-logos" element={<div>Partner logo list</div>} />
       </Routes>
     </MemoryRouter>,
   );
 
-  await screen.findByRole('heading', { name: 'Edit sponsor' });
+  await screen.findByRole('heading', { name: 'Edit partner' });
   await user.clear(screen.getByLabelText('Links to (optional)'));
-  await user.click(screen.getByRole('button', { name: 'Save sponsor' }));
+  await user.click(screen.getByRole('button', { name: 'Save partner' }));
 
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith(
     '/api/admin/sponsors/s1',

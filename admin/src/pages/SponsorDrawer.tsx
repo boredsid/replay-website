@@ -91,7 +91,7 @@ export default function SponsorDrawer() {
         setLoaded(true);
       } catch (error) {
         showApiError(error);
-        nav('/sponsors');
+        nav('/partner-logos');
       }
     })();
   }, [id, isNew, nav, search]);
@@ -154,8 +154,8 @@ export default function SponsorDrawer() {
       };
       if (isNew) await fetchAdmin('/api/admin/sponsors', { method: 'POST', body: JSON.stringify(payload) });
       else await fetchAdmin(`/api/admin/sponsors/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      toast.success(isNew ? 'Sponsor added — rebuild the site to publish it' : 'Sponsor saved — rebuild the site to publish it');
-      nav('/sponsors');
+      toast.success(isNew ? 'Partner added — rebuild the site to publish it' : 'Partner saved — rebuild the site to publish it');
+      nav('/partner-logos');
     } catch (error) {
       showApiError(error);
     } finally {
@@ -167,8 +167,8 @@ export default function SponsorDrawer() {
     setBusy(true);
     try {
       await fetchAdmin(`/api/admin/sponsors/${id}`, { method: 'DELETE' });
-      toast.success('Sponsor removed — rebuild the site to publish the change');
-      nav('/sponsors');
+      toast.success('Partner removed — rebuild the site to publish the change');
+      nav('/partner-logos');
     } catch (error) {
       showApiError(error);
     } finally {
@@ -180,10 +180,10 @@ export default function SponsorDrawer() {
   if (!loaded) return null;
 
   return (
-    <Sheet open onOpenChange={(open) => { if (!open) nav('/sponsors'); }}>
+    <Sheet open onOpenChange={(open) => { if (!open) nav('/partner-logos'); }}>
       <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-lg">
         <SheetHeader className="p-0 pr-8">
-          <SheetTitle>{isNew ? 'New sponsor' : 'Edit sponsor'}</SheetTitle>
+          <SheetTitle>{isNew ? 'New partner' : 'Edit partner'}</SheetTitle>
           <SheetDescription>
             Artwork is trimmed and re-seated on a shared tile during the site build, so a logo on a white square and
             one on transparency end up the same optical size. Supply it at least {TARGET_WIDTH}px wide.
@@ -197,7 +197,7 @@ export default function SponsorDrawer() {
             </select>
           </Field>
 
-          <Field label="Logo">
+          <Field label="Logo" hint="PNG, JPEG, WebP, AVIF or SVG, up to 2 MB.">
             <div className="space-y-2">
               <div className="flex h-32 items-center justify-center rounded-md border bg-white p-4">
                 {preview
@@ -209,9 +209,8 @@ export default function SponsorDrawer() {
                 type="file"
                 accept={ACCEPTED_TYPES.join(',')}
                 onChange={(event) => { void chooseFile(event.target.files?.[0] ?? null); }}
-                className="w-full rounded-md border px-3 py-2 text-sm"
+                className="w-full cursor-pointer rounded-md border text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:border-0 file:border-r file:border-solid file:border-border file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted/70"
               />
-              <p className="text-xs text-muted-foreground">PNG, JPEG, WebP, AVIF or SVG, up to 2 MB.</p>
             </div>
           </Field>
 
@@ -219,15 +218,15 @@ export default function SponsorDrawer() {
             <input aria-label="Name" value={form.name} maxLength={160} onChange={(event) => set('name', event.target.value)} className="w-full rounded-md border px-3 py-2" />
           </Field>
 
-          <Field label="Links to (optional)">
+          <Field
+            label="Links to (optional)"
+            hint="With a link the logo opens it in a new tab. Leave this empty and the logo simply sits on the wall."
+          >
             <input aria-label="Links to (optional)" type="url" inputMode="url" placeholder="https://example.com" value={form.website_url} onChange={(event) => set('website_url', event.target.value)} className="w-full rounded-md border px-3 py-2" />
           </Field>
-          <p className="-mt-2 text-xs text-muted-foreground">
-            With a link the logo opens it in a new tab. Leave this empty and the logo simply sits on the wall.
-          </p>
 
-          <Field label="Tier">
-            <select aria-label="Tier" value={form.tier} onChange={(event) => set('tier', event.target.value as SponsorTier)} className="w-full rounded-md border px-3 py-2">
+          <Field label="Tier" hint="The wall shows tiers in that order, and sorts partners by name inside each one.">
+            <select aria-label="Tier" value={form.tier} onChange={(event) => set('tier', event.target.value as SponsorTier)} className="w-full rounded-md border bg-background px-3 py-2">
               <option value="title">Title sponsor</option>
               <option value="association">In association with</option>
               <option value="venue">Venue partner</option>
@@ -236,12 +235,9 @@ export default function SponsorDrawer() {
               <option value="community">Community partner</option>
             </select>
           </Field>
-          <p className="-mt-2 text-xs text-muted-foreground">
-            The wall shows tiers in that order, and sorts sponsors by name inside each one.
-          </p>
 
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
-            {busy ? 'Saving…' : isNew ? 'Add sponsor' : 'Save sponsor'}
+            {busy ? 'Saving…' : isNew ? 'Add partner' : 'Save partner'}
           </button>
 
           {!isNew && (
@@ -261,7 +257,7 @@ export default function SponsorDrawer() {
             <DialogHeader>
               <DialogTitle>Remove {form.name}?</DialogTitle>
               <DialogDescription>
-                This deletes the sponsor and its uploaded artwork. The wall drops the logo at the next site rebuild.
+                This deletes the partner and its uploaded artwork. The wall drops the logo at the next site rebuild.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -274,7 +270,7 @@ export default function SponsorDrawer() {
                 onClick={() => { void remove(); }}
                 className="w-full rounded-md bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50 sm:w-auto"
               >
-                {busy ? 'Removing…' : 'Remove sponsor'}
+                {busy ? 'Removing…' : 'Remove partner'}
               </button>
             </DialogFooter>
           </DialogContent>
@@ -284,6 +280,17 @@ export default function SponsorDrawer() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label><span className="mb-1 block text-sm text-muted-foreground">{label}</span>{children}</label>;
+/**
+ * `block` is load-bearing: a bare `<label>` is inline, so the block children
+ * inside it do not take part in the parent's `space-y-*` rhythm and the next
+ * field creeps up under this one's control.
+ */
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
+      {children}
+      {hint && <span className="mt-1.5 block text-xs text-muted-foreground">{hint}</span>}
+    </label>
+  );
 }
