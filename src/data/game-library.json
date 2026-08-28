@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27",
+  "generatedAt": "2026-08-28",
   "sources": [
     {
       "label": "Bangalore Games Club library",
@@ -1850,23 +1850,6 @@
       "copies": 2
     },
     {
-      "key": "bgg-402676",
-      "bggId": 402676,
-      "title": "Cities",
-      "year": 2024,
-      "thumb": "https://cf.geekdo-images.com/jJsq3gVshPzWL9MJnhmO_A__small/img/1a_eu28Vr0EZZkW5XoL_7YPwqHw=/fit-in/200x150/filters:strip_icc()/pic7977800.jpg",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 45,
-      "maxTime": 45,
-      "rating": 7.3,
-      "weight": 1.9,
-      "bestWith": [
-        4
-      ],
-      "copies": 2
-    },
-    {
       "key": "bgg-263895",
       "bggId": 263895,
       "title": "City of the Great Machine",
@@ -2582,23 +2565,6 @@
       "bestWith": [
         3,
         5
-      ],
-      "copies": 1
-    },
-    {
-      "key": "bgg-439742",
-      "bggId": 439742,
-      "title": "Dewan",
-      "year": 2025,
-      "thumb": "https://cf.geekdo-images.com/sTyIZTri7fO2Mt33udtjrA__small/img/qDHpVB8DR1DOy_TuwvpdO3DdYNE=/fit-in/200x150/filters:strip_icc()/pic8955937.jpg",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 40,
-      "maxTime": 40,
-      "rating": 7.4,
-      "weight": 2.12,
-      "bestWith": [
-        3
       ],
       "copies": 1
     },
@@ -3378,23 +3344,6 @@
       "maxTime": 30,
       "rating": 6.2,
       "weight": 1.79,
-      "bestWith": [
-        2
-      ],
-      "copies": 1
-    },
-    {
-      "key": "bgg-40628",
-      "bggId": 40628,
-      "title": "Finca",
-      "year": 2009,
-      "thumb": "https://cf.geekdo-images.com/U7n2gtbgu2IpEGs8YePYlQ__small/img/5jsaAnh3fc8yy8QwnzBhRXr3kIs=/fit-in/200x150/filters:strip_icc()/pic8520431.png",
-      "minPlayers": 2,
-      "maxPlayers": 5,
-      "minTime": 45,
-      "maxTime": 45,
-      "rating": 7.1,
-      "weight": 2.07,
       "bestWith": [
         2
       ],
@@ -4459,7 +4408,7 @@
       "maxPlayers": 2,
       "minTime": 45,
       "maxTime": 45,
-      "rating": 7.1,
+      "rating": 7,
       "weight": 2.58,
       "bestWith": [
         2
@@ -5183,7 +5132,7 @@
       "maxPlayers": 5,
       "minTime": 60,
       "maxTime": 120,
-      "rating": 7.9,
+      "rating": 8,
       "weight": 3.12,
       "bestWith": [
         4
@@ -5664,7 +5613,7 @@
       "maxPlayers": 4,
       "minTime": 60,
       "maxTime": 90,
-      "rating": 8,
+      "rating": 8.3,
       "weight": 2.67,
       "bestWith": [
         4
@@ -5907,7 +5856,7 @@
       "maxPlayers": 5,
       "minTime": 20,
       "maxTime": null,
-      "rating": 7.1,
+      "rating": 7,
       "weight": 1.33,
       "bestWith": [
         4
@@ -5984,23 +5933,6 @@
         2
       ],
       "copies": 2
-    },
-    {
-      "key": "bgg-417224",
-      "bggId": 417224,
-      "title": "Onstage",
-      "year": 2024,
-      "thumb": "https://cf.geekdo-images.com/zoAdC-PzrZGpyxAZGhhyOw__small/img/ALJxTVg-gwmudtBbDtgWEe0ctE0=/fit-in/200x150/filters:strip_icc()/pic9066866.png",
-      "minPlayers": 3,
-      "maxPlayers": 5,
-      "minTime": 15,
-      "maxTime": 30,
-      "rating": 6.9,
-      "weight": 2,
-      "bestWith": [
-        4
-      ],
-      "copies": 1
     },
     {
       "key": "bgg-201406",
@@ -6771,7 +6703,7 @@
       "minTime": 45,
       "maxTime": 60,
       "rating": 7.8,
-      "weight": 1.98,
+      "weight": 1.99,
       "bestWith": [
         3
       ],
@@ -7374,23 +7306,6 @@
       "copies": 1
     },
     {
-      "key": "bgg-313262",
-      "bggId": 313262,
-      "title": "Shamans",
-      "year": 2021,
-      "thumb": "https://cf.geekdo-images.com/BNmYPPip0PZBPx9qJCEUxA__small/img/B5l81b4CUT3OYafXEk4QNi_nxkY=/fit-in/200x150/filters:strip_icc()/pic6021323.jpg",
-      "minPlayers": 3,
-      "maxPlayers": 5,
-      "minTime": 30,
-      "maxTime": 60,
-      "rating": 6.8,
-      "weight": 2,
-      "bestWith": [
-        4
-      ],
-      "copies": 1
-    },
-    {
       "key": "bgg-257305",
       "bggId": 257305,
       "title": "SHASN",
@@ -7457,24 +7372,6 @@
         5
       ],
       "copies": 2
-    },
-    {
-      "key": "bgg-311828",
-      "bggId": 311828,
-      "title": "Sherwood Bandits",
-      "year": 2021,
-      "thumb": "https://cf.geekdo-images.com/Nk3qhijWNhtqBFXDJc_4Qw__small/img/Ryji9V8LLo_Idn9D-cLuuRJFcBs=/fit-in/200x150/filters:strip_icc()/pic8471951.jpg",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 30,
-      "maxTime": 40,
-      "rating": 6.5,
-      "weight": 2,
-      "bestWith": [
-        3,
-        4
-      ],
-      "copies": 1
     },
     {
       "key": "bgg-374867",
@@ -8294,7 +8191,7 @@
       "minTime": 30,
       "maxTime": 60,
       "rating": 7.6,
-      "weight": 2.15,
+      "weight": 2.14,
       "bestWith": [
         2,
         3

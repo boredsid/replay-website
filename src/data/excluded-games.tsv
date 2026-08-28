@@ -1,0 +1,19 @@
+# Games to keep off /library even though a source still lists them.
+#
+# One entry per line: a BGG id, or a title when the game has no BGG id.
+# Anything after a second tab is a note for humans. Blank lines and lines
+# starting with # are ignored.
+#
+# This file exists because src/data/bgg/*.tsv is re-harvested wholesale from
+# BoardGameGeek — deleting a row there is undone the next time a collection is
+# refreshed. Exclusions have to live outside the harvest to survive it.
+#
+# Excluding by BGG id removes the game entirely, including copies contributed
+# by other collections.
+
+439742	Dewan	not coming to the venue
+40628	Finca	not coming to the venue
+402676	Cities	not coming to the venue — also drops a second copy from another collection
+417224	Onstage	not coming to the venue
+311828	Sherwood Bandits	not coming to the venue
+313262	Shamans	not coming to the venue

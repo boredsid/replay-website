@@ -45,6 +45,16 @@ const outputPath = join(repoRoot, 'src/data/game-library.json');
  * titles their art. See docs/GAME_LIBRARY.md for how to extend it.
  */
 const idOverridesPath = join(repoRoot, 'src/data/bgc-bgg-ids.tsv');
+/**
+ * Games to keep off the page even though a source still lists them — usually
+ * because the owner is no longer bringing them.
+ *
+ * Kept separate from the harvest because `src/data/bgg/*.tsv` is replaced
+ * wholesale whenever a collection is refreshed, so a row deleted there comes
+ * straight back. Excluding by BGG id drops the game entirely, including copies
+ * contributed by other collections.
+ */
+const exclusionsPath = join(repoRoot, 'src/data/excluded-games.tsv');
 /** Gitignored (all of `scripts/data/` is). Makes a re-run cost no requests. */
 const cacheDir = join(repoRoot, 'scripts/data/bgg-cache');
 
@@ -256,6 +266,30 @@ function readIdOverrides(): Map<string, number> {
   return overrides;
 }
 
+interface Exclusions {
+  ids: Set<number>;
+  /** Folded titles, for games with no BGG id. */
+  titles: Set<string>;
+}
+
+/** Read `excluded-games.tsv`: one BGG id or title per line, `#` for comments. */
+function readExclusions(): Exclusions {
+  const ids = new Set<number>();
+  const titles = new Set<string>();
+  if (!existsSync(exclusionsPath)) return { ids, titles };
+  readFileSync(exclusionsPath, 'utf8')
+    .split('\n')
+    .forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const key = line.split('\t')[0]?.trim();
+      if (!key) throw new Error(`excluded-games.tsv:${index + 1} has an empty key: ${line}`);
+      if (/^\d+$/.test(key)) ids.add(Number(key));
+      else titles.add(titleKey(key));
+    });
+  return { ids, titles };
+}
+
 function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void {
   const existing = game.copies.find((copy) => copy.lender === lender && copy.source === source);
   if (existing) existing.count += 1;
@@ -265,6 +299,7 @@ function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void
 async function main(): Promise<void> {
   const collections = readCollections();
   const idOverrides = readIdOverrides();
+  const exclusions = readExclusions();
   const bgcRows = await fetchBgcRows();
 
   const byKey = new Map<string, WorkingGame>();
@@ -272,12 +307,16 @@ async function main(): Promise<void> {
 
   // --- BGG collections first, because they carry the BGG ids that let the
   // --- BGC rows inherit real box data instead of hand-typed approximations.
+  // Excluded ids are skipped here as well as filtered at the end, so a removed
+  // game costs no requests on a cold run.
   const uniqueIds = new Set<number>();
-  for (const { entries } of collections) for (const entry of entries) uniqueIds.add(entry.bggId);
+  for (const { entries } of collections) {
+    for (const entry of entries) if (!exclusions.ids.has(entry.bggId)) uniqueIds.add(entry.bggId);
+  }
   // Overridden BGC titles need the same box data, so enrich their ids too.
   for (const row of bgcRows) {
     const bggId = idOverrides.get(titleKey(row.title ?? ''));
-    if (bggId) uniqueIds.add(bggId);
+    if (bggId && !exclusions.ids.has(bggId)) uniqueIds.add(bggId);
   }
   console.log(`Enriching ${uniqueIds.size} unique BGG ids (cached: ${existsSync(cacheDir) ? readdirSync(cacheDir).length : 0})…`);
 
@@ -414,7 +453,23 @@ async function main(): Promise<void> {
   // Collapse each game's per-lender copies to a bare count. This is the step
   // that keeps names out of the published file — nothing downstream of here
   // has them to leak.
-  const games: LibraryGame[] = [...byKey.values()]
+  // Drop excluded games, and record which exclusion entries actually matched
+  // so a typo in the file surfaces instead of silently doing nothing.
+  const usedExclusions = new Set<string>();
+  const kept = [...byKey.values()].filter((game) => {
+    if (game.bggId !== null && exclusions.ids.has(game.bggId)) {
+      usedExclusions.add(String(game.bggId));
+      return false;
+    }
+    const folded = titleKey(game.title);
+    if (exclusions.titles.has(folded)) {
+      usedExclusions.add(folded);
+      return false;
+    }
+    return true;
+  });
+
+  const games: LibraryGame[] = kept
     .sort((a, b) => a.title.localeCompare(b.title, 'en'))
     .map(({ copies, ...game }) => ({
       ...game,
@@ -434,6 +489,18 @@ async function main(): Promise<void> {
   console.log(`\nWrote ${outputPath}`);
   console.log(`  ${games.length} distinct games from ${sources.length} sources`);
   console.log(`  ${withArt} with box art, ${withPlayers} with a player count`);
+  const excludedCount = byKey.size - kept.length;
+  console.log(`  ${excludedCount} removed by excluded-games.tsv`);
+
+  // An exclusion that matches nothing is almost always a typo or a game that
+  // has already left its source — either way the file is now lying.
+  const declared = [...exclusions.ids].map(String).concat([...exclusions.titles]);
+  const unused = declared.filter((key) => !usedExclusions.has(key));
+  if (unused.length) {
+    console.log(`  ! ${unused.length} exclusion(s) matched nothing — stale or mistyped:`);
+    for (const key of unused) console.log(`      ${key}`);
+  }
+
   const orphans = games.filter((game) => !game.bggId);
   if (orphans.length) {
     console.log(`  ${orphans.length} BGC titles with no BGG match (no art, sheet data only):`);
