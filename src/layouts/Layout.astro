@@ -120,8 +120,8 @@ const markWindow = (logo: PartnerLogo) => [
           aria-label={lockup.hasCredits ? undefined : 'REPLAY home'}
         >
           {lockup.presenter && (
-            <span class="site-logo__block">
-              <span class="site-logo__mark" style={markWindow(lockup.presenter)}>
+            <span class="site-logo__block" style={markWindow(lockup.presenter)}>
+              <span class="site-logo__mark">
                 <Image
                   src={lockup.presenter.image}
                   alt={lockup.presenter.name}
@@ -142,8 +142,8 @@ const markWindow = (logo: PartnerLogo) => [
           </span>
 
           {lockup.associate && (
-            <span class="site-logo__block">
-              <span class="site-logo__mark" style={markWindow(lockup.associate)}>
+            <span class="site-logo__block" style={markWindow(lockup.associate)}>
+              <span class="site-logo__mark">
                 <Image
                   src={lockup.associate.image}
                   alt={lockup.associate.name}
@@ -272,7 +272,21 @@ const markWindow = (logo: PartnerLogo) => [
      * `--word-size` tall.
      */
     --stack-h: calc(var(--wordmark-h) + var(--stack-gap) + var(--word-size));
-    --mark-cap: clamp(56px, 9vw, 120px);
+    /*
+     * The sponsor plate. Height is the only knob — at 68px it stands a little
+     * under twice the wordmark, the proportion the lockup was drawn at — and
+     * the mark always fills that height. Width follows the mark, with the
+     * wall's 3:2 tile as the floor, so a square logo still gets a plate rather
+     * than a tight square, and 2.4:1 as the ceiling, so a long wordmark logo
+     * goes short rather than becoming an endless white slab.
+     *
+     * Fluid, not fixed: the plate is the widest thing in the lockup, so a
+     * fixed height puts a hard wrap edge somewhere just under 1280px that
+     * moves with whatever logo a sponsor uploads. Scaling it with the
+     * viewport keeps the row intact whatever shape the artwork is.
+     */
+    --block-h: clamp(44px, 5.3vw, 68px);
+    --block-pad: 6px;
     flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
@@ -314,27 +328,27 @@ const markWindow = (logo: PartnerLogo) => [
    * makes the two blocks flank the whole lockup rather than just the wordmark.
    */
   .site-logo__block {
+    --inner-h: calc(var(--block-h) - 2 * var(--block-pad));
+    --max-inner-w: calc(var(--block-h) * 2.4 - 2 * var(--block-pad));
+    --mark-h: min(var(--inner-h), calc(var(--max-inner-w) * var(--mark-inv)));
+    --mark-w: calc(var(--mark-h) * var(--mark-num));
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    height: var(--stack-h);
-    padding: 4px 6px;
+    width: max(calc(var(--block-h) * 1.5), calc(var(--mark-w) + 2 * var(--block-pad)));
+    height: var(--block-h);
+    padding: var(--block-pad);
     border-radius: 4px;
     background: #fff;
   }
 
-  /*
-   * The window on to the mark — see `markWindow` in the frontmatter. Height
-   * runs to the block unless the width cap binds first, which is how a long
-   * wordmark logo stays a sane width instead of becoming a white slab.
-   */
+  /* The window on to the mark — sized by the plate above; see `markWindow`. */
   .site-logo__mark {
-    --mark-h: min(calc(var(--stack-h) - 8px), calc(var(--mark-cap) * var(--mark-inv)));
     position: relative;
     display: block;
     flex: 0 0 auto;
-    width: calc(var(--mark-h) * var(--mark-num));
+    width: var(--mark-w);
     height: var(--mark-h);
     overflow: hidden;
   }
@@ -492,22 +506,33 @@ const markWindow = (logo: PartnerLogo) => [
     .site-logo--two-credits {
       --wordmark-h: 30px;
       --word-size: 0.7rem;
-      --mark-cap: 60px;
+      --block-h: 40px;
     }
+  }
+
+  /*
+   * Below the nav breakpoint the links collapse to a menu button and the room
+   * comes back, so the plate returns to full size — the `vw` scaling above is
+   * answering the nav's width, which is no longer there.
+   */
+  @media (min-width: 560px) and (max-width: 919px) {
+    .site-logo--lockup { --block-h: 68px; }
   }
 
   @media (max-width: 559px) {
     .site-logo--lockup {
       --word-size: 0.6rem;
-      --mark-cap: 36px;
+      --block-h: 30px;
+      --block-pad: 4px;
       --stack-gap: 2px;
       gap: 6px 7px;
     }
 
     /* One credit still clears the menu button at full size; two do not. */
-    .site-logo--two-credits { --wordmark-h: 26px; }
-
-    .site-logo__block { padding: 3px 5px; }
+    .site-logo--two-credits {
+      --wordmark-h: 26px;
+      --block-h: 30px;
+    }
   }
 
   @media (max-width: 359px) {
