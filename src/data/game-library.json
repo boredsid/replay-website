@@ -289,17 +289,17 @@
       "copies": 1
     },
     {
-      "key": "title-alice-is-missing",
-      "bggId": null,
+      "key": "bgg-311654",
+      "bggId": 311654,
       "title": "Alice is Missing",
-      "year": null,
-      "thumb": null,
+      "year": 2020,
+      "thumb": "https://cf.geekdo-images.com/211476emISgQLsa2h3BAYw__small/img/g9QMstNAY2uOVSR1rH5Hx7Gxquk=/fit-in/200x150/filters:strip_icc()/pic5625807.png",
       "minPlayers": 3,
       "maxPlayers": 5,
       "minTime": 120,
       "maxTime": 180,
-      "rating": 7.7,
-      "weight": null,
+      "rating": 7.6,
+      "weight": 1.96,
       "bestWith": [],
       "copies": 1
     },
@@ -2195,18 +2195,20 @@
       "copies": 1
     },
     {
-      "key": "title-container",
-      "bggId": null,
+      "key": "bgg-453740",
+      "bggId": 453740,
       "title": "Container",
-      "year": null,
-      "thumb": null,
+      "year": 2026,
+      "thumb": "https://cf.geekdo-images.com/AXJ3ur6OZecgmPSACVm2Lw__small/img/c0Y6cYn2rNN4oxcd3InUsOCxd3k=/fit-in/200x150/filters:strip_icc()/pic9085223.jpg",
       "minPlayers": 3,
       "maxPlayers": 5,
       "minTime": 45,
       "maxTime": 90,
       "rating": 7.9,
       "weight": 2.85,
-      "bestWith": [],
+      "bestWith": [
+        5
+      ],
       "copies": 1
     },
     {
@@ -2519,18 +2521,20 @@
       "copies": 4
     },
     {
-      "key": "title-deep-regrets",
-      "bggId": null,
+      "key": "bgg-397931",
+      "bggId": 397931,
       "title": "Deep Regrets",
-      "year": null,
-      "thumb": null,
+      "year": 2025,
+      "thumb": "https://cf.geekdo-images.com/WUvpRzsNSZgq1gyvjiQcWw__small/img/XJyLMXaTHUGyAv7n-G0DpR1W1SU=/fit-in/200x150/filters:strip_icc()/pic8156363.jpg",
       "minPlayers": 1,
       "maxPlayers": 5,
       "minTime": 30,
       "maxTime": 150,
       "rating": 7.4,
       "weight": 2.36,
-      "bestWith": [],
+      "bestWith": [
+        3
+      ],
       "copies": 1
     },
     {
@@ -3158,18 +3162,20 @@
       "copies": 1
     },
     {
-      "key": "title-even-deeper-regrets",
-      "bggId": null,
+      "key": "bgg-440640",
+      "bggId": 440640,
       "title": "Even Deeper Regrets",
-      "year": null,
-      "thumb": null,
+      "year": 2026,
+      "thumb": "https://cf.geekdo-images.com/vCazYrOYOzQKNqQHOT4log__small/img/YlO3oH6T-WQupsVjDiteVybHMKY=/fit-in/200x150/filters:strip_icc()/pic8754502.png",
       "minPlayers": 1,
       "maxPlayers": 5,
       "minTime": 60,
       "maxTime": 150,
       "rating": 8.1,
       "weight": 2.33,
-      "bestWith": [],
+      "bestWith": [
+        3
+      ],
       "copies": 1
     },
     {
@@ -4658,18 +4664,20 @@
       "copies": 3
     },
     {
-      "key": "title-kingdomino-age-of-giants",
-      "bggId": null,
+      "key": "bgg-240909",
+      "bggId": 240909,
       "title": "Kingdomino: Age of Giants",
-      "year": null,
-      "thumb": null,
+      "year": 2018,
+      "thumb": "https://cf.geekdo-images.com/P_7077Juh647GTl3L8Oxow__small/img/BMocmB5tIBEIiWtL5LeFITN7O7g=/fit-in/200x150/filters:strip_icc()/pic4177705.png",
       "minPlayers": 2,
       "maxPlayers": 5,
       "minTime": 15,
       "maxTime": 20,
       "rating": 7.2,
-      "weight": 1.66,
-      "bestWith": [],
+      "weight": 1.64,
+      "bestWith": [
+        5
+      ],
       "copies": 1
     },
     {
@@ -5520,11 +5528,11 @@
       "copies": 1
     },
     {
-      "key": "title-more-containers",
-      "bggId": null,
+      "key": "bgg-468181",
+      "bggId": 468181,
       "title": "More Containers",
-      "year": null,
-      "thumb": null,
+      "year": 2026,
+      "thumb": "https://cf.geekdo-images.com/90mBTr7byh16dKQIAGYUvA__small/img/dQZ6BwbjORmvaSsLUwjbZl4H_KI=/fit-in/200x150/filters:strip_icc()/pic9506830.jpg",
       "minPlayers": 3,
       "maxPlayers": 5,
       "minTime": 45,
@@ -5673,18 +5681,20 @@
       "copies": 1
     },
     {
-      "key": "title-night-at-the-zoo",
-      "bggId": null,
+      "key": "bgg-457412",
+      "bggId": 457412,
       "title": "Night at the Zoo",
-      "year": null,
-      "thumb": null,
+      "year": 2026,
+      "thumb": "https://cf.geekdo-images.com/B4-xthnd3M8wX_l58iUGBg__small/img/-JJi28saID6oY8Z1Ci7rTJEYanI=/fit-in/200x150/filters:strip_icc()/pic9492648.jpg",
       "minPlayers": 1,
       "maxPlayers": 4,
       "minTime": 30,
       "maxTime": 30,
       "rating": 7.7,
       "weight": 2.33,
-      "bestWith": [],
+      "bestWith": [
+        3
+      ],
       "copies": 1
     },
     {
@@ -7174,33 +7184,39 @@
       "copies": 2
     },
     {
-      "key": "title-scythe-invaders-from-afar",
-      "bggId": null,
+      "key": "bgg-199727",
+      "bggId": 199727,
       "title": "Scythe: Invaders from Afar",
-      "year": null,
-      "thumb": null,
+      "year": 2016,
+      "thumb": "https://cf.geekdo-images.com/gfT_6H4P9wdNQQ2KMU9rHg__small/img/qIGTlYnsBqH70p8E_l9nZ837TPM=/fit-in/200x150/filters:strip_icc()/pic3037396.jpg",
       "minPlayers": 1,
       "maxPlayers": 7,
       "minTime": 90,
       "maxTime": 140,
       "rating": 8.3,
-      "weight": 3.43,
-      "bestWith": [],
+      "weight": 3.45,
+      "bestWith": [
+        4,
+        5
+      ],
       "copies": 1
     },
     {
-      "key": "title-scythe-the-wind-gambit",
-      "bggId": null,
+      "key": "bgg-223555",
+      "bggId": 223555,
       "title": "Scythe: The Wind Gambit",
-      "year": null,
-      "thumb": null,
+      "year": 2017,
+      "thumb": "https://cf.geekdo-images.com/kcp2L5EPPr-okBb1jCtxpA__small/img/WgVl13rTR8CIJos1iBek5BEbRbc=/fit-in/200x150/filters:strip_icc()/pic3487272.jpg",
       "minPlayers": 1,
       "maxPlayers": 7,
       "minTime": 70,
       "maxTime": 140,
-      "rating": 3.4,
-      "weight": null,
-      "bestWith": [],
+      "rating": 7.8,
+      "weight": 3.41,
+      "bestWith": [
+        4,
+        5
+      ],
       "copies": 1
     },
     {
@@ -7291,18 +7307,20 @@
       "copies": 3
     },
     {
-      "key": "title-seti-space-agencies",
-      "bggId": null,
+      "key": "bgg-445048",
+      "bggId": 445048,
       "title": "SETI: Space Agencies",
-      "year": null,
-      "thumb": null,
+      "year": 2025,
+      "thumb": "https://cf.geekdo-images.com/JMLgq_A4OE_dX423FeFcPA__small/img/L0iyv7R4pYVqA6KX5Ox6RNnpugk=/fit-in/200x150/filters:strip_icc()/pic8857305.png",
       "minPlayers": 1,
       "maxPlayers": 4,
       "minTime": 40,
       "maxTime": 160,
-      "rating": 8.9,
-      "weight": 3.8,
-      "bestWith": [],
+      "rating": 8.8,
+      "weight": 3.75,
+      "bestWith": [
+        3
+      ],
       "copies": 1
     },
     {
@@ -8166,18 +8184,20 @@
       "copies": 1
     },
     {
-      "key": "title-tea-witches",
-      "bggId": null,
+      "key": "bgg-426912",
+      "bggId": 426912,
       "title": "Tea Witches",
-      "year": null,
-      "thumb": null,
+      "year": 2025,
+      "thumb": "https://cf.geekdo-images.com/7QDBki1CWfkyNgnkxLXrGA__small/img/UEW1V9yuLGjXUF6Mo-su_Cm_0Sg=/fit-in/200x150/filters:strip_icc()/pic8366420.png",
       "minPlayers": 2,
       "maxPlayers": 4,
       "minTime": 60,
       "maxTime": 120,
       "rating": 7.6,
       "weight": 3.13,
-      "bestWith": [],
+      "bestWith": [
+        3
+      ],
       "copies": 1
     },
     {
@@ -9653,18 +9673,20 @@
       "copies": 1
     },
     {
-      "key": "title-viticulture-tuscany-essential-edition",
-      "bggId": null,
+      "key": "bgg-202174",
+      "bggId": 202174,
       "title": "Viticulture: Tuscany Essential Edition",
-      "year": null,
-      "thumb": null,
+      "year": 2016,
+      "thumb": "https://cf.geekdo-images.com/Xf1C1NuxY1YOHPFmpmNqiw__small/img/W2Gl053PiLjKXrsXZ67Y76bTPfM=/fit-in/200x150/filters:strip_icc()/pic3064278.jpg",
       "minPlayers": 1,
       "maxPlayers": 6,
       "minTime": 60,
       "maxTime": 150,
       "rating": 8.5,
-      "weight": 3.26,
-      "bestWith": [],
+      "weight": 3.25,
+      "bestWith": [
+        4
+      ],
       "copies": 1
     },
     {

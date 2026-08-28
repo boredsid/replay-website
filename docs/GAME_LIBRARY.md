@@ -132,19 +132,29 @@ id. Every entry from a BGG collection has one by definition. BGC rows do not —
 2. an entry in `src/data/bgc-bgg-ids.tsv`, or
 3. nothing, and the card draws a monogram tile instead.
 
-As of the current snapshot, 17 of 592 games are in case 3. Most are
-**expansions** (`Scythe: Invaders from Afar`, `SETI: Space Agencies`,
-`Kingdomino: Age of Giants`, `Viticulture: Tuscany Essential Edition`) — the
-BGG collections are harvested with `excludesubtype=boardgameexpansion`, so
-there is no base-game card for them to join. The rest are titles BGG does not
-list under that name.
+As of the current snapshot, 5 of 586 games are in case 3, and all five are
+titles BoardGameGeek does not list at all.
 
-To give one art, find its BGG id and add a `title <TAB> bggId` row to
-`src/data/bgc-bgg-ids.tsv`, then re-run the sync. Search BGG from a browser
-console (the search page is Cloudflare-gated to scripts, same as everything
-else):
+**Expansions and RPG items work here, despite not being board games.** The
+enrichment endpoints take any BGG thing id: `objecttype=thing&subtype=boardgame`
+returns full data for `boardgameexpansion` ids (`Kingdomino: Age of Giants`,
+`Scythe: The Wind Gambit`) and even `rpgitem` ids (`Alice is Missing`). The
+`subtype` parameter is effectively ignored for lookup, so no special handling
+is needed — just put the id in the override file.
+
+This matters because the *search* recipe below is not so forgiving. Searching
+with `objecttype=boardgame` silently omits expansions, which is how several of
+them sat art-less for a while looking like BGG had never heard of them. Search
+the matching object type, or take the id straight out of a BGG URL:
+`boardgamegeek.com/boardgameexpansion/240909/kingdomino-age-of-giants` → `240909`.
+
+To give a game art, add a `title <TAB> bggId` row to
+`src/data/bgc-bgg-ids.tsv` and re-run the sync. To find an id by name, search
+from a browser console (the search page is Cloudflare-gated to scripts, same as
+everything else) — and set `objecttype` to match what you are looking for:
 
 ```js
+// objecttype: boardgame | boardgameexpansion | rpgitem
 fetch('https://boardgamegeek.com/geeksearch.php?action=search&q=' + encodeURIComponent('Santorini') + '&objecttype=boardgame&B1=Go')
   .then((r) => r.text())
   .then((html) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('tr#row_')]
