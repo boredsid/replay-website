@@ -23,6 +23,7 @@ const SPONSOR = {
   logo_url: 'https://cdn.example/sponsor-logos/e3/a.png',
   logo_path: 'e3/a.png',
   website_url: 'https://boardgamecompany.in/',
+  show_in_header: true,
   created_at: '2026-08-27T00:00:00.000Z',
   updated_at: '2026-08-27T00:00:00.000Z',
 };
@@ -154,4 +155,50 @@ it('clears the link when the field is emptied, so the logo stops being clickable
     ([path, init]: [string, RequestInit?]) => path === '/api/admin/sponsors/s1' && init?.method === 'PATCH',
   );
   expect(JSON.parse(patch[1].body).website_url).toBeNull();
+});
+
+function renderEdit() {
+  return render(
+    <MemoryRouter initialEntries={['/partner-logos/s1']}>
+      <Routes>
+        <Route path="/partner-logos/:id" element={<SponsorDrawer />} />
+        <Route path="/partner-logos" element={<div>Partner logo list</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+it('offers the header switch on the two tiers that carry a lockup, and no others', async () => {
+  const user = userEvent.setup();
+  renderNew();
+
+  await screen.findByRole('heading', { name: 'New partner' });
+  expect(screen.queryByLabelText('Show in the site header')).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText('Tier'), 'title');
+  expect(screen.getByLabelText('Show in the site header')).toBeChecked();
+
+  await user.selectOptions(screen.getByLabelText('Tier'), 'association');
+  expect(screen.getByLabelText('Show in the site header')).toBeChecked();
+
+  await user.selectOptions(screen.getByLabelText('Tier'), 'venue');
+  expect(screen.queryByLabelText('Show in the site header')).not.toBeInTheDocument();
+});
+
+it('holds a credit back without touching the tier or the wall', async () => {
+  const user = userEvent.setup();
+  renderEdit();
+
+  await screen.findByRole('heading', { name: 'Edit partner' });
+  await user.click(screen.getByLabelText('Show in the site header'));
+  await user.click(screen.getByRole('button', { name: 'Save partner' }));
+
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith(
+    '/api/admin/sponsors/s1',
+    expect.objectContaining({ method: 'PATCH' }),
+  ));
+  const patch = (fetchAdmin as any).mock.calls.find(
+    ([path, init]: [string, RequestInit?]) => path === '/api/admin/sponsors/s1' && init?.method === 'PATCH',
+  );
+  expect(JSON.parse(patch[1].body)).toMatchObject({ tier: 'association', show_in_header: false });
 });

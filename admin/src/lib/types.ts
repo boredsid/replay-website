@@ -169,6 +169,8 @@ export interface SponsorRow {
   /** Object key in the `sponsor-logos` bucket, or null if hosted elsewhere. */
   logo_path: string | null;
   website_url: string | null;
+  /** Join the site header lockup. Only the title and association tiers read it. */
+  show_in_header: boolean;
   created_at: string;
   updated_at: string;
 }

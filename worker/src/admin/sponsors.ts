@@ -37,6 +37,8 @@ type SponsorInput = {
   logo_url: string;
   logo_path: string | null;
   website_url: string | null;
+  /** Join the site header lockup. Only the title and association tiers read it. */
+  show_in_header: boolean;
 };
 
 function requiredText(value: unknown, max: number, field: string): string {
@@ -72,6 +74,12 @@ function optionalText(value: unknown, max: number, field: string): string | null
   return text;
 }
 
+/** Absent means unchanged, and unset means yes — the tier sells the lockup. */
+function optionalFlag(value: unknown, fallback: boolean): boolean {
+  if (value === null || value === undefined) return fallback;
+  return value === true || value === 'true';
+}
+
 function parseSponsor(input: any, previous?: any): SponsorInput {
   const merged = { ...(previous ?? {}), ...(input ?? {}) };
   const tier = TIERS.includes(merged.tier) ? (merged.tier as SponsorTier) : null;
@@ -84,6 +92,7 @@ function parseSponsor(input: any, previous?: any): SponsorInput {
     logo_url: httpUrl(merged.logo_url, 'logo_url'),
     logo_path: optionalText(merged.logo_path, 400, 'logo_path'),
     website_url: optionalHttpUrl(merged.website_url, 'website_url'),
+    show_in_header: optionalFlag(merged.show_in_header, true),
   };
 }
 
