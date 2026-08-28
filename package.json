@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "dev:app": "vite --config app/vite.config.ts",
-    "build": "astro build",
+    "build": "node scripts/build-lock.mjs",
     "build:app": "vite build --config app/vite.config.ts",
     "check:app": "tsc -p app/tsconfig.json --noEmit",
     "preview": "astro preview",
