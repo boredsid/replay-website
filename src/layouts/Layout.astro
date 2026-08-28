@@ -1,7 +1,10 @@
 ---
+import { Image } from 'astro:assets';
 import '../styles/global.css';
 import '@fontsource-variable/inter/wght.css';
 import '@fontsource-variable/space-grotesk/wght.css';
+import { headerLockup } from '../lib/header-lockup';
+import { partnerLogos, type PartnerLogo } from '../lib/partner-logos';
 
 export interface Props {
   title: string;
@@ -48,6 +51,32 @@ const nav = [
   { href: '/contact', label: 'Contact us' },
 ];
 const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
+
+/**
+ * “X presents REPLAY in association with Y”, built from whoever holds those
+ * two tiers this edition. Neither sold, and the header is the wordmark alone.
+ */
+const lockup = headerLockup(partnerLogos);
+
+/**
+ * A tile is the mark centred on a padded 3:2 canvas — right for the wall's
+ * grid, too airy for a header block. These custom properties let the header
+ * show the tile through a window the size of the mark itself: the window takes
+ * the mark's aspect ratio, and the tile is blown up by however much padding
+ * sits around the mark, so what lands on screen is the mark edge to edge.
+ *
+ * The window's width is stated as height x ratio rather than left to
+ * `aspect-ratio`, which does not transfer to width on a flex item whose only
+ * child is out of flow. `--mark-inv` is that ratio inverted, which is what
+ * lets the window obey a width cap without cropping: a wide wordmark hits the
+ * cap and takes the height the cap implies, while a squarer mark runs to the
+ * block's full height.
+ */
+const markWindow = (logo: PartnerLogo) => [
+  `--mark-num:${(logo.mark.width / logo.mark.height).toFixed(4)}`,
+  `--mark-inv:${(logo.mark.height / logo.mark.width).toFixed(4)}`,
+  `--tile-scale:${(logo.image.height / logo.mark.height).toFixed(4)}`,
+].join(';');
 ---
 <!doctype html>
 <html lang="en">
@@ -81,8 +110,52 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
 
     <header class="site-header">
       <div class="container-x site-header__inner">
-        <a href="/" aria-label="REPLAY home" class="site-logo">
-          <img src="/replay-logo.png" alt="REPLAY" />
+        <a
+          href="/"
+          class:list={[
+            'site-logo',
+            lockup.hasCredits && 'site-logo--lockup',
+            lockup.presenter && lockup.associate && 'site-logo--two-credits',
+          ]}
+          aria-label={lockup.hasCredits ? undefined : 'REPLAY home'}
+        >
+          {lockup.presenter && (
+            <span class="site-logo__block">
+              <span class="site-logo__mark" style={markWindow(lockup.presenter)}>
+                <Image
+                  src={lockup.presenter.image}
+                  alt={lockup.presenter.name}
+                  width={480}
+                  format="webp"
+                  quality={82}
+                  loading="eager"
+                  class="site-logo__tile"
+                />
+              </span>
+            </span>
+          )}
+
+          <span class="site-logo__stack">
+            {lockup.presenter && <span class="site-logo__word site-logo__word--top">presents</span>}
+            <img src="/replay-logo.png" alt="REPLAY" class="site-logo__wordmark" />
+            {lockup.associate && <span class="site-logo__word site-logo__word--bottom">in association with</span>}
+          </span>
+
+          {lockup.associate && (
+            <span class="site-logo__block">
+              <span class="site-logo__mark" style={markWindow(lockup.associate)}>
+                <Image
+                  src={lockup.associate.image}
+                  alt={lockup.associate.name}
+                  width={480}
+                  format="webp"
+                  quality={82}
+                  loading="eager"
+                  class="site-logo__tile"
+                />
+              </span>
+            </span>
+          )}
         </a>
 
         <nav aria-label="Main navigation" class="desktop-nav">
@@ -168,14 +241,117 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
     flex: 0 0 auto;
   }
 
-  .site-logo img {
+  /*
+   * `flex: 0 0 auto` and `max-width: none` are what hold the 38px: as a
+   * shrinkable flex item the wordmark loses width to the global `max-width:
+   * 100%`, and its aspect ratio then drags the height down with it.
+   */
+  .site-logo__wordmark {
     display: block;
+    flex: 0 0 auto;
     width: auto;
+    max-width: none;
     height: 38px;
+  }
+
+  /*
+   * Billing lockup: the sponsor blocks flank the wordmark at the full height
+   * of the credit stack, and the words tuck into the space the wordmark does
+   * not use — “presents” above its left, “in association with” below its
+   * right. The wordmark itself never changes size.
+   */
+  .site-logo--lockup {
+    --wordmark-h: 38px;
+    --word-size: 0.82rem;
+    --stack-gap: 3px;
+    /*
+     * The height of the whole lockup, which the sponsor blocks are cut to. It
+     * is stated rather than measured because a percentage height inside a
+     * stretched flex item has nothing definite to resolve against — the blocks
+     * collapse to nothing. Words are line-height 1, so one is exactly
+     * `--word-size` tall.
+     */
+    --stack-h: calc(var(--wordmark-h) + var(--stack-gap) + var(--word-size));
+    --mark-cap: clamp(56px, 9vw, 120px);
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+  }
+
+  .site-logo--two-credits {
+    --stack-h: calc(var(--wordmark-h) + 2 * var(--stack-gap) + 2 * var(--word-size));
+  }
+
+  .site-logo--lockup .site-logo__wordmark {
+    height: var(--wordmark-h);
+  }
+
+  .site-logo__stack {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: var(--stack-gap);
+  }
+
+  .site-logo__word {
+    color: rgba(255, 255, 255, 0.82);
+    /* Space Grotesk, the same face and weight as the nav links beside it. */
+    font-family: var(--font-heading);
+    font-size: var(--word-size);
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .site-logo__word--top { align-self: flex-start; }
+  .site-logo__word--bottom { align-self: flex-end; }
+
+  /*
+   * The tiles are the wall's, drawn to sit on white; the block carries that
+   * ground onto the ink header so a mark with its own light background and one
+   * with none read the same. It stretches to the stack's height, which is what
+   * makes the two blocks flank the whole lockup rather than just the wordmark.
+   */
+  .site-logo__block {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    height: var(--stack-h);
+    padding: 4px 6px;
+    border-radius: 4px;
+    background: #fff;
+  }
+
+  /*
+   * The window on to the mark — see `markWindow` in the frontmatter. Height
+   * runs to the block unless the width cap binds first, which is how a long
+   * wordmark logo stays a sane width instead of becoming a white slab.
+   */
+  .site-logo__mark {
+    --mark-h: min(calc(var(--stack-h) - 8px), calc(var(--mark-cap) * var(--mark-inv)));
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+    width: calc(var(--mark-h) * var(--mark-num));
+    height: var(--mark-h);
+    overflow: hidden;
+  }
+
+  .site-logo__tile {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: auto;
+    max-width: none;
+    height: calc(100% * var(--tile-scale));
+    transform: translate(-50%, -50%);
   }
 
   .desktop-nav {
     display: none;
+    flex: 0 0 auto;
     align-items: center;
     gap: 22px;
   }
@@ -211,6 +387,7 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
 
   .mobile-menu {
     position: relative;
+    flex: 0 0 auto;
   }
 
   .mobile-menu summary {
@@ -296,6 +473,45 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
   @media (min-width: 920px) {
     .desktop-nav { display: flex; }
     .mobile-menu { display: none; }
+  }
+
+  /*
+   * Phones. A 167px wordmark and a ~76px menu button leave about 70px of the
+   * bar free, so a credit always takes its own line here — no arrangement of
+   * sizes changes that. What this buys is height: a smaller credit line keeps
+   * the sticky header from eating the screen.
+   */
+  /*
+   * The two bands where the lockup cannot hold its full size, and the whole
+   * thing is scaled down as a unit rather than wrapping: a block that wraps
+   * onto its own line is as tall as the lockup, which turns a 90px header into
+   * a 160px one. The wordmark only ever gives up height here, where the row is
+   * genuinely too narrow to hold it — never merely because space is tight.
+   */
+  @media (min-width: 920px) and (max-width: 1009px) {
+    .site-logo--two-credits {
+      --wordmark-h: 30px;
+      --word-size: 0.7rem;
+      --mark-cap: 60px;
+    }
+  }
+
+  @media (max-width: 559px) {
+    .site-logo--lockup {
+      --word-size: 0.6rem;
+      --mark-cap: 36px;
+      --stack-gap: 2px;
+      gap: 6px 7px;
+    }
+
+    /* One credit still clears the menu button at full size; two do not. */
+    .site-logo--two-credits { --wordmark-h: 26px; }
+
+    .site-logo__block { padding: 3px 5px; }
+  }
+
+  @media (max-width: 359px) {
+    .site-logo--lockup { --wordmark-h: 26px; }
   }
 
   @media (min-width: 720px) {

@@ -42,6 +42,16 @@ export interface NormalizeSources {
 export interface ManifestEntry {
   file: string;
   name: string;
+  /** Sponsorship tier, so the site header can find the title / association marks. */
+  tier: string;
+  /**
+   * The mark's own box inside the tile, in tile pixels. The wall wants the
+   * padded canvas; the header, where a logo has 36px of bar to live in, crops
+   * back to this so the mark itself sets the size.
+   */
+  mark: { width: number; height: number };
+  /** Whether the header lockup may use this logo; see `sponsors.show_in_header`. */
+  inHeader: boolean;
   href: string | null;
 }
 
@@ -95,7 +105,7 @@ async function fetchSponsorRows(sources: NormalizeSources): Promise<SponsorWallR
 
   return await supabaseSelect(
     credentials,
-    `sponsors?select=id,name,tier,logo_url,website_url&edition_id=eq.${encodeURIComponent(editionId)}`,
+    `sponsors?select=id,name,tier,logo_url,website_url,show_in_header&edition_id=eq.${encodeURIComponent(editionId)}`,
   ) as SponsorWallRow[];
 }
 
@@ -200,7 +210,14 @@ export async function normalizeSponsorLogos(sources: NormalizeSources = {}): Pro
     try {
       const result = await normalizeOne(entry);
       results.push(result);
-      manifest.push({ file: result.output, name: entry.name, href: entry.href });
+      manifest.push({
+        file: result.output,
+        name: entry.name,
+        tier: entry.tier,
+        mark: { width: result.plan.placement.width, height: result.plan.placement.height },
+        inHeader: entry.inHeader,
+        href: entry.href,
+      });
     } catch (error) {
       const where = entry.source.kind === 'local' ? entry.source.file : entry.source.url;
       throw new Error(`[sponsor-logos] failed on "${entry.name}" (${where}): ${(error as Error).message}`);

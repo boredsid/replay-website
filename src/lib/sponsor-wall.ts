@@ -31,12 +31,27 @@ export interface SponsorWallRow {
   tier: string;
   logo_url: string;
   website_url: string | null;
+  /** Console switch for the header lockup. Absent on rows written before it existed. */
+  show_in_header?: boolean | null;
 }
 
 export interface WallEntry {
   /** Basename (no extension) of the normalised tile written for this logo. */
   key: string;
   name: string;
+  /**
+   * The sponsor's tier, kept verbatim so a tier this build does not know about
+   * still travels through to the manifest. `community` for legacy artwork,
+   * which carries no tier of its own.
+   */
+  tier: string;
+  /**
+   * Whether this logo may join the header lockup. The tier decides whether the
+   * header looks at all; this is the console's switch to hold a credit back
+   * while the deal is still being papered. Only ever true for an uploaded
+   * sponsor — legacy artwork carries no tier and no switch.
+   */
+  inHeader: boolean;
   /** Where the tile links, or null for a logo that is not clickable. */
   href: string | null;
   source:
@@ -92,6 +107,10 @@ export function buildWall(rows: SponsorWallRow[], localFiles: string[]): WallEnt
   const remote: WallEntry[] = ordered.map((row) => ({
     key: row.id,
     name: row.name.trim(),
+    tier: row.tier,
+    // Unset means yes: the tier sells the lockup, so the switch exists to take
+    // a credit out of the header, not to have to remember to put one in.
+    inHeader: row.show_in_header !== false,
     href: safeHref(row.website_url),
     source: { kind: 'remote', url: row.logo_url.trim() },
   }));
@@ -103,6 +122,8 @@ export function buildWall(rows: SponsorWallRow[], localFiles: string[]): WallEnt
     .map(({ file, name }) => ({
       key: nameFromFile(file),
       name,
+      tier: 'community',
+      inHeader: false,
       href: null,
       source: { kind: 'local' as const, file },
     }));

@@ -50,6 +50,21 @@ describe('buildWall', () => {
     expect(wall.map((entry) => entry.name)).toEqual(['Zolives', 'Retired Tier']);
   });
 
+  it('carries the header switch, and treats an unset one as on', () => {
+    const wall = buildWall(
+      [
+        row({ id: 'a', name: 'Somo Club', tier: 'title', show_in_header: false }),
+        row({ id: 'b', name: 'Mozaic', tier: 'association' }),
+      ],
+      ['Legacy Logo.png'],
+    );
+    expect(wall.map((entry) => [entry.name, entry.inHeader])).toEqual([
+      ['Somo Club', false],
+      ['Mozaic', true],
+      ['Legacy Logo', false],
+    ]);
+  });
+
   it('names each tile after the sponsor id so two sponsors never collide', () => {
     const wall = buildWall([row({ id: 'uuid-1', name: 'Somo Club' })], []);
     expect(wall[0]).toMatchObject({ key: 'uuid-1', source: { kind: 'remote', url: 'https://cdn.example/uuid-1.png' } });

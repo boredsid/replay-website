@@ -4,12 +4,30 @@ import { nameFromFile } from './sponsor-wall';
 export interface PartnerLogo {
   name: string;
   image: ImageMetadata;
+  /** Sponsorship tier — `title` and `association` also read the site header. */
+  tier: string;
+  /**
+   * The mark's box inside the tile, in tile pixels. The wall shows the whole
+   * padded tile; the header crops to this so the mark, not the padding, is
+   * what gets sized against the REPLAY wordmark.
+   */
+  mark: { width: number; height: number };
+  /** Whether the header lockup may use this logo; see `sponsors.show_in_header`. */
+  inHeader: boolean;
   /** Where the logo links, or null when it is not clickable. */
   href: string | null;
 }
 
 type LogoModule = { default: ImageMetadata };
-type ManifestModule = { default: Array<{ file: string; name: string; href: string | null }> };
+type ManifestEntry = {
+  file: string;
+  name: string;
+  tier?: string;
+  mark?: { width: number; height: number };
+  inHeader?: boolean;
+  href: string | null;
+};
+type ManifestModule = { default: ManifestEntry[] };
 
 // Preferred source: tiles written by `scripts/normalize-sponsor-logos.ts`, each
 // one the mark trimmed out of its original canvas and re-seated on a shared
@@ -46,7 +64,16 @@ function fromManifest(): PartnerLogo[] {
       console.warn(`[sponsor-logos] manifest names "${entry.file}", which was not generated; skipping it.`);
       continue;
     }
-    logos.push({ name: entry.name, image, href: entry.href });
+    logos.push({
+      name: entry.name,
+      image,
+      tier: entry.tier ?? 'community',
+      // A tile written before the manifest carried a mark box: treat the whole
+      // tile as the mark, which is the pre-crop framing.
+      mark: entry.mark ?? { width: image.width, height: image.height },
+      inHeader: entry.inHeader ?? true,
+      href: entry.href,
+    });
   }
   return logos;
 }
@@ -62,6 +89,9 @@ function fromRawFolder(): PartnerLogo[] {
     .map(([path, module]) => ({
       name: nameFromFile(path.split('/').pop() ?? path),
       image: module.default,
+      tier: 'community',
+      mark: { width: module.default.width, height: module.default.height },
+      inHeader: false,
       href: null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base', numeric: true }));

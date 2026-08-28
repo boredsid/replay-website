@@ -26,6 +26,7 @@ type Form = {
   website_url: string;
   logo_url: string;
   logo_path: string | null;
+  show_in_header: boolean;
 };
 
 const EMPTY: Form = {
@@ -35,7 +36,11 @@ const EMPTY: Form = {
   website_url: '',
   logo_url: '',
   logo_path: null,
+  show_in_header: true,
 };
+
+/** The two tiers whose logo the site header can carry; see `src/lib/header-lockup.ts`. */
+const HEADER_TIERS: SponsorTier[] = ['title', 'association'];
 
 /** Raster artwork narrower than a tile is stretched or letterboxed on the wall. */
 async function widthOf(file: File): Promise<number | null> {
@@ -85,6 +90,7 @@ export default function SponsorDrawer() {
             website_url: sponsor.website_url ?? '',
             logo_url: sponsor.logo_url,
             logo_path: sponsor.logo_path,
+            show_in_header: sponsor.show_in_header !== false,
           });
           setPreview(sponsor.logo_url);
         }
@@ -151,6 +157,7 @@ export default function SponsorDrawer() {
         website_url: form.website_url.trim() || null,
         logo_url: logoUrl,
         logo_path: logoPath,
+        show_in_header: form.show_in_header,
       };
       if (isNew) await fetchAdmin('/api/admin/sponsors', { method: 'POST', body: JSON.stringify(payload) });
       else await fetchAdmin(`/api/admin/sponsors/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -235,6 +242,26 @@ export default function SponsorDrawer() {
               <option value="community">Community partner</option>
             </select>
           </Field>
+
+          {HEADER_TIERS.includes(form.tier) && (
+            <label className="flex items-start gap-2 rounded-md border p-3">
+              <input
+                type="checkbox"
+                aria-label="Show in the site header"
+                checked={form.show_in_header}
+                onChange={(event) => set('show_in_header', event.target.checked)}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                Show in the site header
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Puts this logo in the “{form.tier === 'title' ? 'X presents REPLAY' : 'REPLAY in association with X'}”
+                  lockup beside the wordmark, on every page. Untick to hold the credit back — the logo stays on the wall
+                  either way. Takes effect at the next site rebuild.
+                </span>
+              </span>
+            </label>
+          )}
 
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
             {busy ? 'Saving…' : isNew ? 'Add partner' : 'Save partner'}
