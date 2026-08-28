@@ -122,7 +122,7 @@ export default function Sponsors() {
             <Link
               key={sponsor.id}
               to={`/partner-logos/${sponsor.id}`}
-              className="block rounded-md border bg-background p-4 hover:bg-muted"
+              className="block min-w-0 rounded-md border bg-background p-4 hover:bg-muted"
             >
               <div className="mb-3 flex h-24 items-center justify-center rounded-md border bg-white p-3">
                 <img src={sponsor.logo_url} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
@@ -130,7 +130,7 @@ export default function Sponsors() {
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className={`rounded-full px-2 py-0.5 ${TIER_STYLE[sponsor.tier]}`}>{TIER_LABEL[sponsor.tier]}</span>
               </div>
-              <h2 className="mt-2 font-semibold">{sponsor.name}</h2>
+              <h2 className="mt-2 font-semibold break-words">{sponsor.name}</h2>
               <p className="mt-1 truncate text-sm text-muted-foreground">
                 {sponsor.website_url ?? 'No link — the logo is not clickable'}
               </p>
