@@ -273,20 +273,19 @@ const markWindow = (logo: PartnerLogo) => [
      */
     --stack-h: calc(var(--wordmark-h) + var(--stack-gap) + var(--word-size));
     /*
-     * The sponsor plate. Height is the only knob — at 68px it stands a little
-     * under twice the wordmark, the proportion the lockup was drawn at — and
-     * the mark always fills that height. Width follows the mark, with the
-     * wall's 3:2 tile as the floor, so a square logo still gets a plate rather
-     * than a tight square, and 2.4:1 as the ceiling, so a long wordmark logo
-     * goes short rather than becoming an endless white slab.
-     *
-     * Fluid, not fixed: the plate is the widest thing in the lockup, so a
-     * fixed height puts a hard wrap edge somewhere just under 1280px that
-     * moves with whatever logo a sponsor uploads. Scaling it with the
-     * viewport keeps the row intact whatever shape the artwork is.
+     * The mark is a fixed fraction of the wordmark's height, never a size of
+     * its own: a guest credit should read as the smaller of the two, and a
+     * plate with its own height drifts past the wordmark the moment one of
+     * the narrow bands below changes the wordmark's size. At 0.85 the plate
+     * also stays inside the credit stack, so it costs the header no height.
+     * The mark fills that height; the plate's width follows the mark, with
+     * the wall's 3:2 tile as the floor, so a square logo still gets a plate
+     * rather than a tight square, and 2.4:1 as the ceiling, so a long
+     * wordmark logo goes short rather than becoming an endless white slab.
      */
-    --block-h: clamp(44px, 5.3vw, 68px);
+    --mark-scale: 0.85;
     --block-pad: 6px;
+    --block-h: calc(var(--wordmark-h) * var(--mark-scale) + 2 * var(--block-pad));
     flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
@@ -506,17 +505,7 @@ const markWindow = (logo: PartnerLogo) => [
     .site-logo--two-credits {
       --wordmark-h: 30px;
       --word-size: 0.7rem;
-      --block-h: 40px;
     }
-  }
-
-  /*
-   * Below the nav breakpoint the links collapse to a menu button and the room
-   * comes back, so the plate returns to full size — the `vw` scaling above is
-   * answering the nav's width, which is no longer there.
-   */
-  @media (min-width: 560px) and (max-width: 919px) {
-    .site-logo--lockup { --block-h: 68px; }
   }
 
   @media (max-width: 559px) {
