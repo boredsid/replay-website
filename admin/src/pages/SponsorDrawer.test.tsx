@@ -19,11 +19,10 @@ const SPONSOR = {
   id: 's1',
   edition_id: 'e3',
   name: 'Board Game Company',
-  tier: 'gold',
+  tier: 'association',
   logo_url: 'https://cdn.example/sponsor-logos/e3/a.png',
   logo_path: 'e3/a.png',
   website_url: 'https://boardgamecompany.in/',
-  display_order: 1,
   created_at: '2026-08-27T00:00:00.000Z',
   updated_at: '2026-08-27T00:00:00.000Z',
 };
@@ -62,7 +61,7 @@ it('uploads the artwork first, then saves the sponsor pointing at it', async () 
   const file = new File(['png-bytes'], 'Dice Hard.png', { type: 'image/png' });
   await user.upload(screen.getByLabelText('Logo'), file);
   await user.type(screen.getByLabelText('Links to (optional)'), 'https://dicehard.in');
-  await user.selectOptions(screen.getByLabelText('Tier'), 'silver');
+  await user.selectOptions(screen.getByLabelText('Tier'), 'venue');
   await user.click(screen.getByRole('button', { name: 'Add sponsor' }));
 
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith(
@@ -78,7 +77,7 @@ it('uploads the artwork first, then saves the sponsor pointing at it', async () 
   expect(JSON.parse(create[1].body)).toMatchObject({
     edition_id: 'e3',
     name: 'Dice Hard',
-    tier: 'silver',
+    tier: 'venue',
     website_url: 'https://dicehard.in',
     logo_url: 'https://cdn.example/sponsor-logos/e3/new.png',
     logo_path: 'e3/new.png',

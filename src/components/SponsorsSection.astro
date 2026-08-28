@@ -4,10 +4,12 @@ export interface Props { sponsors: SponsorRow[] }
 const { sponsors } = Astro.props;
 if (sponsors.length === 0) return null;
 const tiers: Array<{ key: SponsorRow['tier']; label: string; pillClass: string }> = [
-  { key: 'title',   label: 'Title sponsor', pillClass: 'pill-accent' },
-  { key: 'gold',    label: 'Gold sponsors', pillClass: 'pill-yellow' },
-  { key: 'silver',  label: 'Silver sponsors', pillClass: 'pill-cream' },
-  { key: 'partner', label: 'Partners',      pillClass: 'pill' },
+  { key: 'title',       label: 'Title sponsor',      pillClass: 'pill-accent' },
+  { key: 'association', label: 'In association with', pillClass: 'pill-yellow' },
+  { key: 'venue',       label: 'Venue partner',      pillClass: 'pill-cream' },
+  { key: 'zone',        label: 'Zone partners',      pillClass: 'pill-cream' },
+  { key: 'gaming',      label: 'Gaming partners',    pillClass: 'pill' },
+  { key: 'community',   label: 'Community partners', pillClass: 'pill' },
 ];
 const byTier = Object.fromEntries(tiers.map((t) => [t.key, sponsors.filter((s) => s.tier === t.key)]));
 ---

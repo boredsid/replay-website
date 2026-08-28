@@ -157,7 +157,7 @@ export interface AnnouncementRow {
   updated_at: string;
 }
 
-export type SponsorTier = 'title' | 'gold' | 'silver' | 'partner';
+export type SponsorTier = 'title' | 'association' | 'venue' | 'zone' | 'gaming' | 'community';
 
 export interface SponsorRow {
   id: string;
@@ -169,7 +169,6 @@ export interface SponsorRow {
   /** Object key in the `sponsor-logos` bucket, or null if hosted elsewhere. */
   logo_path: string | null;
   website_url: string | null;
-  display_order: number;
   created_at: string;
   updated_at: string;
 }

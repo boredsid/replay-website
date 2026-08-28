@@ -26,7 +26,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
 /** Mirrors the bucket's `file_size_limit`. */
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-const TIERS = ['title', 'gold', 'silver', 'partner'] as const;
+const TIERS = ['title', 'association', 'venue', 'zone', 'gaming', 'community'] as const;
 
 type SponsorTier = typeof TIERS[number];
 
@@ -37,7 +37,6 @@ type SponsorInput = {
   logo_url: string;
   logo_path: string | null;
   website_url: string | null;
-  display_order: number;
 };
 
 function requiredText(value: unknown, max: number, field: string): string {
@@ -73,13 +72,6 @@ function optionalText(value: unknown, max: number, field: string): string | null
   return text;
 }
 
-function displayOrder(value: unknown): number {
-  if (value === null || value === undefined || value === '') return 0;
-  const order = Number(value);
-  if (!Number.isInteger(order) || order < 0 || order > 9999) throw new Error('invalid_display_order');
-  return order;
-}
-
 function parseSponsor(input: any, previous?: any): SponsorInput {
   const merged = { ...(previous ?? {}), ...(input ?? {}) };
   const tier = TIERS.includes(merged.tier) ? (merged.tier as SponsorTier) : null;
@@ -92,7 +84,6 @@ function parseSponsor(input: any, previous?: any): SponsorInput {
     logo_url: httpUrl(merged.logo_url, 'logo_url'),
     logo_path: optionalText(merged.logo_path, 400, 'logo_path'),
     website_url: optionalHttpUrl(merged.website_url, 'website_url'),
-    display_order: displayOrder(merged.display_order),
   };
 }
 
@@ -124,7 +115,6 @@ export async function handleSponsorList(req: Request, sb: SupabaseClient, origin
     .from('sponsors')
     .select('*')
     .eq('edition_id', editionId)
-    .order('display_order', { ascending: true })
     .order('name', { ascending: true });
   if (result.error) return adminJson({ error: 'query_failed' }, 500, origin);
 
@@ -132,9 +122,9 @@ export async function handleSponsorList(req: Request, sb: SupabaseClient, origin
     const index = TIERS.indexOf(tier as SponsorTier);
     return index === -1 ? TIERS.length : index;
   };
+  // Tier ranks; names order within a tier. The wall renders the same order.
   const sponsors = ((result.data ?? []) as any[]).slice().sort((a, b) =>
     rank(a.tier) - rank(b.tier)
-    || (a.display_order ?? 0) - (b.display_order ?? 0)
     || String(a.name).localeCompare(String(b.name), 'en', { sensitivity: 'base' })
   );
   return adminJson({ sponsors }, 200, origin);
@@ -158,7 +148,7 @@ export async function handleSponsorCreate(
   catch { return adminJson({ error: 'invalid_body' }, 400, origin); }
 
   let row: SponsorInput;
-  try { row = parseSponsor({ tier: 'partner', display_order: 0, ...body }); }
+  try { row = parseSponsor({ tier: 'community', ...body }); }
   catch (error: any) { return adminJson({ error: error.message }, 400, origin); }
 
   const exists = await editionExists(sb, row.edition_id);

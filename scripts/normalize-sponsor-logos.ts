@@ -95,7 +95,7 @@ async function fetchSponsorRows(sources: NormalizeSources): Promise<SponsorWallR
 
   return await supabaseSelect(
     credentials,
-    `sponsors?select=id,name,tier,logo_url,website_url,display_order&edition_id=eq.${encodeURIComponent(editionId)}`,
+    `sponsors?select=id,name,tier,logo_url,website_url&edition_id=eq.${encodeURIComponent(editionId)}`,
   ) as SponsorWallRow[];
 }
 

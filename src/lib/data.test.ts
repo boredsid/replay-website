@@ -60,12 +60,16 @@ describe('getCurrentEdition', () => {
 });
 
 describe('getSponsors', () => {
-  it('returns ordered sponsors for the edition', async () => {
-    const rows = [{ id: 's1', display_order: 0 }, { id: 's2', display_order: 1 }];
+  it('ranks sponsors by tier and sorts by name inside one', async () => {
+    const rows = [
+      { id: 's1', name: 'Zolives', tier: 'community' },
+      { id: 's2', name: 'Mozaic', tier: 'title' },
+      { id: 's3', name: 'Dice Hard', tier: 'community' },
+    ];
     const { from } = mockChain({ data: rows, error: null });
     Object.assign(supabase, { from });
     const out = await getSponsors('e1');
-    expect(out).toEqual(rows);
+    expect(out.map((sponsor) => sponsor.name)).toEqual(['Mozaic', 'Dice Hard', 'Zolives']);
   });
 
   it('returns [] when no sponsors', async () => {

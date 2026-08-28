@@ -14,9 +14,15 @@
 // The judgement lives here rather than in the normaliser script so it can be
 // unit-tested without touching the filesystem or the network.
 
-export type SponsorTier = 'title' | 'gold' | 'silver' | 'partner';
+export type SponsorTier = 'title' | 'association' | 'venue' | 'zone' | 'gaming' | 'community';
 
-const TIER_ORDER: SponsorTier[] = ['title', 'gold', 'silver', 'partner'];
+/**
+ * Wall order, top tier first. It matches the sponsorship ladder in
+ * `src/lib/sponsor-tiers.ts`, with `community` for everyone credited without a
+ * package. Within a tier the wall sorts by name — nobody has to maintain a
+ * hand-set order, and no sponsor can quietly outrank another inside their tier.
+ */
+export const SPONSOR_TIER_ORDER: SponsorTier[] = ['title', 'association', 'venue', 'zone', 'gaming', 'community'];
 
 /** The subset of a `sponsors` row the wall reads. */
 export interface SponsorWallRow {
@@ -25,7 +31,6 @@ export interface SponsorWallRow {
   tier: string;
   logo_url: string;
   website_url: string | null;
-  display_order: number;
 }
 
 export interface WallEntry {
@@ -54,8 +59,8 @@ export function nameKey(name: string): string {
 }
 
 function tierRank(tier: string): number {
-  const index = TIER_ORDER.indexOf(tier as SponsorTier);
-  return index === -1 ? TIER_ORDER.length : index;
+  const index = SPONSOR_TIER_ORDER.indexOf(tier as SponsorTier);
+  return index === -1 ? SPONSOR_TIER_ORDER.length : index;
 }
 
 /** Only http(s) links reach the site; anything else is dropped, not rendered. */
@@ -70,8 +75,8 @@ function safeHref(value: string | null | undefined): string | null {
 }
 
 /**
- * Sponsors first — by tier, then by the order an admin set, then by name — and
- * legacy files after them, alphabetically, minus any a sponsor row supersedes.
+ * Sponsors first — by tier, then by name — and legacy files after them,
+ * alphabetically, minus any a sponsor row supersedes.
  */
 export function buildWall(rows: SponsorWallRow[], localFiles: string[]): WallEntry[] {
   const ordered = rows
@@ -79,7 +84,6 @@ export function buildWall(rows: SponsorWallRow[], localFiles: string[]): WallEnt
     .slice()
     .sort((a, b) =>
       tierRank(a.tier) - tierRank(b.tier)
-      || (a.display_order ?? 0) - (b.display_order ?? 0)
       || a.name.localeCompare(b.name, 'en', { sensitivity: 'base', numeric: true })
     );
 

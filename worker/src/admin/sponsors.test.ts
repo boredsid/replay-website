@@ -10,11 +10,10 @@ const ORIGIN = 'https://admin.replaycon.in';
 const VALID = {
   edition_id: 'edition-3',
   name: 'Board Game Company',
-  tier: 'gold',
+  tier: 'association',
   logo_url: 'https://qvkynwlmzeybdiapbcsy.supabase.co/storage/v1/object/public/sponsor-logos/edition-3/a.png',
   logo_path: 'edition-3/a.png',
   website_url: 'https://boardgamecompany.in',
-  display_order: 2,
 };
 
 /** Minimal stand-in for the service-role client, storage included. */
@@ -73,24 +72,33 @@ describe('sponsor admin handlers', () => {
     expect(res.status).toBe(200);
     expect(inserted).toMatchObject({
       name: 'Board Game Company',
-      tier: 'gold',
+      tier: 'association',
       website_url: 'https://boardgamecompany.in/',
       logo_path: 'edition-3/a.png',
-      display_order: 2,
     });
     expect(audit.action).toBe('sponsor.create');
   });
 
-  it('defaults an unspecified tier and order to the bottom of the wall', async () => {
+  it('defaults an unspecified tier to the bottom of the ladder', async () => {
     let inserted: any;
     const sb = fakeClient({ onInsert: (row) => { inserted = row; } });
-    const { tier, display_order, ...rest } = VALID;
+    const { tier, ...rest } = VALID;
     const req = new Request('https://x/api/admin/sponsors', { method: 'POST', body: JSON.stringify(rest) });
 
     const res = await handleSponsorCreate(req, sb, 'sid@example.com', ORIGIN);
 
     expect(res.status).toBe(200);
-    expect(inserted).toMatchObject({ tier: 'partner', display_order: 0 });
+    expect(inserted).toMatchObject({ tier: 'community' });
+  });
+
+  it('refuses a tier that is no longer on the ladder', async () => {
+    const req = new Request('https://x/api/admin/sponsors', {
+      method: 'POST',
+      body: JSON.stringify({ ...VALID, tier: 'gold' }),
+    });
+    const res = await handleSponsorCreate(req, fakeClient({}), 'sid@example.com', ORIGIN);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_tier' });
   });
 
   it('rejects a link that is not an http(s) URL', async () => {
@@ -139,7 +147,7 @@ describe('sponsor admin handlers', () => {
     const sb = fakeClient({ sponsor: { id: 'sponsor-1', ...VALID }, removed });
     const req = new Request('https://x/api/admin/sponsors/sponsor-1', {
       method: 'PATCH',
-      body: JSON.stringify({ display_order: 5 }),
+      body: JSON.stringify({ tier: 'venue' }),
     });
 
     const res = await handleSponsorPatch(req, sb, 'sponsor-1', 'sid@example.com', ORIGIN);

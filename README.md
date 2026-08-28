@@ -105,6 +105,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - partner package pricing is stored per edition, while every partner purchase preserves its base, GST, and final totals as a transaction snapshot;
 - partner purchases are operational records in the private `partners` table, separate from the `sponsors` table that drives the homepage logo wall;
 - sponsor logos are uploaded through the admin, held in the public `sponsor-logos` storage bucket, and each carries an optional link the public logo opens in a new tab;
+- sponsor tiers follow the sponsorship ladder — title, in association with, venue, zone, gaming, community — and the wall ranks by tier and sorts by name inside one, with no hand-set order to maintain;
 - a partner's stage (`lead` → `prospective` → `confirmed`, or `cancelled`) is a generated column derived from `submitted_at` and the payment status, so it can never drift from them;
 - the `partners` table also carries the sponsorship ladder; sponsorship amounts are negotiated per partner rather than read from `editions.partner_pricing`;
 - database-level validation for pass/day combinations, non-negative amounts, schedule bounds, and concurrent capacity writes.

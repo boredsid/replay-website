@@ -24,7 +24,6 @@ type Form = {
   name: string;
   tier: SponsorTier;
   website_url: string;
-  display_order: string;
   logo_url: string;
   logo_path: string | null;
 };
@@ -32,9 +31,8 @@ type Form = {
 const EMPTY: Form = {
   edition_id: '',
   name: '',
-  tier: 'partner',
+  tier: 'community',
   website_url: '',
-  display_order: '0',
   logo_url: '',
   logo_path: null,
 };
@@ -85,7 +83,6 @@ export default function SponsorDrawer() {
             name: sponsor.name,
             tier: sponsor.tier,
             website_url: sponsor.website_url ?? '',
-            display_order: String(sponsor.display_order),
             logo_url: sponsor.logo_url,
             logo_path: sponsor.logo_path,
           });
@@ -135,12 +132,6 @@ export default function SponsorDrawer() {
       toast.error('Upload a logo first.');
       return;
     }
-    const order = Number(form.display_order);
-    if (!Number.isInteger(order) || order < 0) {
-      toast.error('Order must be a whole number, 0 or higher.');
-      return;
-    }
-
     setBusy(true);
     try {
       let { logo_url: logoUrl, logo_path: logoPath } = form;
@@ -158,7 +149,6 @@ export default function SponsorDrawer() {
         name: form.name.trim(),
         tier: form.tier,
         website_url: form.website_url.trim() || null,
-        display_order: order,
         logo_url: logoUrl,
         logo_path: logoPath,
       };
@@ -236,19 +226,19 @@ export default function SponsorDrawer() {
             With a link the logo opens it in a new tab. Leave this empty and the logo simply sits on the wall.
           </p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Tier">
-              <select aria-label="Tier" value={form.tier} onChange={(event) => set('tier', event.target.value as SponsorTier)} className="w-full rounded-md border px-3 py-2">
-                <option value="title">Title sponsor</option>
-                <option value="gold">Gold sponsor</option>
-                <option value="silver">Silver sponsor</option>
-                <option value="partner">Partner</option>
-              </select>
-            </Field>
-            <Field label="Order within tier">
-              <input aria-label="Order within tier" type="number" min={0} step={1} value={form.display_order} onChange={(event) => set('display_order', event.target.value)} className="w-full rounded-md border px-3 py-2" />
-            </Field>
-          </div>
+          <Field label="Tier">
+            <select aria-label="Tier" value={form.tier} onChange={(event) => set('tier', event.target.value as SponsorTier)} className="w-full rounded-md border px-3 py-2">
+              <option value="title">Title sponsor</option>
+              <option value="association">In association with</option>
+              <option value="venue">Venue partner</option>
+              <option value="zone">Zone partner</option>
+              <option value="gaming">Gaming partner</option>
+              <option value="community">Community partner</option>
+            </select>
+          </Field>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            The wall shows tiers in that order, and sorts sponsors by name inside each one.
+          </p>
 
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
             {busy ? 'Saving…' : isNew ? 'Add sponsor' : 'Save sponsor'}

@@ -5,18 +5,24 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
 import type { EditionRow, SponsorRow, SponsorTier } from '@/lib/types';
 
+// The ladder from docs/SPONSORSHIP.md, plus community for everyone credited
+// on the wall without a package. Order here is wall order.
 const TIER_LABEL: Record<SponsorTier, string> = {
   title: 'Title sponsor',
-  gold: 'Gold sponsor',
-  silver: 'Silver sponsor',
-  partner: 'Partner',
+  association: 'In association with',
+  venue: 'Venue partner',
+  zone: 'Zone partner',
+  gaming: 'Gaming partner',
+  community: 'Community partner',
 };
 
 const TIER_STYLE: Record<SponsorTier, string> = {
   title: 'bg-amber-100 text-amber-950',
-  gold: 'bg-yellow-100 text-yellow-900',
-  silver: 'bg-zinc-200 text-zinc-800',
-  partner: 'bg-blue-100 text-blue-900',
+  association: 'bg-orange-100 text-orange-950',
+  venue: 'bg-violet-100 text-violet-900',
+  zone: 'bg-teal-100 text-teal-900',
+  gaming: 'bg-blue-100 text-blue-900',
+  community: 'bg-zinc-200 text-zinc-800',
 };
 
 export default function Sponsors() {
@@ -67,7 +73,7 @@ export default function Sponsors() {
         <div>
           <h1 className="text-2xl font-bold">Sponsor logos</h1>
           <p className="text-sm text-muted-foreground">
-            The logo wall on replaycon.in. Upload artwork, set where each logo links, and order the wall.
+            The logo wall on replaycon.in. Upload artwork, set where each logo links, and pick a tier — the wall ranks by tier and sorts by name inside it.
           </p>
         </div>
         <Link
@@ -107,8 +113,7 @@ export default function Sponsors() {
         <div className="rounded-md border bg-background p-6">
           <h2 className="font-semibold">No sponsor logos yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add one and it joins the wall on the next rebuild. Until then the site falls back to the artwork
-            committed under <code>sponsor-logos/</code> in the repository.
+            Add one and it joins the wall on the next rebuild. With no sponsors for this edition the wall hides itself.
           </p>
         </div>
       ) : (
@@ -124,7 +129,6 @@ export default function Sponsors() {
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className={`rounded-full px-2 py-0.5 ${TIER_STYLE[sponsor.tier]}`}>{TIER_LABEL[sponsor.tier]}</span>
-                <span className="rounded-full border px-2 py-0.5">order {sponsor.display_order}</span>
               </div>
               <h2 className="mt-2 font-semibold">{sponsor.name}</h2>
               <p className="mt-1 truncate text-sm text-muted-foreground">

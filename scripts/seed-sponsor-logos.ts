@@ -4,8 +4,7 @@
 // manages in the console — with a link, a tier and an order — and this script
 // carries the existing files across: it uploads each one to the `sponsor-logos`
 // bucket and inserts a `sponsors` row for the current edition, named after the
-// file, alphabetical order preserved, no link (that is what the console is
-// for).
+// file, tier `community`, no link (both are what the console is for).
 //
 // Run it once:
 //
@@ -128,7 +127,7 @@ async function planUploads(taken: Set<string>): Promise<{ plan: Plan[]; skipped:
   return { plan, skipped };
 }
 
-async function seedOne(sb: SupabaseClient, editionId: string, entry: Plan, displayOrder: number): Promise<void> {
+async function seedOne(sb: SupabaseClient, editionId: string, entry: Plan): Promise<void> {
   const extension = extname(entry.file).toLowerCase().replace('.', '');
   const path = `${editionId}/${crypto.randomUUID()}.${extension}`;
 
@@ -143,11 +142,10 @@ async function seedOne(sb: SupabaseClient, editionId: string, entry: Plan, displ
   const inserted = await sb.from('sponsors').insert({
     edition_id: editionId,
     name: entry.name,
-    tier: 'partner',
+    tier: 'community',
     logo_url: data.publicUrl,
     logo_path: path,
     website_url: null,
-    display_order: displayOrder,
   });
 
   // Never leave an object no row points at: it would sit in the bucket
@@ -197,8 +195,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  for (const [index, entry] of plan.entries()) {
-    await seedOne(sb, editionId, entry, index);
+  for (const entry of plan) {
+    await seedOne(sb, editionId, entry);
     console.log(`  ✓ ${entry.file}`);
   }
 

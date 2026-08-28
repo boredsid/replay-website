@@ -3,10 +3,9 @@ import { buildWall, nameFromFile, nameKey, type SponsorWallRow } from './sponsor
 
 function row(overrides: Partial<SponsorWallRow> & Pick<SponsorWallRow, 'id' | 'name'>): SponsorWallRow {
   return {
-    tier: 'partner',
+    tier: 'community',
     logo_url: `https://cdn.example/${overrides.id}.png`,
     website_url: null,
-    display_order: 0,
     ...overrides,
   };
 }
@@ -19,17 +18,36 @@ describe('nameFromFile', () => {
 });
 
 describe('buildWall', () => {
-  it('orders sponsors by tier, then admin order, then name', () => {
+  it('ranks by the sponsorship ladder, then sorts by name inside a tier', () => {
     const wall = buildWall(
       [
-        row({ id: 'a', name: 'Zolives', tier: 'partner' }),
-        row({ id: 'b', name: 'Indiqube', tier: 'title' }),
-        row({ id: 'c', name: 'Mozaic', tier: 'gold', display_order: 2 }),
-        row({ id: 'd', name: 'Dice Hard', tier: 'gold', display_order: 1 }),
+        row({ id: 'a', name: 'Zolives', tier: 'community' }),
+        row({ id: 'b', name: 'Indiqube', tier: 'venue' }),
+        row({ id: 'c', name: 'Mozaic', tier: 'association' }),
+        row({ id: 'd', name: 'Dice Hard', tier: 'association' }),
+        row({ id: 'e', name: 'Somo Club', tier: 'title' }),
+        row({ id: 'f', name: 'TTRPGcon', tier: 'gaming' }),
+        row({ id: 'g', name: 'Board Game Jungle', tier: 'zone' }),
       ],
       [],
     );
-    expect(wall.map((entry) => entry.name)).toEqual(['Indiqube', 'Dice Hard', 'Mozaic', 'Zolives']);
+    expect(wall.map((entry) => entry.name)).toEqual([
+      'Somo Club',          // title
+      'Dice Hard',          // association, alphabetical …
+      'Mozaic',
+      'Indiqube',           // venue
+      'Board Game Jungle',  // zone
+      'TTRPGcon',           // gaming
+      'Zolives',            // community
+    ]);
+  });
+
+  it('sends a tier it does not recognise to the back rather than dropping it', () => {
+    const wall = buildWall(
+      [row({ id: 'a', name: 'Retired Tier', tier: 'gold' }), row({ id: 'b', name: 'Zolives' })],
+      [],
+    );
+    expect(wall.map((entry) => entry.name)).toEqual(['Zolives', 'Retired Tier']);
   });
 
   it('names each tile after the sponsor id so two sponsors never collide', () => {

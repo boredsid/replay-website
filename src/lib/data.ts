@@ -4,6 +4,7 @@
 import { supabase } from './supabase';
 import type { EditionPricing, EditionRow, SponsorRow, ScheduleItemRow } from './types';
 import { readPartnerPricing } from './partner-packages';
+import { SPONSOR_TIER_ORDER } from './sponsor-wall';
 
 export function readEditionPricing(input: unknown): EditionPricing {
   if (!input || typeof input !== 'object') throw new Error('edition pricing is not an object');
@@ -100,9 +101,18 @@ export async function getSponsors(editionId: string): Promise<SponsorRow[]> {
     .from('sponsors')
     .select('*')
     .eq('edition_id', editionId)
-    .order('display_order', { ascending: true });
+    .order('name', { ascending: true });
   if (error) throw new Error(`getSponsors failed: ${error.message}`);
-  return (data as SponsorRow[]) ?? [];
+  // Tier sets the rank, name orders within it — the same rule the logo wall
+  // uses, kept here so any consumer of this helper agrees with the wall.
+  const rank = (tier: string) => {
+    const index = SPONSOR_TIER_ORDER.indexOf(tier as SponsorRow['tier']);
+    return index === -1 ? SPONSOR_TIER_ORDER.length : index;
+  };
+  return ((data as SponsorRow[]) ?? []).sort((a, b) =>
+    rank(a.tier) - rank(b.tier)
+    || a.name.localeCompare(b.name, 'en', { sensitivity: 'base', numeric: true })
+  );
 }
 
 export async function getScheduleItems(editionId: string): Promise<ScheduleItemRow[]> {

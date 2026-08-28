@@ -3,7 +3,7 @@ export type Day = 'day1' | 'day2';
 export type PassType = 'oneshot' | 'campaign';
 export type GuildTier = 'initiate' | 'adventurer' | 'guildmaster';
 export type RegistrationStatus = 'upcoming' | 'open' | 'sold_out' | 'closed';
-export type SponsorTier = 'title' | 'gold' | 'silver' | 'partner';
+export type SponsorTier = 'title' | 'association' | 'venue' | 'zone' | 'gaming' | 'community';
 export type ScheduleSection = 'always-on' | 'programme' | 'playtesting' | 'publisher-showcase' | 'event-floor';
 export type ScheduleKind =
   | 'workshop'
@@ -96,7 +96,6 @@ export interface SponsorRow {
   /** Object key in the `sponsor-logos` bucket, or null if hosted elsewhere. */
   logo_path: string | null;
   website_url: string | null;
-  display_order: number;
 }
 
 export interface ScheduleItemRow {
