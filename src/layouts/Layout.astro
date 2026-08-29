@@ -109,6 +109,34 @@ const markWindow = (logo: PartnerLogo) => [
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <header class="site-header">
+      {lockup.hasCredits && (
+        /*
+         * The white ground each sponsor mark sits on, as a filter rather than
+         * a rectangle behind it: grow the mark's own alpha outwards by the
+         * halo's width, fill what that covers with white, and lay the mark
+         * back down on top. `feMorphology` is a true dilation — every point
+         * within the radius of an opaque pixel turns opaque — so the ground
+         * follows the mark's outline however thin the strokes get.
+         *
+         * The radius is in the referring element's CSS pixels and cannot be
+         * read from a custom property, so `--halo` below has to be kept equal
+         * to it by hand. That is also why it is a fixed width rather than a
+         * fraction of the wordmark: 3px reads as a ground at both sizes the
+         * header puts a mark at, thicker against the smaller one.
+         */
+        <svg class="site-logo__halo-def" aria-hidden="true" focusable="false">
+          <filter id="mark-halo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="3" result="grown" />
+            <feFlood flood-color="#fff" result="white" />
+            <feComposite in="white" in2="grown" operator="in" result="halo" />
+            <feMerge>
+              <feMergeNode in="halo" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </svg>
+      )}
+
       <div class="container-x site-header__inner">
         <a
           href="/"
@@ -275,17 +303,14 @@ const markWindow = (logo: PartnerLogo) => [
     /*
      * The mark is a fixed fraction of the wordmark's height, never a size of
      * its own: a guest credit should read as the smaller of the two, and a
-     * plate with its own height drifts past the wordmark the moment one of
-     * the narrow bands below changes the wordmark's size. At 0.85 the plate
-     * also stays inside the credit stack, so it costs the header no height.
-     * The mark fills that height; the plate's width follows the mark, with
-     * the wall's 3:2 tile as the floor, so a square logo still gets a plate
-     * rather than a tight square, and 2.4:1 as the ceiling, so a long
-     * wordmark logo goes short rather than becoming an endless white slab.
+     * mark with its own height drifts past the wordmark the moment one of the
+     * narrow bands below changes the wordmark's size. At 0.85 the mark also
+     * stays inside the credit stack, so it costs the header no height, and it
+     * goes short of 2.9:1 rather than running the width of the bar.
      */
     --mark-scale: 0.85;
-    --block-pad: 6px;
-    --block-h: calc(var(--wordmark-h) * var(--mark-scale) + 2 * var(--block-pad));
+    --mark-box: calc(var(--wordmark-h) * var(--mark-scale));
+    --mark-max-ratio: 2.9;
     flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
@@ -321,35 +346,56 @@ const markWindow = (logo: PartnerLogo) => [
   .site-logo__word--bottom { align-self: flex-end; }
 
   /*
-   * The tiles are the wall's, drawn to sit on white; the block carries that
-   * ground onto the ink header so a mark with its own light background and one
-   * with none read the same. It stretches to the stack's height, which is what
-   * makes the two blocks flank the whole lockup rather than just the wordmark.
+   * The tiles are the wall's, drawn to sit on white, so on the ink header each
+   * mark needs a white ground of its own — cut to the mark's shape rather than
+   * laid down as a rectangle behind it. The tiles carry transparency around
+   * the mark, which is what the `#mark-halo` filter grows outwards to make
+   * that ground, so what sits behind the logo is its own outline rather than a
+   * plate it stands on.
+   *
+   * A logo that reached the normaliser on a white matte has no transparency to
+   * grow from — `logo-normalize` re-lays that matte across the whole tile — so
+   * its ground comes out the rectangle it always was. That is the old plate,
+   * not a failure: the mark still gets the white it was drawn for.
    */
   .site-logo__block {
-    --inner-h: calc(var(--block-h) - 2 * var(--block-pad));
-    --max-inner-w: calc(var(--block-h) * 2.4 - 2 * var(--block-pad));
-    --mark-h: min(var(--inner-h), calc(var(--max-inner-w) * var(--mark-inv)));
+    --mark-h: min(
+      var(--mark-box),
+      calc(var(--mark-box) * var(--mark-max-ratio) * var(--mark-inv))
+    );
     --mark-w: calc(var(--mark-h) * var(--mark-num));
+    /* Must equal the `#mark-halo` filter's radius; see the filter's note. */
+    --halo: 3px;
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    width: max(calc(var(--block-h) * 1.5), calc(var(--mark-w) + 2 * var(--block-pad)));
-    height: var(--block-h);
-    padding: var(--block-pad);
-    border-radius: 4px;
-    background: #fff;
+    height: var(--mark-box);
   }
 
-  /* The window on to the mark — sized by the plate above; see `markWindow`. */
+  /*
+   * The window on to the mark — sized by the block above; see `markWindow`. It
+   * reserves the halo's width on every side, so the ground has room to grow
+   * without crowding the wordmark beside it.
+   *
+   * Nothing is clipped here: what surrounds the mark on the tile is
+   * transparent, so letting it overflow shows nothing, and a mark whose tile
+   * carries less padding than the halo is wide still gets a whole halo rather
+   * than one with a shaved edge.
+   */
   .site-logo__mark {
     position: relative;
     display: block;
     flex: 0 0 auto;
-    width: var(--mark-w);
-    height: var(--mark-h);
-    overflow: hidden;
+    width: calc(var(--mark-w) + 2 * var(--halo));
+    height: calc(var(--mark-h) + 2 * var(--halo));
+  }
+
+  /* Defines `#mark-halo`; renders nothing itself. */
+  .site-logo__halo-def {
+    position: absolute;
+    width: 0;
+    height: 0;
   }
 
   .site-logo__tile {
@@ -358,8 +404,10 @@ const markWindow = (logo: PartnerLogo) => [
     left: 50%;
     width: auto;
     max-width: none;
-    height: calc(100% * var(--tile-scale));
+    /* Against the mark, not the window: the halo must not scale the mark. */
+    height: calc(var(--mark-h) * var(--tile-scale));
     transform: translate(-50%, -50%);
+    filter: url(#mark-halo);
   }
 
   .desktop-nav {
@@ -511,8 +559,7 @@ const markWindow = (logo: PartnerLogo) => [
   @media (max-width: 559px) {
     .site-logo--lockup {
       --word-size: 0.6rem;
-      --block-h: 30px;
-      --block-pad: 4px;
+      --mark-box: 22px;
       --stack-gap: 2px;
       gap: 6px 7px;
     }
@@ -520,7 +567,7 @@ const markWindow = (logo: PartnerLogo) => [
     /* One credit still clears the menu button at full size; two do not. */
     .site-logo--two-credits {
       --wordmark-h: 26px;
-      --block-h: 30px;
+      --mark-box: 22px;
     }
   }
 
