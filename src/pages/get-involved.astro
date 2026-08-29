@@ -2,12 +2,18 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import { whatsappContactUrl } from '../lib/contact';
-import { getCurrentEdition, publicDateRange } from '../lib/data';
+import { editionOrdinal, getCurrentEdition, getSponsors, publicDateRange } from '../lib/data';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
-import { SPONSOR_TIERS, SPONSOR_BASELINE } from '../lib/sponsor-tiers';
+import { SPONSOR_TIERS, SPONSOR_BASELINE, tierStatus } from '../lib/sponsor-tiers';
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+
+// A tier is closed because a sponsor holds it, not because someone remembered
+// to mark it closed. The rows are the ones uploaded in the admin console.
+const sponsors = edition ? await getSponsors(edition.id) : [];
+const editionLabel = edition ? editionOrdinal(edition.slug) : '';
+const tiers = SPONSOR_TIERS.map((tier) => ({ tier, status: tierStatus(tier, sponsors, editionLabel) }));
 const partnerPricing = edition?.partner_pricing ?? DEFAULT_PARTNER_PRICING;
 const money = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
@@ -194,8 +200,8 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
       </div>
 
       <div class="tier-grid">
-        {SPONSOR_TIERS.map((tier) => (
-          <article class={`tier-card${tier.status ? ' tier-card--closed' : ''}`}>
+        {tiers.map(({ tier, status }) => (
+          <article class={`tier-card${status ? ' tier-card--closed' : ''}`}>
             <span class="pill pill-purple">{tier.slots}</span>
             <h3>{tier.name}</h3>
             {tier.price === null ? (
@@ -206,13 +212,13 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
             {tier.billing && <p class="tier-card__billing">{tier.billing}</p>}
             <p class="tier-card__summary">{tier.summary}</p>
 
-            {tier.status && <p class="tier-card__status"><strong>{tier.status.label}.</strong> {tier.status.detail}</p>}
+            {status && <p class="tier-card__status"><strong>{status.label}.</strong> {status.detail}</p>}
 
             <span class="tier-card__stage-label">Adds</span>
             <ul class="clean-list">{tier.adds.map((item) => <li>{item}</li>)}</ul>
             <p class="tier-card__passes">{tier.passes} complimentary two-day passes</p>
 
-            {tier.status ? (
+            {status ? (
               <a class="btn btn-secondary" href={whatsappContactUrl(`Hi, I'd like to be considered as the ${tier.name} for a future REPLAY edition.`)} target="_blank" rel="noopener noreferrer">Ask about the next edition →</a>
             ) : (
               <a class="btn btn-primary" href={whatsappContactUrl(`Hi, I'd like to talk about the ${tier.name} tier for REPLAY.`)} target="_blank" rel="noopener noreferrer">Talk about this tier →</a>
