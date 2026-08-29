@@ -3,6 +3,9 @@ import {
   DEFAULT_OPTIONS,
   contentBox,
   detectBackground,
+  dilateAlpha,
+  haloRadius,
+  paintHalo,
   planNormalization,
   type RgbaImage,
 } from './logo-normalize';
@@ -194,5 +197,84 @@ describe('planNormalization', () => {
     expect(plan.canvas).toEqual({ width: 200, height: 200 });
     expect(plan.placement.width).toBe(100); // 200 - 2 * 25%
     expect(plan.placement.height).toBe(100);
+  });
+});
+
+describe('dilateAlpha', () => {
+  const alphaAt = (grown: Uint8Array, width: number, x: number, y: number) => grown[y * width + x];
+
+  it('grows an opaque block outwards by the radius', () => {
+    const img = image(21, 21, TRANSPARENT, { box: { left: 10, top: 10, width: 1, height: 1 }, color: BLACK });
+    const grown = dilateAlpha(img, 3);
+
+    // Along an axis the disc reaches exactly the radius, and no further.
+    expect(alphaAt(grown, 21, 13, 10)).toBe(255);
+    expect(alphaAt(grown, 21, 14, 10)).toBe(0);
+    expect(alphaAt(grown, 21, 10, 7)).toBe(255);
+    expect(alphaAt(grown, 21, 10, 6)).toBe(0);
+  });
+
+  it('uses a disc, so corners stay clear of a square of the same radius', () => {
+    const img = image(21, 21, TRANSPARENT, { box: { left: 10, top: 10, width: 1, height: 1 }, color: BLACK });
+    const grown = dilateAlpha(img, 3);
+
+    // (3,3) away is 4.24 from the centre — outside the disc, inside a box.
+    expect(alphaAt(grown, 21, 13, 13)).toBe(0);
+    expect(alphaAt(grown, 21, 12, 12)).toBe(255); // 2.83 away, inside it
+  });
+
+  it('carries a partly transparent edge through at its own strength', () => {
+    const img = image(11, 11, TRANSPARENT, {
+      box: { left: 5, top: 5, width: 1, height: 1 },
+      color: [0, 0, 0, 128],
+    });
+    const grown = dilateAlpha(img, 2);
+    expect(alphaAt(grown, 11, 7, 5)).toBe(128);
+  });
+
+  it('leaves the alpha untouched at radius zero', () => {
+    const img = image(5, 5, TRANSPARENT, { box: { left: 2, top: 2, width: 1, height: 1 }, color: BLACK });
+    expect(Array.from(dilateAlpha(img, 0)).filter((a) => a === 255)).toHaveLength(1);
+  });
+});
+
+describe('paintHalo', () => {
+  it('puts white under the mark and leaves the mark itself alone', () => {
+    const img = image(11, 11, TRANSPARENT, { box: { left: 5, top: 5, width: 1, height: 1 }, color: ORANGE });
+    const out = paintHalo(img, 2);
+    const at = (x: number, y: number) => Array.from(out.subarray((y * 11 + x) * 4, (y * 11 + x) * 4 + 4));
+
+    expect(at(5, 5)).toEqual([...ORANGE]); // the mark, unchanged
+    expect(at(7, 5)).toEqual([255, 255, 255, 255]); // ground it grew
+    expect(at(9, 5)).toEqual([0, 0, 0, 0]); // beyond the halo, still clear
+  });
+
+  it('changes nothing on a tile that is already opaque edge to edge', () => {
+    const img = image(9, 9, WHITE, { box: { left: 3, top: 3, width: 3, height: 3 }, color: BLACK });
+    const out = paintHalo(img, 2);
+    expect(Array.from(out)).toEqual(Array.from(img.data));
+  });
+});
+
+describe('haloRadius', () => {
+  it('scales with the mark, so every logo gets the same weight once scaled', () => {
+    const tall = image(200, 200, TRANSPARENT, { box: { left: 60, top: 20, width: 80, height: 160 }, color: BLACK });
+    const short = image(200, 200, TRANSPARENT, { box: { left: 20, top: 80, width: 160, height: 40 }, color: BLACK });
+    const options = { ...DEFAULT_OPTIONS, canvasWidth: 200, canvasHeight: 200, paddingRatio: 0.1 };
+
+    const tallPlan = planNormalization(tall, options);
+    const shortPlan = planNormalization(short, options);
+
+    expect(haloRadius(tallPlan, options)).toBe(Math.round(0.09 * tallPlan.placement.height));
+    expect(haloRadius(shortPlan, options)).toBe(Math.round(0.09 * shortPlan.placement.height));
+  });
+
+  it('never grows past the padding, so the ground cannot run off the canvas', () => {
+    const img = image(100, 100, TRANSPARENT, { box: { left: 2, top: 2, width: 96, height: 96 }, color: BLACK });
+    const options = { ...DEFAULT_OPTIONS, canvasWidth: 100, canvasHeight: 100, paddingRatio: 0.02, haloRatio: 0.9 };
+    const plan = planNormalization(img, options);
+    const room = Math.min(plan.placement.left, plan.placement.top);
+
+    expect(haloRadius(plan, options)).toBe(room);
   });
 });

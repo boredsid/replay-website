@@ -109,34 +109,6 @@ const markWindow = (logo: PartnerLogo) => [
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <header class="site-header">
-      {lockup.hasCredits && (
-        /*
-         * The white ground each sponsor mark sits on, as a filter rather than
-         * a rectangle behind it: grow the mark's own alpha outwards by the
-         * halo's width, fill what that covers with white, and lay the mark
-         * back down on top. `feMorphology` is a true dilation — every point
-         * within the radius of an opaque pixel turns opaque — so the ground
-         * follows the mark's outline however thin the strokes get.
-         *
-         * The radius is in the referring element's CSS pixels and cannot be
-         * read from a custom property, so `--halo` below has to be kept equal
-         * to it by hand. That is also why it is a fixed width rather than a
-         * fraction of the wordmark: 3px reads as a ground at both sizes the
-         * header puts a mark at, thicker against the smaller one.
-         */
-        <svg class="site-logo__halo-def" aria-hidden="true" focusable="false">
-          <filter id="mark-halo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="3" result="grown" />
-            <feFlood flood-color="#fff" result="white" />
-            <feComposite in="white" in2="grown" operator="in" result="halo" />
-            <feMerge>
-              <feMergeNode in="halo" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </svg>
-      )}
-
       <div class="container-x site-header__inner">
         <a
           href="/"
@@ -348,15 +320,14 @@ const markWindow = (logo: PartnerLogo) => [
   /*
    * The tiles are the wall's, drawn to sit on white, so on the ink header each
    * mark needs a white ground of its own — cut to the mark's shape rather than
-   * laid down as a rectangle behind it. The tiles carry transparency around
-   * the mark, which is what the `#mark-halo` filter grows outwards to make
-   * that ground, so what sits behind the logo is its own outline rather than a
-   * plate it stands on.
+   * laid down as a rectangle behind it. That ground is already in the tile:
+   * `paintHalo` grows it from the mark's own alpha when the tile is generated,
+   * which is why nothing here paints a background. The wall's cells are white,
+   * so it only ever shows against this header.
    *
-   * A logo that reached the normaliser on a white matte has no transparency to
-   * grow from — `logo-normalize` re-lays that matte across the whole tile — so
-   * its ground comes out the rectangle it always was. That is the old plate,
-   * not a failure: the mark still gets the white it was drawn for.
+   * It is baked rather than grown at render time because every way of doing
+   * that in the browser leans on a filter, and Safari drops the filtered image
+   * outright at some zoom levels.
    */
   .site-logo__block {
     --mark-h: min(
@@ -364,8 +335,12 @@ const markWindow = (logo: PartnerLogo) => [
       calc(var(--mark-box) * var(--mark-max-ratio) * var(--mark-inv))
     );
     --mark-w: calc(var(--mark-h) * var(--mark-num));
-    /* Must equal the `#mark-halo` filter's radius; see the filter's note. */
-    --halo: 3px;
+    /*
+     * Room for the halo the tile already carries, so it does not crowd the
+     * wordmark. Matches `haloRatio` in `logo-normalize.ts`; drifting only
+     * changes this gap, never the halo.
+     */
+    --halo: calc(var(--mark-h) * 0.09);
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
@@ -391,13 +366,6 @@ const markWindow = (logo: PartnerLogo) => [
     height: calc(var(--mark-h) + 2 * var(--halo));
   }
 
-  /* Defines `#mark-halo`; renders nothing itself. */
-  .site-logo__halo-def {
-    position: absolute;
-    width: 0;
-    height: 0;
-  }
-
   .site-logo__tile {
     position: absolute;
     top: 50%;
@@ -407,7 +375,6 @@ const markWindow = (logo: PartnerLogo) => [
     /* Against the mark, not the window: the halo must not scale the mark. */
     height: calc(var(--mark-h) * var(--tile-scale));
     transform: translate(-50%, -50%);
-    filter: url(#mark-halo);
   }
 
   .desktop-nav {
