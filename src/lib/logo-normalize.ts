@@ -67,6 +67,23 @@ export interface NormalizeOptions {
   trimTolerance: number;
   /** Reject a trim retaining less than this share of either dimension. */
   minRetainedSide: number;
+  /**
+   * The white ground the site header puts behind a credited mark, as a share
+   * of the mark's own height. Baked into the tile rather than grown at render
+   * time: the header's ground has to follow the mark's outline, and every way
+   * of doing that in the browser leans on a filter that some engine renders
+   * wrong — Safari drops the filtered image outright at some zoom levels.
+   *
+   * The wall's cells are white, so the halo is invisible there; only the ink
+   * header ever shows it. A ratio rather than a pixel width because the header
+   * scales every mark to a common height, so this is what makes the halo read
+   * as the same weight whichever logo is in the lockup.
+   *
+   * `--halo` in `Layout.astro` reserves room for this beside the mark and
+   * should be kept in step, though nothing breaks visually if it drifts: it
+   * only sets the gap to the wordmark, never the halo itself.
+   */
+  haloRatio: number;
 }
 
 export const DEFAULT_OPTIONS: NormalizeOptions = {
@@ -79,6 +96,7 @@ export const DEFAULT_OPTIONS: NormalizeOptions = {
   lightLuma: 232,
   trimTolerance: 12,
   minRetainedSide: 0.05,
+  haloRatio: 0.09,
 };
 
 function channelAt(image: RgbaImage, x: number, y: number): [number, number, number, number] {
@@ -251,4 +269,109 @@ export function planNormalization(image: RgbaImage, options: NormalizeOptions = 
     canvasBackground: background.kind === 'light' ? background.color : null,
     belowTargetSize: crop.width < innerWidth && crop.height < innerHeight,
   };
+}
+
+/**
+ * How far the halo may grow on a finished tile: `haloRatio` of the mark's
+ * height, but never past the padding around it, so the ground can never run
+ * off the edge of the canvas and come out with a straight cut across it.
+ */
+export function haloRadius(plan: NormalizePlan, options: NormalizeOptions = DEFAULT_OPTIONS): number {
+  const room = Math.min(
+    plan.placement.left,
+    plan.placement.top,
+    plan.canvas.width - plan.placement.left - plan.placement.width,
+    plan.canvas.height - plan.placement.top - plan.placement.height,
+  );
+  return Math.max(0, Math.min(Math.round(options.haloRatio * plan.placement.height), room));
+}
+
+/**
+ * Sliding-window maximum along one row, which is a dilation in one dimension.
+ * The deque holds indices whose values still stand a chance of being the
+ * window's maximum — anything a later, larger value has already beaten is
+ * dropped — so each pixel is pushed and popped once however wide the window.
+ */
+function rowDilate(row: Uint8Array, radius: number, out: Uint8Array): void {
+  const width = row.length;
+  const queue = new Int32Array(width);
+  let head = 0;
+  let tail = 0;
+  let next = 0;
+  for (let x = 0; x < width; x++) {
+    const limit = Math.min(width - 1, x + radius);
+    while (next <= limit) {
+      while (tail > head && row[queue[tail - 1]] <= row[next]) tail--;
+      queue[tail++] = next++;
+    }
+    while (queue[head] < x - radius) head++;
+    out[x] = row[queue[head]];
+  }
+}
+
+/**
+ * The mark's alpha grown outwards by `radius`, as a standalone coverage map.
+ *
+ * The structuring element is a disc, not a square: a box dilation chamfers
+ * every corner flat, which on a mark with small square details reads as a
+ * bevel around each one. Taking the row dilation at each vertical offset with
+ * the radius the circle allows there, and keeping the strongest, is that disc
+ * exactly — and stays linear in the radius rather than quadratic.
+ *
+ * Partly transparent edge pixels carry through as themselves, so the grown
+ * edge keeps the mark's antialiasing instead of hardening into stairsteps.
+ */
+export function dilateAlpha(image: RgbaImage, radius: number): Uint8Array {
+  const { width, height } = image;
+  const alpha = new Uint8Array(width * height);
+  for (let i = 0; i < width * height; i++) alpha[i] = image.data[i * 4 + 3];
+  if (radius <= 0) return alpha;
+
+  const grown = new Uint8Array(width * height);
+  const row = new Uint8Array(width);
+  const spread = new Uint8Array(width);
+
+  for (let dy = -radius; dy <= radius; dy++) {
+    const rx = Math.floor(Math.sqrt(radius * radius - dy * dy));
+    for (let y = Math.max(0, dy); y < Math.min(height, height + dy); y++) {
+      const source = (y - dy) * width;
+      row.set(alpha.subarray(source, source + width));
+      rowDilate(row, rx, spread);
+      const target = y * width;
+      for (let x = 0; x < width; x++) {
+        if (spread[x] > grown[target + x]) grown[target + x] = spread[x];
+      }
+    }
+  }
+  return grown;
+}
+
+/**
+ * The tile with its halo behind it: white wherever the grown alpha covers,
+ * the mark itself laid back over that untouched.
+ *
+ * A tile whose padding was filled with a stripped white matte is already
+ * opaque edge to edge, so there is nothing for the halo to grow into and this
+ * returns it unchanged — the mark keeps the white ground it arrived with.
+ */
+export function paintHalo(image: RgbaImage, radius: number): Uint8Array {
+  const { width, height } = image;
+  const grown = dilateAlpha(image, radius);
+  const out = new Uint8Array(width * height * 4);
+
+  for (let i = 0; i < width * height; i++) {
+    const at = i * 4;
+    const markAlpha = image.data[at + 3] / 255;
+    const haloAlpha = grown[i] / 255;
+    // The mark over white: alpha compositing, with the halo as the backdrop.
+    const alpha = markAlpha + haloAlpha * (1 - markAlpha);
+    out[at + 3] = Math.round(alpha * 255);
+    if (alpha === 0) continue;
+    for (let channel = 0; channel < 3; channel++) {
+      const over = image.data[at + channel] * markAlpha;
+      const under = 255 * haloAlpha * (1 - markAlpha);
+      out[at + channel] = Math.round((over + under) / alpha);
+    }
+  }
+  return out;
 }

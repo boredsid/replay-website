@@ -19,7 +19,13 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import { DEFAULT_OPTIONS, planNormalization, type NormalizePlan } from '../src/lib/logo-normalize.ts';
+import {
+  DEFAULT_OPTIONS,
+  haloRadius,
+  paintHalo,
+  planNormalization,
+  type NormalizePlan,
+} from '../src/lib/logo-normalize.ts';
 import { buildWall, type SponsorWallRow, type WallEntry } from '../src/lib/sponsor-wall.ts';
 import { restUrl } from '../src/lib/supabase-rest.ts';
 
@@ -172,7 +178,7 @@ async function normalizeOne(entry: WallEntry): Promise<Result> {
   if (!isWholeImage) pipeline = pipeline.extract(crop);
 
   const output = `${entry.key}.png`;
-  const rendered = await pipeline
+  const tile = await pipeline
     .resize(placement.width, placement.height, { fit: 'fill' })
     .extend({
       left: placement.left,
@@ -181,6 +187,20 @@ async function normalizeOne(entry: WallEntry): Promise<Result> {
       bottom: canvas.height - placement.height - placement.top,
       background,
     })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // The white ground the site header shows behind a credited mark, grown from
+  // the mark's own alpha; see `haloRatio`. Invisible on the wall, whose cells
+  // are already white.
+  const withHalo = paintHalo(
+    { data: tile.data, width: tile.info.width, height: tile.info.height },
+    haloRadius(plan),
+  );
+
+  const rendered = await sharp(Buffer.from(withHalo.buffer), {
+    raw: { width: tile.info.width, height: tile.info.height, channels: 4 },
+  })
     // Lossless: Astro re-encodes these to webp at its own quality setting, and
     // stacking two lossy passes softens fine wordmarks for no benefit.
     .png({ compressionLevel: 9 })
