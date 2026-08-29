@@ -60,8 +60,8 @@ has one. Everything else is open floor with no line at all.
 
 ### Furniture is illustrative
 
-Each zone gets line art showing how it is used — table banks in Sandbox and
-Spotlight, stalls and trading tables in Garage, a painting bench with puzzle and
+Each zone gets line art showing how it is used — table banks in Meeple Syrup's Sandbox
+and Spotlight, stalls and trading tables in Garage, a painting bench with puzzle and
 origami tables in Ground Control, and the fifteen-seat Blood on the Clocktower
 ring in Agatha's Cove. `zoneFurniture()` is the one place in the module where
 looks beat precision, and the caption on both surfaces says so.
@@ -85,7 +85,7 @@ Portrait, matching the sketch and a phone screen.
 
 ## What is on it
 
-Play zones, down the left: **Sandbox**, **Garage**, **Spotlight**, **Ground
+Play zones, down the left: **Meeple Syrup's Sandbox**, **Garage**, **Spotlight**, **Ground
 Control**, with **Agatha's Cove** beside Ground Control at the bottom, across
 the foot of the corridor.
 
@@ -147,8 +147,8 @@ plain floor with no room and no tint — only the corridor wall carrying the pho
 wall and the snack machine. `OPEN_CONCOURSE` exists to name that stretch so it
 does not get filled in, and a test asserts it stays between the two.
 
-**The alignments.** Save Point's north wall lines up with the Sandbox / Garage
-division, and the campfire floor's south wall with Spotlight / Ground Control.
+**The alignments.** Save Point's north wall lines up with the Meeple Syrup's
+Sandbox / Garage division, and the campfire floor's south wall with Spotlight / Ground Control.
 Both are deliberate in the sketch; a test holds them.
 
 ## Editing
@@ -192,6 +192,6 @@ leaves a millimetre of overlap, which the overlap tests will fail on.
   sketch, so it is not on the map.
 - **Fire exits and stairs** are not marked. The sketch does not show them, and
   they should not be guessed — the CAD puts two 1.7 m exit doors on the far wall
-  at the Sandbox end and a fire stair beside the lifts, if they are wanted.
+  at the Meeple Syrup's Sandbox end and a fire stair beside the lifts, if they are wanted.
 - **A 125 mm step** exists at the lift lobby in the CAD (`+0.00LVL` to
   `+125.00LVL`). It matters for step-free routing and is currently unmarked.

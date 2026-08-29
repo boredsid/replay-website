@@ -123,7 +123,7 @@ const hallBay = (y0: number, y1: number): Rect => ({
 });
 
 export const ZONES: VenueZone[] = [
-  { id: 'sandbox', name: 'Sandbox', blurb: 'Open tables for the game library and playtesting', fill: '#FCF2DC', rect: hallBay(INSIDE.y0, Y_SANDBOX_GARAGE) },
+  { id: 'sandbox', name: "Meeple Syrup's Sandbox", blurb: 'Open tables for the game library and playtesting', fill: '#FCF2DC', rect: hallBay(INSIDE.y0, Y_SANDBOX_GARAGE) },
   {
     id: 'garage',
     name: 'Garage',
