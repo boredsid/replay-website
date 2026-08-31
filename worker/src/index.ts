@@ -22,7 +22,7 @@ import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePassStatus } from './pass-status';
-import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch, handlePartnerInviteCreate } from './admin/partners';
+import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch, handlePartnerDelete, handlePartnerInviteCreate } from './admin/partners';
 import { handlePartnerInviteGet, handlePartnerInvitePaymentClaimed, handlePartnerInviteSubmit } from './partner-invite';
 import {
   handleSponsorList,
@@ -91,6 +91,7 @@ export default {
         const partnerMatch = path.match(/^\/api\/admin\/partners\/([^/]+)$/);
         if (partnerMatch && req.method === 'GET') return await handlePartnerGet(env, sb, partnerMatch[1], origin);
         if (partnerMatch && req.method === 'PATCH') return await handlePartnerPatch(req, env, sb, partnerMatch[1], email, origin);
+        if (partnerMatch && req.method === 'DELETE') return await handlePartnerDelete(sb, partnerMatch[1], email, origin);
 
         // The logo body is raw image bytes, so this route is matched before the
         // `/sponsors/:id` pattern that would otherwise swallow it.

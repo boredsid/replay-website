@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../partner-email', () => ({ sendPartnerConfirmation: vi.fn(async () => {}) }));
 import { sendPartnerConfirmation } from '../partner-email';
-import { handlePartnerCreate, handlePartnerInviteCreate, handlePartnerPatch } from './partners';
+import { handlePartnerCreate, handlePartnerDelete, handlePartnerInviteCreate, handlePartnerPatch } from './partners';
 
 const ORIGIN = 'https://admin.replaycon.in';
 const edition = {
@@ -60,6 +60,50 @@ describe('partner admin handlers', () => {
     expect(body.email_sent).toBe(true);
     expect(sendPartnerConfirmation).toHaveBeenCalledTimes(1);
     expect(audit.action).toBe('partner.update');
+  });
+});
+
+describe('deleting a partner', () => {
+  function db(partner: any, captured: { deleted?: boolean; audit?: any }) {
+    return {
+      from: (table: string) => {
+        if (table === 'partners') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: partner, error: null }) }) }),
+          delete: () => ({ eq: async () => { captured.deleted = true; return { error: null }; } }),
+        };
+        if (table === 'admin_audit_log') return { insert: async (row: any) => { captured.audit = row; return { error: null }; } };
+        throw new Error(`unexpected ${table}`);
+      },
+    } as any;
+  }
+
+  it('removes the row and records what was deleted', async () => {
+    const captured: { deleted?: boolean; audit?: any } = {};
+    const sb = db({ id: 'p1', ...valid, invite_token: 'tok', payment_status: 'pending' }, captured);
+
+    const res = await handlePartnerDelete(sb, 'p1', 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(200);
+    expect(captured.deleted).toBe(true);
+    expect(captured.audit.action).toBe('partner.delete');
+    expect(captured.audit.diff.invite_token).toBe('[redacted]');
+    expect(captured.audit.diff.organization_name).toBe('Tabletop Club');
+  });
+
+  it('refuses to delete a confirmed partner', async () => {
+    const captured: { deleted?: boolean; audit?: any } = {};
+    const sb = db({ id: 'p1', ...valid, payment_status: 'confirmed' }, captured);
+
+    const res = await handlePartnerDelete(sb, 'p1', 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'partner_confirmed' });
+    expect(captured.deleted).toBeUndefined();
+  });
+
+  it('answers 404 for a row that is already gone', async () => {
+    const res = await handlePartnerDelete(db(null, {}), 'p1', 'sid@example.com', ORIGIN);
+    expect(res.status).toBe(404);
   });
 });
 

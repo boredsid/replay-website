@@ -2,6 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/StatusBadge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { PARTNER_OFFERS, isSingleDay, offerAmounts } from '@/lib/partner-offers';
@@ -44,6 +52,7 @@ export default function PartnerDrawer() {
   const [partner, setPartner] = useState<PartnerRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +98,9 @@ export default function PartnerDrawer() {
   const total = useMemo(() => Number(form.base_amount || 0) + Number(form.gst_amount || 0), [form.base_amount, form.gst_amount]);
   const stage: PartnerStage | null = partner?.stage ?? null;
   const isLead = stage === 'lead';
+  // A confirmed partner has money against it. Cancelling it first keeps the
+  // deletion an explicit second decision rather than one careless click.
+  const isConfirmed = partner?.payment_status === 'confirmed';
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -163,6 +175,20 @@ export default function PartnerDrawer() {
     }
   }
 
+  async function remove() {
+    setBusy(true);
+    try {
+      await fetchAdmin(`/api/admin/partners/${id}`, { method: 'DELETE' });
+      toast.success('Partner deleted');
+      navigate('/partners');
+    } catch (error) {
+      showApiError(error);
+    } finally {
+      setBusy(false);
+      setConfirmDelete(false);
+    }
+  }
+
   if (!loaded) return null;
 
   return (
@@ -222,7 +248,44 @@ export default function PartnerDrawer() {
           <Field label="Payment status"><select aria-label="Payment status" value={form.payment_status} onChange={(event) => set('payment_status', event.target.value as PaymentStatus)} className="w-full rounded-md border px-3 py-2"><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select></Field>
 
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">{busy ? 'Saving…' : isNew ? 'Add partner' : 'Save partner'}</button>
+
+          {!isNew && (isConfirmed ? (
+            <p className="text-center text-sm text-muted-foreground">Set the payment to cancelled before deleting a confirmed partner.</p>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+              className="w-full rounded-md border border-destructive px-3 py-2 text-sm font-medium text-destructive disabled:opacity-50"
+            >
+              Delete partner
+            </button>
+          ))}
         </div>
+
+        <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete {form.organization_name || 'this partner'}?</DialogTitle>
+              <DialogDescription>
+                This removes the row and its partner link for good. The audit log keeps a copy of what was deleted.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button type="button" onClick={() => setConfirmDelete(false)} className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { void remove(); }}
+                className="w-full rounded-md bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50 sm:w-auto"
+              >
+                {busy ? 'Deleting…' : 'Delete partner'}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );

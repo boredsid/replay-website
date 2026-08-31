@@ -379,3 +379,35 @@ export async function handlePartnerPatch(req: Request, env: Env, sb: SupabaseCli
 
   return adminJson({ ok: true, partner: withInviteUrl(env, updated.data), email_sent: emailSent, email_skipped: emailSkipped }, 200, origin);
 }
+
+/**
+ * DELETE /api/admin/partners/:id — for rows that should never have existed: a
+ * duplicate, a typo, a link created for the wrong organisation. A confirmed
+ * partner has money against it, so it has to be cancelled first; the audit row
+ * keeps the deleted record either way.
+ */
+export async function handlePartnerDelete(
+  sb: SupabaseClient,
+  id: string,
+  actorEmail: string,
+  origin: string,
+): Promise<Response> {
+  const before = await sb.from('partners').select('*').eq('id', id).maybeSingle();
+  if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  if (!before.data) return adminJson({ error: 'not_found' }, 404, origin);
+  if ((before.data as any).payment_status === 'confirmed') {
+    return adminJson({ error: 'partner_confirmed' }, 409, origin);
+  }
+
+  const deleted = await sb.from('partners').delete().eq('id', id);
+  if (deleted.error) return adminJson({ error: 'delete_failed' }, 500, origin);
+
+  await writeAudit(sb, {
+    actor_email: actorEmail,
+    action: 'partner.delete',
+    target_table: 'partners',
+    target_id: id,
+    diff: { ...(before.data as any), invite_token: (before.data as any).invite_token ? '[redacted]' : null },
+  });
+  return adminJson({ ok: true }, 200, origin);
+}
