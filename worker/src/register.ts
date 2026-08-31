@@ -9,6 +9,8 @@ import {
   jsonResponse,
 } from './validation';
 import { readPricing, calculateBasePrice, calculateDiscount } from './pricing';
+import { normalizePromoCode, evaluatePromo, resolveDiscount, type PromoResult, type DiscountSource } from './promo';
+import { loadPromoContext } from './promo-lookup';
 import { getEditionById, getReservedSeatsByDay, type EditionRow } from './editions';
 import { sendRegistrationConfirmation } from './registration-email';
 import { publicRequestAllowed } from './rate-limit';
@@ -28,6 +30,10 @@ interface RegistrationInput {
   passType: 'oneshot' | 'campaign';
   days: Array<'day1' | 'day2'>;
   quantity: number;
+  /** Canonical uppercase code, or '' when the attendee typed nothing usable. */
+  promoCode: string;
+  /** Whether a code was typed at all, so garbage is refused rather than ignored. */
+  promoSupplied: boolean;
   source: Record<string, string> | null;
 }
 
@@ -37,6 +43,9 @@ interface RegistrationEvaluation {
   amountPaid: number;
   discountBlocked: boolean;
   tierStored: GuildStatus['tier'];
+  promo: PromoResult | null;
+  promoDiscount: number;
+  discountSource: DiscountSource;
 }
 
 interface ExistingRegistration {
@@ -48,6 +57,8 @@ interface ExistingRegistration {
   seats: number;
   amount_paid: number;
   discount_applied: number;
+  promo_code: string | null;
+  promo_discount: number;
   payment_status: 'confirmed' | 'pending' | 'cancelled';
 }
 function readSource(input: unknown): Record<string, string> | null {
@@ -78,6 +89,8 @@ async function parseRegistrationRequest(req: Request): Promise<{ body: any; inpu
   // Default to one during the rolling deploy so the previous public client
   // remains compatible while the new quantity field reaches production.
   const quantity = body.quantity === undefined ? 1 : body.quantity;
+  const promoSupplied = typeof body.promo_code === 'string' && body.promo_code.trim() !== '';
+  const promoCode = promoSupplied ? normalizePromoCode(body.promo_code) : '';
 
   if (!phone) return jsonResponse({ error: 'invalid phone' }, 400);
   if (!name || name.length > 120) return jsonResponse({ error: 'invalid name' }, 400);
@@ -105,6 +118,8 @@ async function parseRegistrationRequest(req: Request): Promise<{ body: any; inpu
       passType,
       days,
       quantity,
+      promoCode,
+      promoSupplied,
       source: readSource(body.source),
     },
   };
@@ -136,14 +151,37 @@ async function evaluateRegistration(
   const existingCount = (existingRegsRes.data ?? []).length;
   const discountBlocked = guild.active && existingCount > 0;
 
-  let discount = 0;
-  let tierStored: GuildStatus['tier'] = null;
+  let guildDiscount = 0;
   if (!discountBlocked && guild.active) {
     // A Guild Path membership belongs to the buyer, so its benefit applies to
     // the first ticket rather than every guest ticket in the same booking.
-    discount = calculateDiscount({ base: ticketPrice, tier: guild.tier, adventurer_cap: pricing.adventurer_cap });
-    tierStored = guild.tier;
+    guildDiscount = calculateDiscount({ base: ticketPrice, tier: guild.tier, adventurer_cap: pricing.adventurer_cap });
   }
+
+  // A refused code is reported back rather than failing the whole request: the
+  // booking still goes through at full price, and the caller's expected_amount
+  // check is what stops anyone being charged more than they agreed to.
+  let promo: PromoResult | null = null;
+  if (input.promoSupplied) {
+    if (!input.promoCode) {
+      promo = { ok: false, reason: 'promo_not_found' };
+    } else {
+      const context = await loadPromoContext(sb, input.editionId, input.promoCode, input.phone);
+      if (!context) return jsonResponse({ error: 'promo_lookup_failed' }, 500);
+      promo = evaluatePromo({
+        promo: context.promo,
+        ticketPrice,
+        quantity: input.quantity,
+        passType: input.passType,
+        redemptions: context.redemptions,
+      });
+    }
+  }
+
+  const resolved = resolveDiscount({
+    guildDiscount,
+    promoDiscount: promo?.ok ? promo.discount : 0,
+  });
 
   const seatsByDay = await getReservedSeatsByDay(env, input.editionId);
   for (const day of input.days) {
@@ -154,17 +192,45 @@ async function evaluateRegistration(
 
   return {
     edition,
-    discount,
-    amountPaid: base - discount,
+    discount: resolved.amount,
+    amountPaid: base - resolved.amount,
     discountBlocked,
-    tierStored,
+    // Only the discount that actually applied is attributed, so exactly one of
+    // `guild_tier_at_purchase` and `promo_discount` is ever set on a row. A
+    // member whose promo beat their tier records the promo, not the tier.
+    tierStored: resolved.guildApplied ? guild.tier : null,
+    promo,
+    promoDiscount: resolved.promoDiscount,
+    discountSource: resolved.source,
+  };
+}
+
+/**
+ * The promo block the browser renders: the accepted code with its admin-authored
+ * message, or the reason it was refused. `applied` is false when a valid code
+ * simply lost to a larger Guild Path benefit.
+ */
+function promoResponse(evaluation: RegistrationEvaluation): {
+  code: string;
+  applied: boolean;
+  message: string;
+  discount: number;
+} | { error: string } | null {
+  const { promo } = evaluation;
+  if (!promo) return null;
+  if (!promo.ok) return { error: promo.reason };
+  return {
+    code: promo.code,
+    applied: evaluation.discountSource === 'promo',
+    message: promo.message,
+    discount: promo.discount,
   };
 }
 
 async function findExistingRegistration(sb: ServiceClient, registrationId: string): Promise<ExistingRegistration | null | Response> {
   const result = await sb
     .from('registrations')
-    .select('id, edition_id, user_phone, pass_type, days, seats, amount_paid, discount_applied, payment_status')
+    .select('id, edition_id, user_phone, pass_type, days, seats, amount_paid, discount_applied, promo_code, promo_discount, payment_status')
     .eq('id', registrationId)
     .maybeSingle();
   if (result.error) return jsonResponse({ error: 'registration_lookup_failed' }, 500);
@@ -189,6 +255,8 @@ function existingRegistrationResponse(existing: ExistingRegistration, input: Reg
     final_amount: Number(existing.amount_paid),
     discount_applied: Number(existing.discount_applied),
     discount_blocked: false,
+    promo_code: existing.promo_code,
+    promo_discount: Number(existing.promo_discount ?? 0),
     payment_required: Number(existing.amount_paid) > 0,
   });
 }
@@ -215,6 +283,8 @@ export async function handleRegisterPreview(req: Request, env: Env): Promise<Res
     final_amount: evaluation.amountPaid,
     discount_applied: evaluation.discount,
     discount_blocked: evaluation.discountBlocked,
+    discount_source: evaluation.discountSource,
+    promo: promoResponse(evaluation),
     payment_required: evaluation.amountPaid > 0,
   });
 }
@@ -245,7 +315,7 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
 
   const evaluation = await evaluateRegistration(env, sb, input);
   if (evaluation instanceof Response) return evaluation;
-  const { edition, discount, amountPaid, discountBlocked, tierStored } = evaluation;
+  const { edition, discount, amountPaid, discountBlocked, tierStored, promo, promoDiscount } = evaluation;
 
   if (expectedAmount !== undefined && Number(expectedAmount) !== amountPaid) {
     return jsonResponse({ error: 'amount_changed', final_amount: amountPaid }, 409);
@@ -285,6 +355,11 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
     amount_paid: amountPaid,
     discount_applied: discount,
     guild_tier_at_purchase: tierStored,
+    // Only a code that actually won the discount is recorded as redeemed, so a
+    // code beaten by a Guild Path benefit does not burn a redemption.
+    promo_code_id: promoDiscount > 0 && promo?.ok ? promo.id : null,
+    promo_code: promoDiscount > 0 && promo?.ok ? promo.code : null,
+    promo_discount: promoDiscount,
     payment_status: paymentStatus,
     source: input.source,
   };
@@ -317,6 +392,7 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
         amountPaid,
         discount,
         tier: tierStored,
+        promoCode: promoDiscount > 0 && promo?.ok ? promo.code : null,
       });
     } catch (error) {
       console.error('email_failed', error);
@@ -328,6 +404,8 @@ export async function handleRegister(req: Request, env: Env): Promise<Response> 
     final_amount: amountPaid,
     discount_applied: discount,
     discount_blocked: discountBlocked,
+    discount_source: evaluation.discountSource,
+    promo: promoResponse(evaluation),
     payment_required: amountPaid > 0,
   });
 }

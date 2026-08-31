@@ -233,3 +233,33 @@ export interface PartnerRow {
   created_at: string;
   updated_at: string;
 }
+
+export type PromoDiscountType = 'percent' | 'flat';
+export type PromoScope = 'booking' | 'first_ticket';
+
+export interface PromoCodeRow {
+  id: string;
+  edition_id: string;
+  /** Stored canonical uppercase; attendees may type it any way. */
+  code: string;
+  /** Shown to the attendee the moment the code is accepted. */
+  applied_message: string;
+  internal_note: string | null;
+  discount_type: PromoDiscountType;
+  discount_value: number;
+  /** Ceiling for a percentage code. Null means uncapped; always null for flat. */
+  max_discount: number | null;
+  scope: PromoScope;
+  /** Null when the code works on either pass. */
+  pass_type: PassType | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  /** Null means unlimited. */
+  max_redemptions: number | null;
+  max_per_phone: number;
+  is_active: boolean;
+  /** Derived from uncancelled registrations, never a stored counter. */
+  redemption_count: number;
+  created_at: string;
+  updated_at: string;
+}

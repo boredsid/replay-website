@@ -17,6 +17,8 @@ import ProgrammeDrawer from '@/pages/ProgrammeDrawer';
 import Announcements from '@/pages/Announcements';
 import AnnouncementDrawer from '@/pages/AnnouncementDrawer';
 import Partners from '@/pages/Partners';
+import Promos from '@/pages/Promos';
+import PromoDrawer from '@/pages/PromoDrawer';
 import Sponsors from '@/pages/Sponsors';
 import SponsorDrawer from '@/pages/SponsorDrawer';
 import PartnerDrawer from '@/pages/PartnerDrawer';
@@ -48,6 +50,9 @@ export function App() {
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/announcements/new" element={<><Announcements /><AnnouncementDrawer /></>} />
               <Route path="/announcements/:id" element={<><Announcements /><AnnouncementDrawer /></>} />
+              <Route path="/promos" element={<Promos />} />
+              <Route path="/promos/new" element={<><Promos /><PromoDrawer /></>} />
+              <Route path="/promos/:id" element={<><Promos /><PromoDrawer /></>} />
               <Route path="/partners" element={<Partners />} />
               <Route path="/partners/new" element={<><Partners /><PartnerDrawer /></>} />
               <Route path="/partners/invite" element={<><Partners /><PartnerInviteDrawer /></>} />

@@ -139,7 +139,43 @@ export interface ApiRegistrationDetails {
   pass_type: PassType;
   days: Day[];
   quantity: number;
+  /** Canonical code the attendee applied, or omitted when none. */
+  promo_code?: string | null;
   source?: Record<string, string> | null;
+}
+
+export type PromoDiscountType = 'percent' | 'flat';
+export type PromoScope = 'booking' | 'first_ticket';
+/** Which of the two discounts actually applied; they never stack. */
+export type DiscountSource = 'guild' | 'promo' | null;
+
+/**
+ * The code's rule, returned with an acceptance so the form can re-price locally
+ * when the selection changes without asking the Worker again.
+ */
+export interface ApiPromoRule {
+  discount_type: PromoDiscountType;
+  discount_value: number;
+  max_discount: number | null;
+  scope: PromoScope;
+  /** Null when the code works on either pass. */
+  pass_type: PassType | null;
+}
+
+export interface ApiPromoPreviewResponse {
+  code: string;
+  /** Admin-authored text shown the moment the code is accepted. */
+  message: string;
+  discount: number;
+  rule: ApiPromoRule;
+}
+
+export interface ApiPromoOutcome {
+  code: string;
+  /** False when the code is valid but lost to a larger Guild Path benefit. */
+  applied: boolean;
+  message: string;
+  discount: number;
 }
 
 export interface ApiRegisterRequest extends ApiRegistrationDetails {
@@ -152,6 +188,8 @@ export interface ApiRegisterPreviewResponse {
   final_amount: number;
   discount_applied: number;
   discount_blocked: boolean;
+  discount_source?: DiscountSource;
+  promo?: ApiPromoOutcome | { error: string } | null;
   payment_required: boolean;
 }
 
@@ -160,6 +198,8 @@ export interface ApiRegisterResponse {
   final_amount: number;
   discount_applied: number;
   discount_blocked: boolean;
+  discount_source?: DiscountSource;
+  promo?: ApiPromoOutcome | { error: string } | null;
   payment_required: boolean;
 }
 

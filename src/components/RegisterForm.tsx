@@ -1,7 +1,8 @@
 // src/components/RegisterForm.tsx
 import { useEffect, useRef, useState } from 'react';
-import { getEditionSpots, lookupPhone, previewRegistration, registerForEdition, captureLead } from '../lib/worker';
-import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, ApiRegistrationDetails, EditionRow, Day, PassType } from '../lib/types';
+import { getEditionSpots, lookupPhone, previewPromoCode, previewRegistration, registerForEdition, captureLead } from '../lib/worker';
+import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, ApiPromoPreviewResponse, ApiRegistrationDetails, EditionRow, Day, PassType } from '../lib/types';
+import { promoAppliesToPass, promoDiscountFor, promoErrorMessage, winningDiscount } from '../lib/promo';
 import { UpiBottomSheet } from './UpiBottomSheet';
 import { SuccessScreen } from './SuccessScreen';
 import { weekdayName } from '../lib/edition-format';
@@ -48,6 +49,10 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
   const [days, setDays] = useState<Day[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [lookup, setLookup] = useState<ApiLookupPhoneResponse | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<ApiPromoPreviewResponse | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [upiOpen, setUpiOpen] = useState<{
@@ -131,13 +136,24 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     setQuantity((current) => Math.min(current, quantityLimit));
   }, [quantityLimit]);
 
+  // A code tied to one pass stops applying the moment the attendee switches.
+  useEffect(() => {
+    if (promo && !promoAppliesToPass(promo.rule, passType)) {
+      setPromo(null);
+      setPromoError("That code doesn't apply to the pass you've chosen.");
+    }
+  }, [promo, passType]);
+
   if (success) return <SuccessScreen pending={success.pending} editionName={edition.name} />;
 
   const ticketPrice = computePrice(edition, passType, days);
   const subtotal = ticketPrice * quantity;
   const tier = lookup && lookup.guild.active && !lookup.discount_blocked ? lookup.guild.tier : null;
   const cap = edition.pricing.adventurer_cap ?? Infinity;
-  const discount = computeDiscount(ticketPrice, tier, cap);
+  const guildDiscount = computeDiscount(ticketPrice, tier, cap);
+  const promoDiscount = promo ? promoDiscountFor({ rule: promo.rule, ticketPrice, quantity }) : 0;
+  // The two never stack — the larger one wins, ties going to Guild Path.
+  const { amount: discount, source: discountSource } = winningDiscount({ guildDiscount, promoDiscount });
   const final = subtotal - discount;
 
   function toggleDay(d: Day) {
@@ -147,6 +163,38 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     }
     setDays([d]);
     scheduleLead('details_entered');
+  }
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    const promoDays: Day[] = passType === 'campaign' ? ['day1', 'day2'] : days;
+    if (promoDays.length === 0) { setPromoError('Pick a day first, then apply your code.'); return; }
+
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      const result = await previewPromoCode({
+        edition_id: edition.id,
+        promo_code: code,
+        pass_type: passType,
+        days: promoDays,
+        quantity,
+        phone: sanitize(phone) || undefined,
+      });
+      setPromo(result);
+      setPromoInput('');
+    } catch (err: any) {
+      setPromo(null);
+      setPromoError(promoErrorMessage(err?.body?.error));
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+
+  function removePromo() {
+    setPromo(null);
+    setPromoError(null);
   }
 
   async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
@@ -164,8 +212,19 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
       const request: ApiRegistrationDetails = {
         phone: sanitized, name: name.trim(), email: email.trim(),
         edition_id: edition.id, pass_type: passType, days: submitDays, quantity,
+        promo_code: promo?.code ?? null,
       };
       const preview = await previewRegistration(request);
+      // The Worker re-checks the code. If it has since been claimed out or
+      // expired, stop here so the attendee sees the corrected total rather than
+      // paying an amount the form no longer shows.
+      const outcome = preview.promo;
+      if (outcome && 'error' in outcome) {
+        setPromo(null);
+        setPromoError(promoErrorMessage(outcome.error));
+        setError('Your promo code is no longer valid. Check the updated total before continuing.');
+        return;
+      }
       if (preview.payment_required) {
         setPaymentError(null);
         setUpiOpen({
@@ -345,11 +404,60 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           </fieldset>
         )}
 
+        {/* The error stays visible even when the price drops to zero mid-edit,
+            so a code dropped by switching pass is explained rather than
+            silently disappearing. */}
+        {(ticketPrice > 0 || promoError) && (
+          <div>
+            <label htmlFor="promo" className="label-brutal">Promo code (optional)</label>
+            {ticketPrice <= 0 ? null : promo ? (
+              <div className="card-flat p-4" style={{ background: '#E8F5F2', borderColor: 'var(--color-green)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold">{promo.code} applied</p>
+                    <p className="mt-1 text-sm">{promo.message}</p>
+                    {discountSource === 'guild' && promoDiscount > 0 && (
+                      <p className="mt-2 text-xs text-gray-600">
+                        Your Guild Path benefit saves you more, so we've kept that instead. The two don't stack.
+                      </p>
+                    )}
+                  </div>
+                  <button type="button" onClick={removePromo} className="btn btn-secondary shrink-0 px-3 py-1 text-sm">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <input
+                  id="promo" type="text" value={promoInput} maxLength={32}
+                  autoComplete="off" autoCapitalize="characters" spellCheck={false}
+                  onChange={(e) => { setPromoInput(e.target.value); setPromoError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPromo(); } }}
+                  className="input-brutal flex-1" placeholder="Enter code"
+                />
+                <button
+                  type="button" onClick={applyPromo} disabled={promoBusy || !promoInput.trim()}
+                  className="btn btn-secondary shrink-0 disabled:opacity-50"
+                >
+                  {promoBusy ? 'Checking…' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {promoError && (
+              <p role="alert" className="mt-2 text-sm font-medium text-[var(--color-error)]">{promoError}</p>
+            )}
+          </div>
+        )}
+
         {ticketPrice > 0 && (
           <div className="card-flat p-4 bg-[var(--color-cream-dark)] border-l-[6px] border-[var(--color-orange)]">
             <div className="flex justify-between text-sm"><span>Tickets ({quantity} × ₹{ticketPrice})</span><span>₹{subtotal}</span></div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm text-[var(--color-orange-dark)] font-bold"><span>Guild Path (first ticket)</span><span>−₹{discount}</span></div>
+              <div className="flex justify-between text-sm text-[var(--color-orange-dark)] font-bold">
+                <span>{discountSource === 'promo' ? `Promo ${promo?.code ?? ''}` : 'Guild Path (first ticket)'}</span>
+                <span>−₹{discount}</span>
+              </div>
             )}
             <div className="flex justify-between font-bold text-lg border-t-2 border-[var(--color-ink)] pt-2 mt-2"><span>You pay</span><span>₹{final}</span></div>
           </div>

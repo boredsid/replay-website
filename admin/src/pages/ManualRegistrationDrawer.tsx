@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAdmin, showApiError } from '@/lib/api';
+import { fetchAdmin, showApiError, ApiError } from '@/lib/api';
 import { oneDayPrice, type EditionRow } from '@/lib/types';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
+const PROMO_ERROR_COPY: Record<string, string> = {
+  promo_not_found: 'No such code for this edition.',
+  promo_inactive: 'That code is switched off.',
+  promo_not_started: "That code isn't active yet.",
+  promo_expired: 'That code has expired.',
+  promo_pass_type: "That code doesn't apply to this pass type.",
+  promo_exhausted: 'That code has been fully claimed.',
+  promo_already_used: 'This phone has already used that code.',
+};
 
 export default function ManualRegistrationDrawer() {
   const nav = useNavigate();
@@ -16,6 +26,10 @@ export default function ManualRegistrationDrawer() {
   const [status, setStatus] = useState<'confirmed' | 'pending'>('confirmed');
   const [sendEmail, setSendEmail] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<{ code: string; message: string; discount: number } | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   const [editions, setEditions] = useState<EditionRow[]>([]);
   const [edition, setEdition] = useState('');
@@ -42,9 +56,47 @@ export default function ManualRegistrationDrawer() {
       : oneDayPrice(selectedEdition.pricing)
     : null;
 
+  // A discount computed for one pass says nothing about another, so switching
+  // pass or edition drops it rather than carrying a stale number forward.
   useEffect(() => {
-    if (baseHint != null) setAmount(String(baseHint));
-  }, [baseHint]);
+    setPromo(null);
+    setPromoError(null);
+  }, [passType, edition]);
+
+  useEffect(() => {
+    if (baseHint != null) setAmount(String(Math.max(0, baseHint - (promo?.discount ?? 0))));
+  }, [baseHint, promo]);
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    if (!selectedEdition || baseHint == null) { setPromoError('Pick an edition first.'); return; }
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      const res = await fetchAdmin<{ promo: { code: string; message: string; discount: number } }>(
+        '/api/admin/promo-codes/validate',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            edition_id: selectedEdition.id,
+            code,
+            pass_type: passType,
+            quantity: 1,
+            ticket_price: baseHint,
+            phone: phoneDigits,
+          }),
+        },
+      );
+      setPromo(res.promo);
+      setPromoInput('');
+    } catch (e) {
+      setPromo(null);
+      setPromoError(e instanceof ApiError ? PROMO_ERROR_COPY[e.message] ?? e.message : 'Could not check that code.');
+    } finally {
+      setPromoBusy(false);
+    }
+  }
 
   async function submit() {
     if (!valid) { toast.error('Enter a 10-digit phone and a non-negative amount'); return; }
@@ -60,6 +112,7 @@ export default function ManualRegistrationDrawer() {
           pass_type: passType,
           days: passType === 'campaign' ? ['day1', 'day2'] : selectedDays,
           amount_paid: Number(amount),
+          promo_code: promo?.code ?? null,
           payment_status: status,
           send_email: sendEmail,
         }),
@@ -108,11 +161,49 @@ export default function ManualRegistrationDrawer() {
             </label>
           </fieldset>
         )}
+        <L label="Promo code">
+          {promo ? (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono font-bold">{promo.code}</div>
+                  <div className="text-muted-foreground">{promo.message}</div>
+                  <div className="mt-1">Worth ₹{promo.discount} on this pass.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setPromo(null); setPromoError(null); }}
+                  className="shrink-0 rounded-md border px-2 py-1 text-xs"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                aria-label="Promo code" value={promoInput} maxLength={32} spellCheck={false}
+                onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null); }}
+                className="w-full rounded-md border px-3 py-2 font-mono uppercase" placeholder="Optional"
+              />
+              <button
+                type="button" onClick={applyPromo} disabled={promoBusy || !promoInput.trim()}
+                className="shrink-0 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+              >
+                {promoBusy ? 'Checking…' : 'Apply'}
+              </button>
+            </div>
+          )}
+          {promoError && <div className="mt-1 text-xs text-destructive">{promoError}</div>}
+        </L>
         <L label="Amount (₹)">
           <input aria-label="Amount" type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </L>
         {baseHint != null && (
-          <div className="-mt-2 text-xs text-muted-foreground">Base for this pass: ₹{baseHint}</div>
+          <div className="-mt-2 text-xs text-muted-foreground">
+            Base for this pass: ₹{baseHint}
+            {promo ? ` · less ₹${promo.discount} promo. Override the amount if it settled differently.` : ''}
+          </div>
         )}
         <L label="Status">
           <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as 'confirmed' | 'pending')} className="w-full rounded-md border px-3 py-2">
