@@ -5,6 +5,9 @@ import { writeAudit, diffRows } from './audit';
 import { sanitizePhone, parseDays, parsePassType } from '../validation';
 import { getEditionBySlug, getCurrentEdition, getReservedSeatsByDay, type EditionRow } from '../editions';
 import { sendRegistrationConfirmation } from '../registration-email';
+import { normalizePromoCode, evaluatePromo } from '../promo';
+import { loadPromoContext } from '../promo-lookup';
+import { readPricing, calculateBasePrice } from '../pricing';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,7 +27,7 @@ export async function handleRegList(req: Request, env: Env, sb: SupabaseClient, 
 
   let query = sb
     .from('registrations')
-    .select('id, user_phone, pass_type, days, seats, amount_paid, payment_status, created_at, users(name)')
+    .select('id, user_phone, pass_type, days, seats, amount_paid, promo_code, payment_status, created_at, users(name)')
     .eq('edition_id', edition.id)
     .order('created_at', { ascending: false });
   if (status) query = query.eq('payment_status', status);
@@ -77,6 +80,32 @@ export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient
   const edition = slug ? await getEditionBySlug(env, slug) : await getCurrentEdition(env);
   if (!edition) return adminJson({ error: 'no_edition' }, 404, origin);
 
+  // A code redeemed at the door is a real redemption: it is recorded against
+  // the same limits the public form checks. The admin's typed `amount_paid`
+  // still stands, because a manual entry may settle a different way (part
+  // cash, a comp, a correction) than the code's face value.
+  let promoId: string | null = null;
+  let promoCode: string | null = null;
+  let promoDiscount = 0;
+  const promoInput = normalizePromoCode(body.promo_code);
+  if (typeof body.promo_code === 'string' && body.promo_code.trim() !== '') {
+    if (!promoInput) return adminJson({ error: 'promo_not_found' }, 404, origin);
+    const context = await loadPromoContext(sb, edition.id, promoInput, phone);
+    if (!context) return adminJson({ error: 'promo_lookup_failed' }, 500, origin);
+    const ticketPrice = calculateBasePrice(readPricing(edition.pricing), passType, days);
+    const result = evaluatePromo({
+      promo: context.promo,
+      ticketPrice,
+      quantity: 1,
+      passType,
+      redemptions: context.redemptions,
+    });
+    if (!result.ok) return adminJson({ error: result.reason }, 409, origin);
+    promoId = result.id;
+    promoCode = result.code;
+    promoDiscount = result.discount;
+  }
+
   const reserved = await getReservedSeatsByDay(env, edition.id);
   for (const day of days) {
     if (reserved[day] + 1 > edition.capacity_per_day[day]) {
@@ -109,8 +138,11 @@ export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient
       days,
       seats: 1,
       amount_paid: amountPaid,
-      discount_applied: 0,
+      discount_applied: promoDiscount,
       guild_tier_at_purchase: null,
+      promo_code_id: promoId,
+      promo_code: promoCode,
+      promo_discount: promoDiscount,
       payment_status: paymentStatus,
       source: { manual: true, by: email },
     })
@@ -127,7 +159,7 @@ export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient
 
   if (sendMail && userEmail) {
     try {
-      await sendRegistrationConfirmation(env, edition, { name, email: userEmail, passType, days, seats: 1, amountPaid, discount: 0, tier: null });
+      await sendRegistrationConfirmation(env, edition, { name, email: userEmail, passType, days, seats: 1, amountPaid, discount: promoDiscount, tier: null, promoCode });
     } catch (e) { console.error('email_failed', e); }
   }
 
@@ -140,7 +172,7 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
 
   const before = await sb
     .from('registrations')
-    .select('id, edition_id, user_phone, pass_type, days, seats, payment_status, amount_paid, discount_applied, guild_tier_at_purchase, users(name, email), editions(*)')
+    .select('id, edition_id, user_phone, pass_type, days, seats, payment_status, amount_paid, discount_applied, guild_tier_at_purchase, promo_code, users(name, email), editions(*)')
     .eq('id', id)
     .maybeSingle();
   if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
@@ -188,6 +220,7 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
           amountPaid: Number((upd.data as any).amount_paid),
           discount: Number(detail.discount_applied || 0),
           tier: detail.guild_tier_at_purchase,
+          promoCode: detail.promo_code ?? null,
         });
         emailSent = true;
       } catch (error) {

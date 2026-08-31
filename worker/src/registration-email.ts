@@ -16,6 +16,8 @@ export interface ConfirmationInput {
   amountPaid: number;
   discount: number;
   tier: string | null;
+  /** The redeemed code, or null when none was used. */
+  promoCode?: string | null;
 }
 
 export async function sendRegistrationConfirmation(
@@ -40,6 +42,7 @@ export async function sendRegistrationConfirmation(
       amount_paid: input.amountPaid,
       discount_applied: input.discount,
       guild_tier: capitalize(input.tier ?? ''),
+      promo_code: input.promoCode ?? '',
       calendar_google_url: buildGoogleCalendarUrl(edition),
       calendar_ics_url: `https://api.replaycon.in/api/ics/${edition.slug}.ics`,
       schedule_url: 'https://replaycon.in/schedule',

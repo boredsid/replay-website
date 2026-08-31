@@ -12,6 +12,9 @@ import type {
   ApiPartnerPurchaseResponse,
   ApiPartnerInvite,
   ApiPartnerInviteSubmission,
+  ApiPromoPreviewResponse,
+  Day,
+  PassType,
   StepReached,
 } from './types';
 
@@ -57,6 +60,22 @@ export async function registerForEdition(input: ApiRegisterRequest): Promise<Api
 
 export async function previewRegistration(input: ApiRegistrationDetails): Promise<ApiRegisterPreviewResponse> {
   return jsonPost<ApiRegisterPreviewResponse>('/api/register/preview', input);
+}
+
+/**
+ * Check a code behind the form's "Apply" button. Nothing is reserved; the
+ * registration itself re-evaluates the code and decides what is charged.
+ * Rejects with `body.error` set to a `promo_*` reason.
+ */
+export async function previewPromoCode(input: {
+  edition_id: string;
+  promo_code: string;
+  pass_type: PassType;
+  days: Day[];
+  quantity: number;
+  phone?: string;
+}): Promise<ApiPromoPreviewResponse> {
+  return jsonPost<ApiPromoPreviewResponse>('/api/promo/preview', input);
 }
 
 export async function purchasePartnerPackage(input: ApiPartnerPurchaseRequest): Promise<ApiPartnerPurchaseResponse> {

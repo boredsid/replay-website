@@ -38,6 +38,169 @@ function mockRoute(matcher: (url: string, init?: RequestInit) => boolean, status
 }
 
 describe('RegisterForm', () => {
+
+  const OPEN_SPOTS = {
+    day1: { capacity: 250, remaining: 250, sold_out: false },
+    day2: { capacity: 250, remaining: 250, sold_out: false },
+    both_sold_out: false,
+  };
+
+  /** Availability plus an applicable code, the setup every promo case needs. */
+  function mockPromo(body: unknown, status = 200) {
+    mockRoute((u) => u.includes('/api/edition-spots/'), 200, OPEN_SPOTS);
+    mockRoute((u) => u.includes('/api/promo/preview'), status, body);
+  }
+
+  const SAVE20 = {
+    code: 'SAVE20',
+    message: 'Early bird unlocked — 20% off your whole order.',
+    discount: 140,
+    rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: null },
+  };
+
+  async function pickSaturday(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByLabelText(/saturday/i));
+  }
+
+  it('applies a promo code and shows the admin-authored message', async () => {
+    mockPromo(SAVE20);
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+
+    await user.type(screen.getByLabelText(/promo code/i), 'save20');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+
+    expect(await screen.findByText(/SAVE20 applied/)).toBeInTheDocument();
+    expect(screen.getByText('Early bird unlocked — 20% off your whole order.')).toBeInTheDocument();
+    expect(screen.getByText(/Promo SAVE20/)).toBeInTheDocument();
+    expect(screen.getByText('−₹140')).toBeInTheDocument();
+    expect(screen.getByText('₹560')).toBeInTheDocument();
+  });
+
+  it('re-prices an applied code when the ticket quantity changes', async () => {
+    mockPromo(SAVE20);
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+    await user.type(screen.getByLabelText(/promo code/i), 'SAVE20');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+    await screen.findByText(/SAVE20 applied/);
+
+    await user.click(screen.getByRole('button', { name: /increase ticket quantity/i }));
+
+    // 20% of two ₹700 tickets, without asking the Worker again.
+    expect(screen.getByText('−₹280')).toBeInTheDocument();
+    expect(screen.getByText('₹1120')).toBeInTheDocument();
+  });
+
+  it('keeps the larger Guild Path benefit and says the two do not stack', async () => {
+    mockPromo({
+      ...SAVE20,
+      code: 'SMALL',
+      message: '₹50 off, with our thanks.',
+      discount: 50,
+      rule: { discount_type: 'flat', discount_value: 50, max_discount: null, scope: 'booking', pass_type: null },
+    });
+    mockRoute((u) => u.includes('/api/lookup-phone'), 200, {
+      user: { found: true, name: 'Asha', email: 'a@b.c' },
+      guild: { tier: 'guildmaster', active: true },
+      existing_for_edition: { count: 0, has_confirmed: false },
+      discount_blocked: false,
+    });
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+    await user.type(screen.getByLabelText(/^phone$/i), '9876543210');
+    await screen.findByText(/Guildmaster/i);
+
+    await user.type(screen.getByLabelText(/promo code/i), 'SMALL');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+    await screen.findByText(/SMALL applied/);
+
+    expect(screen.getByText(/Guild Path benefit saves you more/i)).toBeInTheDocument();
+    expect(screen.getByText(/Guild Path \(first ticket\)/)).toBeInTheDocument();
+    expect(screen.getByText('−₹700')).toBeInTheDocument();
+    expect(screen.getByText('₹0')).toBeInTheDocument();
+  });
+
+  it('explains a refused code without blocking the rest of the form', async () => {
+    mockPromo({ error: 'promo_expired' }, 404);
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+
+    await user.type(screen.getByLabelText(/promo code/i), 'OLDCODE');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+
+    expect(await screen.findByText('That code has expired.')).toBeInTheDocument();
+    expect(screen.queryByText(/applied/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('₹700')).toHaveLength(2); // subtotal and total, undiscounted
+    expect(screen.getByRole('button', { name: /continue with 1 ticket/i })).toBeEnabled();
+  });
+
+  it('drops a 2-day-only code when the attendee switches to a 1-day pass', async () => {
+    mockPromo({
+      ...SAVE20,
+      code: 'WEEKEND',
+      message: 'Weekend deal applied.',
+      discount: 240,
+      rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: 'campaign' },
+    });
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await user.click(await screen.findByLabelText(/2-day pass/i));
+
+    await user.type(screen.getByLabelText(/promo code/i), 'WEEKEND');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+    await screen.findByText(/WEEKEND applied/);
+    expect(screen.getByText('−₹240')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/1-day pass/i));
+
+    expect(await screen.findByText(/doesn't apply to the pass you've chosen/i)).toBeInTheDocument();
+    expect(screen.queryByText(/WEEKEND applied/)).not.toBeInTheDocument();
+
+    // Sunday, not Saturday: switching pass leaves days as ['day1','day2'], so
+    // the Saturday radio already reads as checked and clicking it is a no-op.
+    await user.click(screen.getByLabelText(/sunday/i));
+    expect(screen.getAllByText('₹700')).toHaveLength(2); // full price, no promo line
+  });
+
+  it('sends the applied code with the registration and stops if the Worker refuses it', async () => {
+    mockPromo(SAVE20);
+    let previewBody: any = null;
+    mockRoute((u, init) => {
+      if (!u.includes('/api/register/preview')) return false;
+      previewBody = JSON.parse(String(init?.body));
+      return true;
+    }, 200, {
+      payment_reference: 'ref-1',
+      final_amount: 700,
+      discount_applied: 0,
+      discount_blocked: false,
+      discount_source: null,
+      promo: { error: 'promo_exhausted' },
+      payment_required: true,
+    });
+
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+    await user.type(screen.getByLabelText(/^phone$/i), '9876543210');
+    await user.type(screen.getByLabelText(/^name$/i), 'Asha');
+    await user.type(screen.getByLabelText(/^email$/i), 'a@b.c');
+    await user.type(screen.getByLabelText(/promo code/i), 'SAVE20');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+    await screen.findByText(/SAVE20 applied/);
+
+    await user.click(screen.getByRole('button', { name: /continue with 1 ticket/i }));
+
+    await waitFor(() => expect(previewBody?.promo_code).toBe('SAVE20'));
+    expect(await screen.findByText('That code has been fully claimed.')).toBeInTheDocument();
+    // No payment sheet: the attendee sees the corrected total first.
+    expect(screen.queryByText(/pay ₹/i)).not.toBeInTheDocument();
+  });
   it('disables sold-out day radios after fetching edition-spots', async () => {
     mockRoute((u) => u.includes('/api/edition-spots/'), 200, {
       day1: { capacity: 250, remaining: 0, sold_out: true },

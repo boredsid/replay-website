@@ -6,8 +6,8 @@ The public website and operations console for [REPLAY](https://replaycon.in), Ba
 
 - `src/` — Astro public site, React registration and partner-checkout islands, schedule, SEO metadata, and email templates.
 - `app/` — installable Vite/React attendee PWA for the live schedule, local agenda, event status, and organiser announcements.
-- `worker/` — Cloudflare Worker for registration, partner purchases, capacity, Guild Path discounts, confirmation emails, calendar files, attendee announcements, and the protected admin API.
-- `admin/` — installable Vite/React operations console for registrations, partners, editions, programme data, sponsor logos, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
+- `worker/` — Cloudflare Worker for registration, partner purchases, capacity, Guild Path discounts, promo codes, confirmation emails, calendar files, attendee announcements, and the protected admin API.
+- `admin/` — installable Vite/React operations console for registrations, promo codes, partners, editions, programme data, sponsor logos, and scheduled announcements behind Cloudflare Access. Its service worker caches only the static app shell, never admin API responses.
 - `supabase/` — database migrations and edition seed data.
 - `apps-script/` — source for the registration and partner-email relay. Its deployed URL and signing key are secrets, never repository configuration.
 - `scripts/` — historical import tooling plus the build-time image steps (sponsor-logo normalisation, link-preview rendering) and the vendored Space Grotesk TTFs those steps draw with. Source CSV files are intentionally ignored.
@@ -112,6 +112,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - programme items grouped into all-day, timed, playtesting, publisher-showcase, and event-floor sections, with draft/published/cancelled public state;
 - public programme host, location, sign-up method, and display ordering managed through the protected admin.
 - private organiser announcements with explicit publish windows, severity, audience, and audit history; browsers receive only the active public payload through the Worker.
+- promo codes are per-edition, carry the message an attendee sees when the code is accepted, and never stack with the Guild Path benefit — the larger of the two applies. Redemptions are derived from uncancelled registrations rather than a counter, so a cancellation returns the use to the pool.
 
 ## Registration and payment behavior
 

@@ -21,6 +21,15 @@ import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSche
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
+import { handlePromoPreview } from './promo-preview';
+import {
+  handlePromoList,
+  handlePromoGet,
+  handlePromoCreate,
+  handlePromoPatch,
+  handlePromoDelete,
+  handlePromoValidate,
+} from './admin/promo-codes';
 import { handlePassStatus } from './pass-status';
 import { handlePartnerList, handlePartnerGet, handlePartnerCreate, handlePartnerPatch, handlePartnerDelete, handlePartnerInviteCreate } from './admin/partners';
 import { handlePartnerInviteGet, handlePartnerInvitePaymentClaimed, handlePartnerInviteSubmit } from './partner-invite';
@@ -85,6 +94,15 @@ export default {
         if (announcementMatch && req.method === 'GET') return await handleAnnouncementGet(sb, announcementMatch[1], origin);
         if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, sb, announcementMatch[1], email, origin);
 
+        // Matched before the `/promo-codes/:id` pattern that would swallow it.
+        if (path === '/api/admin/promo-codes/validate' && req.method === 'POST') return await handlePromoValidate(req, sb, origin);
+        if (path === '/api/admin/promo-codes' && req.method === 'GET') return await handlePromoList(req, sb, origin);
+        if (path === '/api/admin/promo-codes' && req.method === 'POST') return await handlePromoCreate(req, sb, email, origin);
+        const promoMatch = path.match(/^\/api\/admin\/promo-codes\/([^/]+)$/);
+        if (promoMatch && req.method === 'GET') return await handlePromoGet(sb, promoMatch[1], origin);
+        if (promoMatch && req.method === 'PATCH') return await handlePromoPatch(req, sb, promoMatch[1], email, origin);
+        if (promoMatch && req.method === 'DELETE') return await handlePromoDelete(sb, promoMatch[1], email, origin);
+
         if (path === '/api/admin/partners' && req.method === 'GET') return await handlePartnerList(req, env, sb, origin);
         if (path === '/api/admin/partners' && req.method === 'POST') return await handlePartnerCreate(req, env, sb, email, origin);
         if (path === '/api/admin/partners/invites' && req.method === 'POST') return await handlePartnerInviteCreate(req, env, sb, email, origin);
@@ -147,6 +165,9 @@ export default {
       }
       if (path === '/api/register/preview' && req.method === 'POST') {
         return await handleRegisterPreview(req, env);
+      }
+      if (path === '/api/promo/preview' && req.method === 'POST') {
+        return await handlePromoPreview(req, env);
       }
       if (path === '/api/partner-purchase' && req.method === 'POST') {
         return await handlePartnerPurchase(req, env);

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon, TicketPercent } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0 },
@@ -6,11 +6,12 @@ export const NAV = [
   { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'primary', mobileOrder: 2 },
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 1 },
-  { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 1 },
-  { to: '/partner-logos', label: 'Partner logos', mobileLabel: 'Logos', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 2 },
-  { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 3 },
-  { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 4 },
-  { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 5 },
+  { to: '/promos', label: 'Promo codes', mobileLabel: 'Promos', icon: TicketPercent, end: false, mobile: 'more', mobileOrder: 1 },
+  { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 2 },
+  { to: '/partner-logos', label: 'Partner logos', mobileLabel: 'Logos', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 3 },
+  { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 4 },
+  { to: '/leads', label: 'Leads', mobileLabel: 'Leads', icon: UserPlus, end: false, mobile: 'more', mobileOrder: 5 },
+  { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 6 },
 ] as const;
 
 export const MOBILE_PRIMARY_NAV = NAV
