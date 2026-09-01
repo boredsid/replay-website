@@ -5,6 +5,8 @@ import { VenueMap } from './components/VenueMap';
 import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
+import Pass from './components/Pass';
+import { loadDevice, type Device } from './lib/device';
 import { filterSchedule, uniqueValues } from './lib/schedule';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
 import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
@@ -142,16 +144,20 @@ function ScheduleView({ data, saved, onToggle }: {
   );
 }
 
-function MyDayView({ data, saved, onToggle }: {
+function MyDayView({ data, saved, onToggle, device, onPaired, onUnpaired }: {
   data: BootstrapData;
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
+  device: Device | null;
+  onPaired: (device: Device) => void;
+  onUnpaired: () => void;
 }) {
   const items = filterSchedule(data.schedule, { day: '', kind: '', location: '', query: '', savedOnly: true }, saved);
   return (
     <>
       <header className="screen-header"><span className="eyebrow">Saved on this device</span><h1>My Day</h1><p>Your picks stay in this browser. No account or attendee profile is created.</p></header>
       {items.length ? <List items={items} saved={saved} onToggle={onToggle} /> : <Empty title="Your day is wide open">Use the star on a schedule item to save it here.</Empty>}
+      <Pass device={device} onPaired={onPaired} onUnpaired={onUnpaired} />
     </>
   );
 }
@@ -299,6 +305,7 @@ export default function App() {
   const [tab, setTab] = useState<AppTab>(initialTab);
   const [saved, setSaved] = useState<Set<string>>(() => loadAgenda(window.localStorage));
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [device, setDevice] = useState<Device | null>(() => loadDevice());
   const online = useOnline();
   const now = useMinuteClock();
   const { data, error, loading, refreshing, fetchedAt, refresh } = useEventData();
@@ -374,7 +381,7 @@ export default function App() {
             <Announcements announcements={notices} timezone={data.timezone} />
             {tab === 'now' && <NowView data={data} saved={saved} onToggle={handleToggle} now={now} />}
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} />}
-            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} />}
+            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} device={device} onPaired={setDevice} onUnpaired={() => setDevice(null)} />}
             {tab === 'map' && <MapView data={data} />}
             {tab === 'info' && <InfoView data={data} />}
             <p className="updated-at" aria-live="polite">

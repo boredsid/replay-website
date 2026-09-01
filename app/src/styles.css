@@ -233,3 +233,41 @@ p { line-height: 1.55; }
 @media (display-mode: standalone) {
   .install-button { display: none; }
 }
+
+.pass { display: grid; justify-items: start; gap: var(--space-3); }
+.pass h2 { margin-bottom: 0; }
+.pass p { margin-bottom: 0; max-width: 46ch; color: var(--muted); }
+/* The QR sits on white regardless of anything around it: scanners need the
+   quiet zone and the contrast, and the cream ground is not white enough. */
+.pass__code {
+  display: grid;
+  place-items: center;
+  padding: var(--space-3);
+  border: var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.pass__hint { font-size: .9rem; }
+.pass__form { display: grid; gap: var(--space-2); width: min(100%, 22rem); }
+.pass__form label { font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.pass__form input {
+  width: 100%;
+  min-height: var(--control-min);
+  padding: var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-align: center;
+}
+.pass__error {
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid var(--orange);
+  color: var(--ink);
+  font-weight: 650;
+}

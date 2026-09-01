@@ -1,7 +1,7 @@
 import type { BootstrapData } from '../types';
 
 const configuredBase = (import.meta.env.VITE_WORKER_URL as string | undefined)?.trim();
-const API_BASE = (configuredBase || 'https://api.replaycon.in').replace(/\/$/, '');
+export const API_BASE = (configuredBase || 'https://api.replaycon.in').replace(/\/$/, '');
 
 export async function fetchBootstrap(signal?: AbortSignal): Promise<BootstrapData> {
   const response = await fetch(`${API_BASE}/api/app/bootstrap`, {
