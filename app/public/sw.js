@@ -1,7 +1,7 @@
-const CACHE_VERSION = 'replay-attendee-v1';
+const CACHE_VERSION = 'replay-attendee-v2';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
-const APP_SHELL = ['/', '/manifest.webmanifest', '/replay-icon.svg'];
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));

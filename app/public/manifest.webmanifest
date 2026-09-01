@@ -9,7 +9,11 @@
   "background_color": "#fff8e7",
   "theme_color": "#1a0088",
   "orientation": "portrait-primary",
-  "categories": ["events", "lifestyle", "utilities"],
+  "categories": [
+    "events",
+    "lifestyle",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -28,12 +32,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/replay-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ]
 }
