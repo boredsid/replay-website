@@ -307,6 +307,13 @@ A "Get app code" button on every attendee row in `CheckIn.tsx`, enabled
 whenever `hasArrivedToday` is true. Pressing it reveals the code large enough to
 read across a desk, with its countdown to expiry and a "new code" button.
 
+**Label every code with its attendee's name.** Two people from one purchase
+standing at the desk together will each be issued their own code, and two
+unlabelled codes on one screen is how someone types the wrong one — which would
+pair their phone to the other person's identity. The name on the code is the
+only thing that disambiguates them, and it is there because check-in captured
+it moments earlier.
+
 **Not** shown automatically after check-in. The desk is busy and most people
 just want to get inside; this is a button staff press when someone asks for it,
 including hours later.
@@ -347,6 +354,12 @@ sees it again regardless of stored step.
 - Pair step takes **the code alone** — one field, no phone. Uppercase as the
   user types, accept spaces and hyphens, and normalise Crockford confusables so
   a mistyped `O` for `0` still works.
+- **On success, name who you paired as** — "You're set, Priya" — before showing
+  anything else. Two people from one purchase pair at the desk at the same
+  moment with a code each, and typing the other person's is an easy slip that is
+  otherwise invisible until someone finds a session they never booked. Naming
+  the identity makes the mistake obvious while both people are still standing
+  in front of staff, who can re-issue and re-pair on the spot.
 - Copy frames guest as a full path: name what pairing *adds*, never imply the
   app is broken without it.
 - Focus management on step change; `Esc` dismisses; honour
