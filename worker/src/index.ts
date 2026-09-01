@@ -20,6 +20,7 @@ import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
+import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch } from './admin/check-in';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -87,6 +88,15 @@ export default {
         if (path === '/api/admin/dashboard' && req.method === 'GET') return await handleDashboard(req, env, sb, origin);
         if (path === '/api/admin/leads' && req.method === 'GET') return await handleLeadsList(req, env, sb, origin);
         if (path === '/api/admin/audit' && req.method === 'GET') return await handleAuditList(req, env, sb, origin);
+
+        // Matched before the `/check-in` prefix patterns so the more specific
+        // paths are not swallowed by the bare one.
+        if (path === '/api/admin/check-in/search' && req.method === 'GET') return await handleCheckInSearch(req, env, sb, origin);
+        if (path === '/api/admin/check-in/bulk' && req.method === 'POST') return await handleCheckInBulk(req, sb, email, origin);
+        if (path === '/api/admin/check-in/undo' && req.method === 'POST') return await handleCheckInUndo(req, sb, email, origin);
+        if (path === '/api/admin/check-in' && req.method === 'POST') return await handleCheckIn(req, sb, email, origin);
+        const attendeeMatch = path.match(/^\/api\/admin\/attendees\/([^/]+)$/);
+        if (attendeeMatch && req.method === 'PATCH') return await handleAttendeePatch(req, sb, attendeeMatch[1], email, origin);
 
         if (path === '/api/admin/announcements' && req.method === 'GET') return await handleAnnouncementList(req, sb, origin);
         if (path === '/api/admin/announcements' && req.method === 'POST') return await handleAnnouncementCreate(req, sb, email, origin);
