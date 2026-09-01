@@ -107,8 +107,13 @@ export default function Programme() {
                 </div>
                 <div className="space-y-2">
                   {group.map((item) => (
-                    <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <Link to={`/programme/${item.id}`} className="min-w-0 hover:underline">
+                    // The row cannot be one big Link -- the roster link inside it
+                    // would be an anchor within an anchor. Instead the title link
+                    // stretches an overlay across the whole row, so the badges and
+                    // the empty space still open the drawer, and only the roster
+                    // pill lifts itself above the overlay.
+                    <div key={item.id} className="relative flex flex-col gap-2 rounded-md border bg-background p-4 hover:bg-muted sm:flex-row sm:items-center sm:justify-between">
+                      <Link to={`/programme/${item.id}`} className="min-w-0 before:absolute before:inset-0 before:rounded-md before:content-['']">
                         <div className="font-medium">{item.title}</div>
                         <div className="mt-1 text-sm text-muted-foreground">
                           {itemTime(item)}{item.host_name ? ` · ${item.host_name}` : ''}{item.location ? ` · ${item.location}` : ''}
@@ -123,7 +128,7 @@ export default function Programme() {
                         {item.signup_mode === 'app' && (
                           <Link
                             to={`/programme/${item.id}/roster`}
-                            className="rounded-full border px-2 py-0.5 font-medium hover:bg-muted"
+                            className="relative rounded-full border bg-background px-2 py-0.5 font-medium hover:bg-muted"
                           >
                             Roster{item.capacity !== null ? ` · ${item.capacity}` : ''}
                           </Link>
