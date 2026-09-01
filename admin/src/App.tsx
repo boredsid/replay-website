@@ -14,6 +14,7 @@ import Users from '@/pages/Users';
 import UserDrawer from '@/pages/UserDrawer';
 import CheckIn from '@/pages/CheckIn';
 import Programme from '@/pages/Programme';
+import SessionRoster from '@/pages/SessionRoster';
 import ProgrammeDrawer from '@/pages/ProgrammeDrawer';
 import Announcements from '@/pages/Announcements';
 import AnnouncementDrawer from '@/pages/AnnouncementDrawer';
@@ -48,6 +49,7 @@ export function App() {
               <Route path="/check-in" element={<CheckIn />} />
               <Route path="/programme" element={<Programme />} />
               <Route path="/programme/new" element={<><Programme /><ProgrammeDrawer /></>} />
+              <Route path="/programme/:id/roster" element={<SessionRoster />} />
               <Route path="/programme/:id" element={<><Programme /><ProgrammeDrawer /></>} />
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/announcements/new" element={<><Announcements /><AnnouncementDrawer /></>} />

@@ -107,20 +107,29 @@ export default function Programme() {
                 </div>
                 <div className="space-y-2">
                   {group.map((item) => (
-                    <Link key={item.id} to={`/programme/${item.id}`} className="flex flex-col gap-2 rounded-md border bg-background p-4 hover:bg-muted sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
+                    <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <Link to={`/programme/${item.id}`} className="min-w-0 hover:underline">
                         <div className="font-medium">{item.title}</div>
                         <div className="mt-1 text-sm text-muted-foreground">
                           {itemTime(item)}{item.host_name ? ` · ${item.host_name}` : ''}{item.location ? ` · ${item.location}` : ''}
                         </div>
-                      </div>
+                      </Link>
                       <div className="flex shrink-0 items-center gap-2 text-xs">
                         <span className="rounded-full border px-2 py-0.5">{item.kind}</span>
                         <span className={`rounded-full px-2 py-0.5 ${item.public_status === 'published' ? 'bg-green-100' : item.public_status === 'cancelled' ? 'bg-red-100' : 'bg-muted'}`}>
                           {item.public_status}
                         </span>
+                        {/* Only bookable sessions have a roster worth opening. */}
+                        {item.signup_mode === 'app' && (
+                          <Link
+                            to={`/programme/${item.id}/roster`}
+                            className="rounded-full border px-2 py-0.5 font-medium hover:bg-muted"
+                          >
+                            Roster{item.capacity !== null ? ` · ${item.capacity}` : ''}
+                          </Link>
+                        )}
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               </section>

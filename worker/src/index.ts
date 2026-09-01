@@ -22,6 +22,7 @@ import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
+import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
@@ -98,6 +99,15 @@ export default {
         if (path === '/api/admin/check-in/roster' && req.method === 'GET') return await handleCheckInRoster(req, env, sb, origin);
         if (path === '/api/admin/check-in/pairing-code' && req.method === 'POST') return await handlePairingCodeIssue(req, env, sb, email, origin);
         if (path === '/api/admin/scan' && req.method === 'POST') return await handleScan(req, env, sb, origin);
+
+        // Matched before the `/sessions/:id` patterns so the search is not
+        // treated as a session id.
+        if (path === '/api/admin/sessions/attendees' && req.method === 'GET') return await handleSessionAttendeeSearch(req, env, sb, origin);
+        const rosterMatch = path.match(/^\/api\/admin\/sessions\/([^/]+)\/roster$/);
+        if (rosterMatch && req.method === 'GET') return await handleSessionRoster(req, sb, rosterMatch[1], origin);
+        const sessionSignupMatch = path.match(/^\/api\/admin\/sessions\/([^/]+)\/signups$/);
+        if (sessionSignupMatch && req.method === 'POST') return await handleSessionSignupCreate(req, sb, sessionSignupMatch[1], email, origin);
+        if (sessionSignupMatch && req.method === 'DELETE') return await handleSessionSignupRemove(req, sb, sessionSignupMatch[1], email, origin);
         if (path === '/api/admin/check-in/bulk' && req.method === 'POST') return await handleCheckInBulk(req, sb, email, origin);
         if (path === '/api/admin/check-in/undo' && req.method === 'POST') return await handleCheckInUndo(req, sb, email, origin);
         if (path === '/api/admin/check-in' && req.method === 'POST') return await handleCheckIn(req, sb, email, origin);

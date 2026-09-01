@@ -4,7 +4,7 @@ import { diffRows, writeAudit } from './audit';
 
 const SECTIONS = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'] as const;
 const KINDS = ['workshop', 'tournament', 'open-play', 'meal', 'talk', 'ttrpg', 'story-game', 'puzzle', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'special'] as const;
-const SIGNUP_MODES = ['none', 'walk-in', 'advance', 'on-site'] as const;
+const SIGNUP_MODES = ['none', 'walk-in', 'advance', 'on-site', 'app'] as const;
 const PUBLIC_STATUSES = ['draft', 'published', 'cancelled'] as const;
 
 type ScheduleInput = {
@@ -20,6 +20,7 @@ type ScheduleInput = {
   is_all_day: boolean;
   host_name: string | null;
   signup_mode: typeof SIGNUP_MODES[number];
+  capacity: number | null;
   signup_url: string | null;
   public_status: typeof PUBLIC_STATUSES[number];
   display_order: number;
@@ -78,6 +79,19 @@ function parseSchedule(input: any, previous?: any): ScheduleInput {
   const displayOrder = Number(merged.display_order);
   if (!Number.isInteger(displayOrder) || displayOrder < 0) throw new Error('invalid_display_order');
 
+  // Null means no limit, which is different from a limit of zero -- and a
+  // session with no capacity at all would be bookable by nobody.
+  const rawCapacity = merged.capacity;
+  const capacity = rawCapacity === null || rawCapacity === undefined || rawCapacity === ''
+    ? null
+    : Number(rawCapacity);
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) {
+    throw new Error('invalid_capacity');
+  }
+  // In-app booking without a capacity would let a room fill past what fits;
+  // the whole point of the mode is that the count is enforced.
+  if (signupMode === 'app' && capacity === null) throw new Error('capacity_required_for_app_signup');
+
   return {
     edition_id: editionId,
     day,
@@ -91,6 +105,7 @@ function parseSchedule(input: any, previous?: any): ScheduleInput {
     is_all_day: isAllDay,
     host_name: optionalText(merged.host_name, 160, 'host_name'),
     signup_mode: signupMode,
+    capacity,
     signup_url: readSignupUrl(merged.signup_url),
     public_status: publicStatus,
     display_order: displayOrder,
@@ -138,6 +153,7 @@ export async function handleScheduleCreate(req: Request, sb: SupabaseClient, ema
       kind: 'special',
       is_all_day: false,
       signup_mode: 'none',
+      capacity: null,
       public_status: 'draft',
       display_order: 0,
       ...body,

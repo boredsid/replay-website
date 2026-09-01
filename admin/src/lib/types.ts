@@ -117,7 +117,7 @@ export interface EditionRow extends EditionVisitDetails {
 
 export type ScheduleSection = 'always-on' | 'programme' | 'playtesting' | 'publisher-showcase' | 'event-floor';
 export type ScheduleKind = 'workshop' | 'tournament' | 'open-play' | 'meal' | 'talk' | 'ttrpg' | 'story-game' | 'puzzle' | 'quiz' | 'social-game' | 'playtest' | 'publisher-showcase' | 'booth' | 'food' | 'merch' | 'amenity' | 'special';
-export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
+export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site' | 'app';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 
 export interface ScheduleItemRow {
@@ -134,6 +134,8 @@ export interface ScheduleItemRow {
   is_all_day: boolean;
   host_name: string | null;
   signup_mode: ScheduleSignupMode;
+  /** Null means no limit. Required when signup_mode is 'app'. */
+  capacity: number | null;
   signup_url: string | null;
   public_status: SchedulePublicStatus;
   display_order: number;
