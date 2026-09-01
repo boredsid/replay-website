@@ -1,7 +1,9 @@
 # REPLAY attendee app — remaining roadmap design
 
-Status: design agreed 2026-09-01. Not yet implemented.
-Companion plan: `docs/superpowers/plans/2026-09-01-replay-attendee-app-roadmap-plan.md`.
+Status: **P0, P2A, P2B, P2E, P2C, P2D and P3 shipped as of 2026-09-02.**
+P4 and P6 remain; P5 was taken out of scope on 2026-09-02.
+Companion plan: `docs/superpowers/plans/2026-09-01-replay-attendee-app-roadmap-plan.md`,
+which carries the handoff notes for what is left.
 Expands and partly supersedes `docs/ATTENDEE_APP_PLAN.md` Phases 2–4.
 
 ## Why this exists
@@ -121,32 +123,31 @@ SHIPPED ── P1 public utility · announcements · venue map
               │
    ┌──────────┴─────────────────────────────────────────┐
    │                                                     │
- P0 UI audit and fixes                          P2A Kiosk check-in
- (independent, do first)                                 │
-                                                 P2B Identity: pairing,
-                                                     device tokens, QR
+ P0 UI audit and fixes ✓                        P2A Kiosk check-in ✓
                                                          │
-                                                    P2E First-run wizard
+                                                 P2B Identity: pairing,
+                                                     device tokens, QR ✓
+                                                         │
+                                                    P2E First-run wizard ✓
                                                          │
                               ┌──────────────┬───────────┴──────┬─────────────┐
                               │              │                  │             │
-                        P2C Sign-ups   P3 Ticket surface   P4 Library    (P2D needs 2C)
-                          + waitlist                        circulation
-                              │                                  │
-                              └────────► P2D Push ◄──────────────┘
+                      P2C Sign-ups ✓  P3 Ticket surface ✓   P4 Library    (P2D needs 2C)
+                        + waitlist                        circulation
+                              │                            ⛔ BLOCKED
+                              └────────► P2D Push ✓
                                               │
-                                        P5 Follow-ups
                                         P6 Deferred roles
 ```
 
-**Critical path: P2A → P2B → P2E → P2C → P2D.** P0 is independent and should run
-first so later UI work builds on a clean base. P4 depends only on P2B, so
-library work can proceed in parallel with sign-ups once identity exists — but
-it stays blocked on the inventory-source decision below.
+Everything on the critical path — **P2A → P2B → P2E → P2C → P2D** — is shipped,
+as are P0 and P3.
 
-P2E lands immediately after P2B because it is the only route most attendees
-will ever take into pairing; shipping P2B without it means a pairing screen
-nobody finds.
+**What remains is P4 and P6, and they are unrelated to each other.** P4 depends
+only on P2B, which exists, so it is startable the moment its inventory-source
+decision is made. P6 touches no attendee-facing code at all.
+
+P5 was removed from the roadmap on 2026-09-02. See below.
 
 ---
 
@@ -670,15 +671,33 @@ The service workers are hand-rolled at `app/public/sw.js`, so the `push` and
 
 ## P3 — Attendee ticket surface
 
-Small, once P2B exists — mostly UI over data the device token already reaches.
-Personal ticket status, per-day check-in state, the QR pass screen, and
-confirmation recovery, which is simply "re-pair at the desk."
+> **Shipped 2026-09-02.** `GET /api/app/me/pass` returns the name from the
+> attendee record, both event days with their calendar dates, whether the
+> ticket covers each, and whether they have arrived on it. The ID tab renders
+> that beneath the QR, with the "re-pair at the desk" recovery copy.
+>
+> Two things worth knowing:
+>
+> 1. **The name is read fresh, not taken from the stored device.** The desk can
+>    rename a seat after pairing, and a pass still reading "Guest 2" at a door
+>    is worse than no pass. The header and the card both use the fresh name, or
+>    they name two different people.
+> 2. **A day the ticket does not cover is shown, greyed, not hidden.** "Is
+>    Sunday mine?" is the question the desk gets asked, and it is only
+>    answerable here if the uncovered day appears at all.
 
-**Newly possible, optional:** with a device identity that has a real privacy
-story, syncing "My Day" across an attendee's devices becomes defensible for the
-first time. The plan previously ruled it out only because no identity existed.
-Recommend keeping it local for launch anyway and revisiting — local costs
-nothing and cannot leak.
+**The "My Day stays local" recommendation was reversed on 2026-09-02.** This
+document previously advised against syncing it — local costs nothing and cannot
+leak. That held right up until reminders existed: a cron cannot read a phone,
+so a star that never left the device could never become a notification, and
+only four of day one's thirty-two published sessions take bookings at all. For
+the other twenty-eight the star was the *only* way to say "I mean to be there".
+
+So `saved_items` now mirrors a paired device's stars server-side, and the
+reminder job unions them with confirmed sign-ups. The local set remains
+authoritative for what the screen draws, and still works for someone who never
+pairs. The privacy cost is real and was accepted deliberately: an attendee's
+stars are now readable by the Worker where before they were readable by nobody.
 
 ---
 
@@ -707,11 +726,19 @@ requirement, not a nicety.
 
 ---
 
-## P5 — Follow-ups
+## P5 — Removed from scope
 
-Accessibility annotations and marked exits on the venue floor plan, with a
-named annotation owner. Everything else in this bucket — chat, profiles,
-matchmaking, looking-for-group — stays explicitly out of scope.
+**Taken out of the roadmap on 2026-09-02.**
+
+P5 was accessibility annotations and marked exits on the venue floor plan. It
+is not abandoned as a goal, but it does not belong in a software roadmap: every
+item in it is a factual claim about a physical building, and the work is
+walking the venue with someone who can verify step-free routes and exits — not
+writing code. `src/lib/venue-map.ts` already accepts the annotations once
+somebody has established what they are.
+
+Chat, profiles, matchmaking and looking-for-group were listed here as
+explicitly out of scope, and remain so.
 
 ## P6 — Deferred privilege model
 
@@ -746,10 +773,19 @@ that changes a contract deploys the Worker before the app and admin builds.
 ## Open decisions
 
 1. **Library inventory source** — BGC import or REPLAY-owned copies. Blocks P4
-   entirely.
+   entirely, and is the only thing blocking it. Still open.
 2. **Who owns capacity numbers** and turns on `signup_mode = 'app'` per session.
+   Still open. Four sessions on day one are currently bookable.
 3. **What happens to sign-ups and loans if a registration is cancelled** after
-   the fact.
-4. **Reminder lead time** — 15 minutes assumed; confirm with the programme.
+   the fact. Partly answered for the purchaser identity by
+   `20260902103000_release_purchaser_claim.sql`; sign-ups and loans are still
+   open.
+4. ~~**Reminder lead time**~~ — settled at 15 minutes with a 10-minute catch-up
+   window, in `REMINDER_LEAD_MINUTES`.
 5. **Whether the QR needs rotation** before the next edition, if screenshot
-   sharing turns out to happen in practice.
+   sharing turns out to happen in practice. Still open; re-pairing already
+   rotates it, so the question is only about unprompted rotation.
+6. **Whether a cancelled *session* should notify the people booked into it.**
+   Opened 2026-09-01. Today it does not: setting a schedule item to `cancelled`
+   sends nothing, and the only way to reach that roster is an urgent
+   announcement, which goes to everybody. See the push trigger list in P2D.

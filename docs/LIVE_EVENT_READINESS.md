@@ -183,6 +183,10 @@ secure-ticket, check-in, and library phases remain gated by that plan.
 
 - Attendee chat, social profiles, matchmaking/looking-for-group, and other
   moderation-heavy social features are not launch scope.
+- Venue-map accessibility annotations and marked exits were removed from the
+  software roadmap on 2026-09-02. `src/lib/venue-map.ts` accepts them once
+  somebody has walked the building and established what they are; the blocker
+  is that survey, not code.
 
 ### App dependencies
 

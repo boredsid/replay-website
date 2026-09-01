@@ -4,18 +4,26 @@ Companion to `docs/superpowers/specs/2026-09-01-replay-attendee-app-roadmap-desi
 Read the spec first for the *why*; this document is the *how*, broken into
 tasks sized for a working session.
 
+## Status as of 2026-09-02
+
+**Shipped: P0, P2A, P2B, P2E, P2C, P2D, P3.** Every phase on the critical path
+is live in production.
+
+**Remaining: P4 (blocked) and P6 (deferred).** P5 was removed from the roadmap.
+
+If you are a new session picking this up, **read "Handoff — P4 and P6" at the
+bottom first.** It is written for exactly that, and it will save you from
+rebuilding things that already exist.
+
 ## How to use this plan across sessions
-
-The work spans several sessions. At the start of each one:
-
-1. Check `supabase/migrations/` for the highest-numbered migration to see which
-   phases have landed.
-2. Check `worker/src/index.ts` route table for which endpoints exist.
-3. Pick up at the first phase whose tasks are not all complete.
 
 Phases are ordered by dependency. **Do not start a phase until the one it
 depends on is deployed**, not merely written — the Worker must be live before
 the app that calls it.
+
+The phase headings below carry `Shipped` callouts recording what changed during
+implementation. Trust those over the task lists beneath them: the tasks are
+what was planned, the callouts are what happened.
 
 ### Standing gates — every task, every phase
 
@@ -41,6 +49,11 @@ the app that calls it.
 ---
 
 # P0 — UI validation and fixes
+
+> **Shipped 2026-09-01.** Findings recorded in
+> `docs/superpowers/notes/2026-09-01-ui-audit.md`. Two follow-on rounds of
+> fixes landed 2026-09-01 and 2026-09-02, the second covering the nav icons,
+> the card disclosure, and the app icon.
 
 Independent of everything else. Do it first.
 
@@ -78,6 +91,13 @@ no surface scrolls horizontally at any tested width.
 ---
 
 # P2A — Kiosk check-in
+
+> **Shipped 2026-09-01.** The rule that mattered most is enforced in the
+> database, not the Worker: `enforce_check_in_day_purchased()` makes it
+> impossible to check someone in for a day they did not buy, whatever the
+> caller does. `check_in_events` is append-only, with `update`, `delete` and
+> `truncate` revoked from `service_role` — a plain `grant select, insert`
+> restricts nothing, because Supabase's defaults had already granted the rest.
 
 ### Task 2A.0 — Attendees table and backfill
 
@@ -343,6 +363,12 @@ checked in three hours earlier can be issued a working code on request.
 
 # P2E — First-run wizard
 
+> **Shipped 2026-09-01.** One change from the tasks below: the install nudge
+> shows on **every** browser open rather than once, because the single-nudge
+> rule hid it behind "Finish setup" — which is everybody's state before the
+> event, so the nudge never appeared for anyone. "Finish setup" stays as the
+> persistent way back in.
+
 ### Task 2E.1 — Install prompt plumbing
 
 `app/src/lib/pwa.ts` — port the `beforeinstallprompt` capture from
@@ -403,6 +429,16 @@ day.
 ---
 
 # P2C — Event sign-ups and waitlist
+
+> **Shipped 2026-09-01.** Two things worth knowing:
+>
+> 1. **`RETURNING` on an `UPDATE` yields the NEW row.** `cancel_session_signup`
+>    read the pre-update status from it, which meant the promotion branch was
+>    unreachable and every waitlist would have silently frozen. Read the status
+>    in a `SELECT` before the `UPDATE`.
+> 2. **Sign-up modes were reduced to `('none','app')`** and `signup_url` was
+>    dropped — `walk-in`, `advance` and `on-site` described nothing the app
+>    could act on.
 
 ### Task 2C.1 — Migration
 
@@ -531,11 +567,13 @@ across two cron ticks.
 
 # P3 — Attendee ticket surface
 
-Mostly UI over P2B data. Personal ticket status, per-day check-in state, QR
-pass, and "re-pair at the desk" recovery copy.
-
-Optional and **recommended against for launch**: syncing My Day server-side.
-Now defensible, but local costs nothing and cannot leak.
+> **Shipped 2026-09-02.** `GET /api/app/me/pass` (`worker/src/app-pass.ts`)
+> plus the ID tab in `app/src/components/IdCard.tsx` and the formatting helpers
+> in `app/src/lib/pass.ts`.
+>
+> The "keep My Day local" recommendation below **was reversed** — starred
+> sessions now sync to `saved_items` so the reminder cron can read them. The
+> reasoning is in the spec's P3 section.
 
 ---
 
@@ -557,17 +595,155 @@ Once decided:
 
 ---
 
-# P5 — Follow-ups
+# P5 — Removed from scope 2026-09-02
 
-Accessibility annotations and marked exits on the venue floor plan
-(`src/lib/venue-map.ts`), with a named owner. Chat, profiles, matchmaking, and
-looking-for-group stay out of scope.
+Venue-map accessibility annotations are not software work: they are factual
+claims about a building that someone has to walk and verify.
+`src/lib/venue-map.ts` already accepts them once established. Chat, profiles,
+matchmaking and looking-for-group remain explicitly out of scope.
 
 # P6 — Deferred privilege model
 
 Replace the flat `ADMIN_EMAILS` allowlist with real roles: check-in staff,
 library staff, programme editors, full admins. Worth doing before the next
-edition scales the volunteer count.
+edition scales the volunteer count. See the handoff section below.
+
+
+---
+
+# Handoff — P4 and P6
+
+Written 2026-09-02 for a session that did not build any of the above. Read this
+before the phase sections; it is what is not obvious from the code.
+
+## Ground rules that have already cost time
+
+These were each learned by getting them wrong. They apply to any phase.
+
+**Never run `supabase db push`.** Local and remote migration histories are
+permanently divergent. Apply a migration by running its SQL through the
+Supabase MCP `execute_sql` against project `qvkynwlmzeybdiapbcsy`, then record
+it so `migration list` lines up with the filename:
+
+```sql
+insert into supabase_migrations.schema_migrations (version, name)
+values ('<file timestamp>', '<name_without_timestamp>')
+on conflict (version) do nothing;
+```
+
+Prefer that over MCP `apply_migration`, which invents its own version and
+leaves the file's timestamp permanently unmatched. **Validate first** by
+running the whole migration inside `begin; ... rollback;` with a `select` at
+the end that proves the grants came out right.
+
+**`grant select, insert` on a new table restricts nothing.** Supabase's default
+privileges have already given `service_role` the rest. Every new table needs an
+explicit `revoke` of what the Worker must not do — see `saved_items` and
+`check_in_events` for the two shapes (delete allowed, delete forbidden).
+
+**`replay-app` is not git-connected.** Merging or pushing does nothing for the
+attendee app. It ships only via:
+
+```
+npm run build:app
+npx wrangler pages deploy app/dist --project-name=replay-app
+```
+
+`replay-website` and `replay-admin` do build on push to `main`. The Worker
+deploys only via `npm run deploy` in `worker/`. **Order: migration → Worker →
+Pages.**
+
+**A Pages deployment appearing in the list is not proof the build finished.**
+Fetch a real asset from the deployment's own `<id>.pages.dev` URL — it 404s at
+every path until the build lands.
+
+**Add every new HTTP method to `CORS_HEADERS`.** The app and the API are on
+different origins, so every call is cross-origin. A missing method fails at
+preflight and surfaces in the app as a generic network error, which reads as
+"you are offline" — it has already happened twice, to `DELETE` and `PUT`.
+
+**Anything sent after a response returns needs `ctx.waitUntil`.**
+
+## P4 — Game-library circulation
+
+### The one decision that blocks everything
+
+**Import the BGC catalogue, or maintain REPLAY-owned copies?** It determines
+the schema and cannot be deferred into implementation. Do not start P4 without
+an answer.
+
+### What already exists — do not rebuild these
+
+Roughly half of what P4 sounds like is already in the repo:
+
+- **`src/data/game-library.json`** — a committed snapshot of **586 games** with
+  `bggId`, `title`, `year`, `thumb`, `minPlayers`, `maxPlayers`, `minTime`,
+  `maxTime`, `rating`, `weight`, `bestWith`, and a `copies` **count**. This is
+  most of the attendee-facing catalogue search already.
+- **`scripts/sync-game-library.ts`** (`npm run sync:library`) rebuilds that
+  snapshot from the BGC Supabase project plus four BoardGameGeek collections.
+  Read its header before touching it: BGG closed its public APIs, the `.tsv`
+  harvests have to be re-gathered through a real browser, and the snapshot is
+  committed deliberately rather than fetched at build time.
+- **`src/pages/library.astro`** — the existing public library page.
+- **`POST /api/admin/scan`** (`worker/src/admin/pairing.ts`) already resolves an
+  attendee's QR for staff. The scan half of the issue flow exists.
+- **`attendee_credentials.qr_token_hash`** — the QR is minted at pair time and
+  re-pairing rotates it, so a lost phone stops borrowing games.
+
+### What is actually missing
+
+The catalogue is largely solved; **circulation is not**. In dependency order:
+
+1. Expand `copies: "2"` into individual physical copy rows. **Model copies, not
+   titles** — three copies of Catan are three borrowable things.
+2. `loans` with the full state machine: requested, approved/collected,
+   checked-out, overdue, returned, missing/damaged, resolved. Every transition
+   attributed and written to `admin_audit_log` via `worker/src/admin/audit.ts`,
+   with `actor_email` from the verified Access JWT and never from a body.
+3. Staff issue/return flow: scan the QR, pick the copy, issue.
+4. Circulation queue with attributed overrides.
+5. Attendee-side: my loans, due times, collection and return points.
+6. Offline paper ledger with a **named** reconciliation owner. This is a launch
+   requirement, not a nicety.
+
+### Sizing
+
+Several sessions, not one. The catalogue shortcut above makes it smaller than
+the spec implies, but the loan state machine and the audit trail are the bulk
+of it and neither compresses.
+
+## P6 — Deferred privilege model
+
+Not attendee-facing, and touches no app code.
+
+`ADMIN_EMAILS` is read in exactly one place: `worker/src/access-auth.ts:93`,
+which splits the comma-separated env var and checks the email from the verified
+Cloudflare Access JWT against it. Everything admin-side funnels through that
+check in `worker/src/index.ts`, so a role table replaces one function rather
+than being threaded through every handler.
+
+Roles wanted: check-in staff, library staff, programme editors, full admins.
+The natural shape is a `staff` table keyed on email with a role column, read in
+`verifyAccessJwt`'s caller, plus a per-route required-role map.
+
+**Do this before the next edition scales the volunteer count**, not before this
+one. The current allowlist is safe; it is simply coarse.
+
+## Things known to be unfinished
+
+- **The session-reminder push has never been proven against a real device.**
+  Waitlist promotion has. The reminder job refuses to run unless today is the
+  edition's `start_date` or `end_date`, so a live test means temporarily
+  editing the current edition's dates in production — which the public site
+  builds from and the check-in gate reads.
+- **A cancelled session notifies nobody.** See open decision 6 in the spec.
+- **`renotify` is not set on notifications.** A notification replacing an
+  earlier one with the same tag arrives silently, which for a republished
+  incident notice is probably wrong.
+- **One admin Pages CI build failed unexplained** on 2026-09-01 (`db4ec7a`) and
+  was not reproducible locally. It has not recurred since. The log is in the
+  Cloudflare dashboard.
 
 ---
 
