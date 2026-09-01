@@ -315,9 +315,18 @@ property of the registration — one purchase may cover both days and another
 only day 1.
 
 **Search also matches an attendee's own phone and name**, not just the
-purchaser's. A guest who arrives alone and does not know who bought the ticket
-or what number they used is otherwise unfindable, and the fallback staff reach
-for in that moment is improvisation.
+purchaser's — but only once those details exist.
+
+This is a real operational constraint, not a detail. A guest's name and number
+enter the system when staff capture them at check-in, so on the first day the
+**purchaser's phone is the only way to find them**. From their second check-in
+onward — day 2, or a re-entry — they are findable by their own details. The
+purchaser is the exception: seat 1 carries their phone from purchase, so they
+are searchable immediately.
+
+The desk copy has to say this plainly. Staff who believe name search always
+works will ask a day-1 guest for their name, find nothing, and conclude the
+system is broken.
 
 **A phone already used by another attendee warns rather than blocks.** Couples
 and families share numbers, and a hard uniqueness rule would turn a normal

@@ -159,12 +159,13 @@ export default function CheckIn() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 p-4 md:p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Check in</h1>
+        <h1 className="text-2xl font-bold">Check in</h1>
         <p className="text-sm text-muted-foreground">
-          Search the purchaser’s phone number. You can also search an attendee’s own
-          number or name.
+          Search the purchaser’s phone number — it’s the one thing every attendee can
+          give you. Once you’ve taken someone’s own name and number here, they can be
+          found by either from then on.
         </p>
       </header>
 
@@ -179,7 +180,7 @@ export default function CheckIn() {
           ref={searchRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Phone number or name"
+          placeholder="Purchaser’s phone number"
           inputMode="text"
           autoComplete="off"
           aria-label="Search by purchaser phone, attendee phone, or name"
@@ -191,7 +192,8 @@ export default function CheckIn() {
 
       {results?.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Nobody matched. Try the purchaser’s number, or the name on the booking.
+          Nobody matched. A guest is only findable by their own name or number after
+          you’ve taken it here — until then, ask who booked and search that number.
         </p>
       )}
 
