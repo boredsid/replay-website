@@ -23,6 +23,7 @@ import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleAppPair } from './app-pair';
+import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -168,6 +169,16 @@ export default {
       }
       if (path === '/api/app/pair' && req.method === 'POST') {
         return await handleAppPair(req, env);
+      }
+      if (path === '/api/app/me/signups' && req.method === 'GET') {
+        return await handleMySignups(req, env);
+      }
+      if (path === '/api/app/signups' && req.method === 'POST') {
+        return await handleSignUp(req, env);
+      }
+      const signupMatch = path.match(/^\/api\/app\/signups\/([^/]+)$/);
+      if (signupMatch && req.method === 'DELETE') {
+        return await handleCancelSignup(req, env, signupMatch[1]);
       }
       if (path === '/api/app/bootstrap' && req.method === 'GET') {
         return await handleAppBootstrap(serviceClient(env));

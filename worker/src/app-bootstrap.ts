@@ -86,7 +86,7 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
   const edition = editionResult.data as any;
   const scheduleResult = await sb
     .from('schedule_items')
-    .select('id, day, start_time, end_time, title, description, location, kind, section, is_all_day, host_name, signup_mode, signup_url, public_status, display_order')
+    .select('id, day, start_time, end_time, title, description, location, kind, section, is_all_day, host_name, signup_mode, signup_url, public_status, display_order, capacity')
     .eq('edition_id', edition.id)
     .in('public_status', ['published', 'cancelled'])
     .order('day', { ascending: true })
@@ -116,6 +116,28 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
     return response({ error: 'event_unavailable' }, 503, 'no-store');
   }
 
+  // Seat counts for bookable sessions. Counts only -- never who signed up, which
+  // would put attendee identities in a payload anybody can fetch.
+  const bookable = (scheduleResult.data ?? [])
+    .filter((item: any) => item.signup_mode === 'app')
+    .map((item: any) => item.id);
+  const takenBySession = new Map<string, number>();
+  if (bookable.length > 0) {
+    const confirmed = await sb
+      .from('session_signups')
+      .select('schedule_item_id')
+      .in('schedule_item_id', bookable)
+      .eq('status', 'confirmed');
+    if (confirmed.error) {
+      console.error('app_bootstrap_signups_failed', confirmed.error);
+      return response({ error: 'event_unavailable' }, 503, 'no-store');
+    }
+    for (const row of confirmed.data ?? []) {
+      const id = (row as { schedule_item_id: string }).schedule_item_id;
+      takenBySession.set(id, (takenBySession.get(id) ?? 0) + 1);
+    }
+  }
+
   const schedule = (scheduleResult.data ?? []).map((item: any) => ({
     id: item.id,
     day: item.day,
@@ -132,6 +154,12 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
     signup_url: item.signup_url,
     public_status: item.public_status,
     display_order: item.display_order,
+    capacity: item.capacity ?? null,
+    // Null when the session is not bookable, so the app can tell "no limit"
+    // apart from "not taking bookings".
+    seats_remaining: item.signup_mode === 'app' && item.capacity !== null
+      ? Math.max(0, item.capacity - (takenBySession.get(item.id) ?? 0))
+      : null,
   })).sort((a: any, b: any) =>
     a.day.localeCompare(b.day)
     || SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section)

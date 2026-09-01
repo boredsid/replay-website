@@ -106,7 +106,13 @@ describe('handleAppBootstrap', () => {
     expect(body.edition).not.toHaveProperty('id');
     expect(body.edition).not.toHaveProperty('pricing');
     expect(body.edition).not.toHaveProperty('capacity_per_day');
-    expect(body.schedule).toEqual([{ ...scheduleItem, created_at: undefined, edition_id: undefined }].map(({ created_at: _created, edition_id: _edition, ...item }) => item));
+    expect(body.schedule).toEqual([{
+      ...scheduleItem, created_at: undefined, edition_id: undefined,
+      // Capacity and remaining seats are counts, never identities — the payload
+      // still says nothing about who signed up. Null here because this item is
+      // walk-in rather than app-bookable.
+      capacity: null, seats_remaining: null,
+    }].map(({ created_at: _created, edition_id: _edition, ...item }) => item));
     expect(body.announcements).toEqual([{
       id: 'notice-1', title: 'Room change', body: 'Meet in Room B', severity: 'urgent', audience: 'day1',
       starts_at: '2026-08-20T11:00:00.000Z', ends_at: null, updated_at: '2026-08-20T11:01:00.000Z',
