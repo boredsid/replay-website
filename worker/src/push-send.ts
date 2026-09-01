@@ -54,15 +54,26 @@ export interface FanOutResult {
 /**
  * How many push requests one invocation will make.
  *
- * Every send is a subrequest, and a Worker gets 50 of those per invocation on
- * the free plan and 1000 on paid. Exceeding it kills the whole invocation, so a
- * capped fan-out that logs what it skipped beats one that silently dies
- * partway.
+ * Every send is a subrequest, and a Worker gets 1000 of those per invocation on
+ * the paid plan. Exceeding it kills the whole invocation rather than trimming
+ * it, so the cap is deliberate: 900 sends plus the fixed overhead below leaves
+ * room to spare, and covers an announcement to every attendee at the sizes this
+ * event runs at.
+ *
+ * The overhead is fixed at four regardless of how many sends fail: one select,
+ * and at most three bulk writes.
  */
-const MAX_SENDS_PER_INVOCATION = 400;
+const MAX_SENDS_PER_INVOCATION = 900;
 
-/** Sends in flight at once. Sequential sending is what makes a fan-out slow. */
-const CONCURRENCY = 8;
+/**
+ * Sends in flight at once.
+ *
+ * Nine sessions share the busiest start slot in the current programme, so a
+ * single reminder tick can fan out to hundreds of devices. At twelve at a time
+ * six hundred sends take a few seconds rather than a minute and a half, and a
+ * reminder that lands after the session starts is worse than useless.
+ */
+const CONCURRENCY = 12;
 
 /**
  * Sends one notification to every live subscription for these attendees that
@@ -136,10 +147,10 @@ export async function notifyAttendees(
     // Retrying forever is how a send loop becomes all dead endpoints.
     await sb.from('push_subscriptions').update({ revoked_at: now }).in('id', gone);
   }
-  for (const row of failures) {
-    await sb.from('push_subscriptions')
-      .update({ failure_count: row.failure_count + 1 })
-      .eq('id', row.id);
+  if (failures.length > 0) {
+    // One call, not one per row: otherwise a bad spell with a push service makes
+    // the fan-out's own cost spike exactly when it is already struggling.
+    await sb.rpc('bump_push_failures', { p_ids: failures.map((row) => row.id) });
   }
 
   return result;

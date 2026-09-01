@@ -19,8 +19,13 @@ const ENV = {
 
 const NOTE = { title: 'A seat opened', body: 'Werewolf, 2pm' };
 
-function client(rows: Array<Record<string, unknown>>, onUpdate?: (patch: Record<string, unknown>) => void) {
+function client(
+  rows: Array<Record<string, unknown>>,
+  onUpdate?: (patch: Record<string, unknown>) => void,
+  onRpc?: (name: string, args: Record<string, unknown>) => void,
+) {
   return {
+    rpc: async (name: string, args: Record<string, unknown>) => { onRpc?.(name, args); return { error: null }; },
     from: () => ({
       select: () => ({ in: () => ({ is: () => ({ eq: async () => ({ data: rows, error: null }) }) }) }),
       update: (patch: Record<string, unknown>) => {
@@ -92,12 +97,27 @@ describe('notifyAttendees', () => {
 
   it('keeps a subscription that merely failed, and counts the failure', async () => {
     send.mockResolvedValue({ ok: false, gone: false, status: 503 });
-    const patches: Record<string, unknown>[] = [];
-    const result = await notifyAttendees(ENV, client([{ ...SUB, failure_count: 2 }], (p) => patches.push(p)), ['a1'], 'waitlist', NOTE);
+    let rpc: { name: string; args: Record<string, unknown> } | null = null;
+    const result = await notifyAttendees(
+      ENV, client([{ ...SUB, failure_count: 2 }], undefined, (name, args) => { rpc = { name, args }; }),
+      ['a1'], 'waitlist', NOTE,
+    );
 
     // Losing every subscription during an outage would be worse than the outage.
     expect(result).toMatchObject({ failed: 1, pruned: 0 });
-    expect(patches[0]).toEqual({ failure_count: 3 });
+    // One call regardless of how many failed, so a bad spell with a push service
+    // cannot make the fan-out's own cost spike.
+    expect(rpc!.name).toBe('bump_push_failures');
+    expect(rpc!.args).toEqual({ p_ids: ['s1'] });
+  });
+
+  it('counts many failures in a single call', async () => {
+    send.mockResolvedValue({ ok: false, gone: false, status: 503 });
+    let rpcCalls = 0;
+    const many = Array.from({ length: 25 }, (_, i) => ({ ...SUB, id: `s${i}`, endpoint: `https://push.example/${i}` }));
+    await notifyAttendees(ENV, client(many, undefined, () => { rpcCalls += 1; }), ['a1'], 'waitlist', NOTE);
+
+    expect(rpcCalls).toBe(1);
   });
 
   it('keeps going after one subscription fails', async () => {
@@ -113,6 +133,7 @@ describe('notifyAttendees', () => {
 
   it('returns an empty result rather than throwing when the query fails', async () => {
     const broken = {
+      rpc: async () => ({ error: null }),
       from: () => ({ select: () => ({ in: () => ({ is: () => ({ eq: async () => ({ data: null, error: { message: 'boom' } }) }) }) }) }),
     } as never;
     // Every caller is doing something more important than notifying.
@@ -127,6 +148,7 @@ describe('notifyAttendees', () => {
     send.mockResolvedValue({ ok: true });
     let filtered = '';
     const sb = {
+      rpc: async () => ({ error: null }),
       from: () => ({
         select: () => ({ in: () => ({ is: () => ({ eq: async (col: string) => { filtered = col; return { data: [], error: null }; } }) }) }),
         update: () => ({ eq: async () => ({ error: null }), in: async () => ({ error: null }) }),
