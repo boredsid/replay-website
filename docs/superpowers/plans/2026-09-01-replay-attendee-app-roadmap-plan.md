@@ -228,6 +228,20 @@ reconnect with no duplicate events, and the roster prints.
 
 # P2B — Identity: pairing, device tokens, QR
 
+> **Shipped 2026-09-01.** Three things changed from the tasks below during
+> implementation, and they are the parts worth knowing:
+>
+> 1. **The QR is minted at pair time**, not when the code is issued — it has to
+>    reach the attendee's device, and only the pair response goes there.
+>    Re-pairing therefore rotates it, so a lost phone stops borrowing games.
+> 2. **The pairing gate relaxes outside the event** to "arrived on any covered
+>    day", via a shared `pairingGateDay`. Without it, pairing would first run for
+>    real at the door on day one.
+> 3. **`pairing_codes.attempts` has no writer.** With the code as sole
+>    credential the lookup is by hash, so a wrong guess matches no row and there
+>    is nothing to count against. Entropy plus the two rate limiters is the
+>    defence. The column was left in place rather than migrated away.
+
 ### Task 2B.1 — Migration
 
 `pairing_codes`, `attendee_devices`, `attendee_credentials` per the spec, with

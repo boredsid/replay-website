@@ -37,6 +37,31 @@ export function editionDayForToday(
 }
 
 /**
+ * Whether this attendee may be handed a code right now, and on what basis.
+ *
+ * During the event the rule is strict: they must have arrived **today**. That is
+ * what keeps "paired" meaning "actually here", which is what the sign-up gate
+ * later rests on.
+ *
+ * Outside the event it relaxes to "arrived on any day this ticket covers".
+ * Nothing is bookable then, so the in-the-building invariant has nothing to
+ * protect — and without this the entire pairing flow would first be exercised at
+ * the door on day one, which is the worst possible place to find a problem.
+ *
+ * Returns the qualifying day, or null.
+ */
+export function pairingGateDay(
+  edition: { start_date: string; end_date: string },
+  ticketDays: readonly EventDay[],
+  events: readonly CheckInEvent[],
+  now?: Date,
+): EventDay | null {
+  const today = editionDayForToday(edition, now);
+  if (today) return hasArrivedOn(events, today) ? today : null;
+  return ticketDays.find((day) => hasArrivedOn(events, day)) ?? null;
+}
+
+/**
  * Issues a fresh pairing code for one attendee.
  *
  * A code is per person, never per registration: two people from one purchase get
@@ -64,29 +89,33 @@ export async function handlePairingCodeIssue(
   const edition = await getCurrentEdition(env);
   if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
 
-  const today = editionDayForToday(edition as unknown as { start_date: string; end_date: string });
-  if (!today) return adminJson({ error: 'event_not_running' }, 409, origin);
-
   const attendee = await sb
     .from('attendees')
-    .select('id, edition_id, seat_index, display_name')
+    .select('id, edition_id, seat_index, display_name, registration_id')
     .eq('id', attendeeId)
     .maybeSingle();
   if (attendee.error) return adminJson({ error: 'query_failed' }, 500, origin);
   if (!attendee.data) return adminJson({ error: 'attendee_not_found' }, 404, origin);
-  const row = attendee.data as { id: string; edition_id: string; seat_index: number; display_name: string | null };
+  const row = attendee.data as {
+    id: string; edition_id: string; seat_index: number;
+    display_name: string | null; registration_id: string;
+  };
 
-  const events = await sb
-    .from('check_in_events')
-    .select('id, day, kind, voids_event_id, occurred_at')
-    .eq('attendee_id', row.id);
-  if (events.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const [reg, events] = await Promise.all([
+    sb.from('registrations').select('days').eq('id', row.registration_id).maybeSingle(),
+    sb.from('check_in_events').select('id, day, kind, voids_event_id, occurred_at').eq('attendee_id', row.id),
+  ]);
+  if (reg.error || events.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const ticketDays = ((reg.data as { days: EventDay[] } | null)?.days ?? []);
 
-  // Arrived today, not "currently inside" — someone who stepped out for lunch
-  // has not stopped being here.
-  if (!hasArrivedOn((events.data ?? []) as CheckInEvent[], today)) {
-    return adminJson({ error: 'not_checked_in_today' }, 409, origin);
-  }
+  // Arrived, not "currently inside" — someone who stepped out for lunch has not
+  // stopped being here.
+  const gateDay = pairingGateDay(
+    edition as unknown as { start_date: string; end_date: string },
+    ticketDays,
+    (events.data ?? []) as CheckInEvent[],
+  );
+  if (!gateDay) return adminJson({ error: 'not_checked_in' }, 409, origin);
 
   // At most one outstanding code per attendee, enforced by a partial unique
   // index, so the previous one has to be retired before a new one is minted.

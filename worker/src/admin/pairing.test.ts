@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../editions', () => ({ getCurrentEdition: vi.fn() }));
 
-import { editionDayForToday, handlePairingCodeIssue, handleScan } from './pairing';
+import { editionDayForToday, pairingGateDay, handlePairingCodeIssue, handleScan } from './pairing';
 import { getCurrentEdition } from '../editions';
 
 const ORIGIN = 'https://admin.replaycon.in';
@@ -44,7 +44,7 @@ interface IssueFixture {
 
 function issueClient(f: IssueFixture = {}) {
   const attendeeRow = f.attendeeRow === undefined
-    ? { id: ATTENDEE, edition_id: EDITION.id, seat_index: 2, display_name: 'Priya' }
+    ? { id: ATTENDEE, edition_id: EDITION.id, seat_index: 2, display_name: 'Priya', registration_id: 'reg-1' }
     : f.attendeeRow;
   return {
     from: (table: string) => {
@@ -53,6 +53,9 @@ function issueClient(f: IssueFixture = {}) {
       };
       if (table === 'check_in_events') return {
         select: () => ({ eq: async () => ({ data: f.events ?? [], error: null }) }),
+      };
+      if (table === 'registrations') return {
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { days: ['day1', 'day2'] }, error: null }) }) }),
       };
       if (table === 'pairing_codes') return {
         update: () => ({ eq: () => ({ is: async () => { f.onConsume?.(); return { error: null }; } }) }),
@@ -119,7 +122,7 @@ describe('handlePairingCodeIssue', () => {
   it('refuses for someone who has not arrived today', async () => {
     const res = await handlePairingCodeIssue(issueRequest(), env, issueClient({ events: [] }), STAFF, ORIGIN);
     expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ error: 'not_checked_in_today' });
+    expect(await res.json()).toMatchObject({ error: 'not_checked_in' });
   });
 
   it('still issues for someone who arrived and then stepped out', async () => {
@@ -132,12 +135,20 @@ describe('handlePairingCodeIssue', () => {
     expect(res.status).toBe(200);
   });
 
-  it('refuses outside the event', async () => {
-    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-20T06:30:00Z'));
+  it('issues outside the event so the flow can be rehearsed', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-01T06:30:00Z'));
     const res = await handlePairingCodeIssue(issueRequest(), env, issueClient({ events: ARRIVED }), STAFF, ORIGIN);
     vi.useRealTimers();
+    // Nothing is bookable outside the event, so the in-the-building rule has
+    // nothing to protect -- and rehearsing beats discovering problems at the door.
+    expect(res.status).toBe(200);
+  });
+
+  it('still refuses outside the event for someone who never checked in', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-01T06:30:00Z'));
+    const res = await handlePairingCodeIssue(issueRequest(), env, issueClient({ events: [] }), STAFF, ORIGIN);
+    vi.useRealTimers();
     expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ error: 'event_not_running' });
   });
 
   it('rejects a malformed attendee id', async () => {
@@ -232,5 +243,42 @@ describe('handleScan', () => {
   it('rejects an empty token', async () => {
     const res = await handleScan(scanRequest(''), env, scanClient(), ORIGIN);
     expect(res.status).toBe(400);
+  });
+});
+
+describe('pairingGateDay', () => {
+  const DAY1_ONLY = ['day1'] as const;
+  const BOTH = ['day1', 'day2'] as const;
+
+  it('requires arriving today while the event is running', () => {
+    const duringDay2 = new Date('2026-09-13T06:30:00Z');
+    // Arrived on day 1 only; day 2 is running, so no code today.
+    expect(pairingGateDay(EDITION, BOTH, ARRIVED, duringDay2)).toBeNull();
+  });
+
+  it('accepts today’s arrival while the event is running', () => {
+    const day2Arrival = [{ id: 'e', day: 'day2', kind: 'in', voids_event_id: null, occurred_at: '2026-09-13T04:00:00Z' }];
+    expect(pairingGateDay(EDITION, BOTH, day2Arrival, new Date('2026-09-13T06:30:00Z'))).toBe('day2');
+  });
+
+  it('accepts any covered day outside the event, so staff can rehearse', () => {
+    expect(pairingGateDay(EDITION, BOTH, ARRIVED, new Date('2026-09-01T06:30:00Z'))).toBe('day1');
+  });
+
+  it('still needs an arrival outside the event', () => {
+    expect(pairingGateDay(EDITION, BOTH, [], new Date('2026-09-01T06:30:00Z'))).toBeNull();
+  });
+
+  it('ignores an arrival on a day the ticket does not cover', () => {
+    const day2Arrival = [{ id: 'e', day: 'day2', kind: 'in', voids_event_id: null, occurred_at: '2026-09-13T04:00:00Z' }];
+    expect(pairingGateDay(EDITION, DAY1_ONLY, day2Arrival, new Date('2026-09-01T06:30:00Z'))).toBeNull();
+  });
+
+  it('still counts someone who arrived and stepped back out', () => {
+    const inThenOut = [
+      ...ARRIVED,
+      { id: 'e2', day: 'day1', kind: 'out', voids_event_id: null, occurred_at: '2026-09-12T09:00:00Z' },
+    ];
+    expect(pairingGateDay(EDITION, BOTH, inThenOut, new Date('2026-09-01T06:30:00Z'))).toBe('day1');
   });
 });

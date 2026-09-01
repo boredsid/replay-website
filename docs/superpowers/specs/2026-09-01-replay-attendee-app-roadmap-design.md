@@ -420,6 +420,28 @@ proves to matter in practice, the hardening is a time-bucketed rotating QR;
 that is deliberately *not* in v1 because it requires the app to hold a derivation
 secret and stay clock-synced, which is a lot of machinery for a con.
 
+### The gate on issuing a code
+
+**During the event: arrived today.** That is what keeps "paired" meaning
+"actually here", which the sign-up gate in P2C later rests on.
+
+**Outside the event: arrived on any day this ticket covers.** Nothing is
+bookable then, so the in-the-building rule has nothing to protect — and without
+the relaxation the entire pairing flow would first be exercised at the door on
+day one, which is the worst possible place to discover a problem. Both call
+sites share one `pairingGateDay` function so the rule cannot drift between the
+button's enabled state and the endpoint's answer.
+
+### The QR is minted when pairing succeeds, not when the code is issued
+
+Worth stating because the obvious design is the other way round. The QR has to
+reach the *attendee's* device, and only the pair response goes there — the code
+is handed over at the kiosk, which is the wrong surface entirely.
+
+This also makes re-pairing do the right thing for free: pairing a new phone
+revokes both the previous device token and the previous QR, so a lost handset
+stops being able to borrow games the moment its owner sets up a replacement.
+
 ### Token storage rules, all three
 
 Stored only as SHA-256 hashes, so a database leak yields nothing live. Device
