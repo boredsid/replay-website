@@ -122,6 +122,7 @@ Migrations are append-only under `supabase/migrations/`. Review linked/local mig
 - A booking can contain 1–10 tickets, limited further by live availability for the selected day or days.
 - Guild Path discounts apply only to the buyer's first ticket; additional tickets are charged at full price.
 - An admin confirmation changes it to confirmed and then sends the confirmation email.
+- Admins can correct a registration's pass type, day, ticket count, and amount after the fact. Corrections re-check capacity, refuse to remove tickets whose seats have already checked in or booked a session, and refuse to remove a day someone already checked in for. The amount is never recalculated from the pass, because it records what was actually settled. Name, email, and phone stay on the user record.
 - Two-day passes are unavailable if either event day is sold out.
 - UPI payment opens through a device deep link and a locally rendered QR code.
 - Booth and community-engagement buyers use the same preview-then-record UPI handoff on Get Involved: opening or abandoning UPI creates no row, “I've paid” creates the pending partner record, and admins then verify or cancel it.

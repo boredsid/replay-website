@@ -75,7 +75,7 @@ describe('SessionRoster', () => {
   });
 
   it('tells staff to pass on a promotion, since nothing else will', async () => {
-    api.mockImplementation(async (path: string, init?: { method?: string }) => {
+    api.mockImplementation(async (_path: string, init?: { method?: string }) => {
       if (init?.method === 'DELETE') return { removed: true, promoted_attendee_id: 'a2' };
       return roster();
     });

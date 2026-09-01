@@ -11,6 +11,10 @@ import { readPricing, calculateBasePrice } from '../pricing';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Ceiling on an admin seat correction. Deliberately above the public form's 10,
+// because the desk merges walk-ups into one row; beyond this it is a typo.
+const MAX_SEATS = 20;
+
 function daysMatchPass(passType: 'oneshot' | 'campaign', days: Array<'day1' | 'day2'>): boolean {
   if (passType === 'oneshot') return days.length === 1;
   return days.length === 2 && days.includes('day1') && days.includes('day2');
@@ -166,6 +170,22 @@ export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient
   return adminJson({ ok: true, registration_id: reg.id }, 200, origin);
 }
 
+/**
+ * Editing a registration after the fact.
+ *
+ * Details (pass, days, seats, amount) are corrections: an organiser fixing what
+ * was sold. Status is a transition, and confirming one still sends the mail the
+ * attendee never got. Both arrive here so a single audit entry records the whole
+ * change.
+ *
+ * Two rules are enforced above the database because the database can only see
+ * one row at a time:
+ *  - pass type and days must agree AFTER the merge, so changing one of the pair
+ *    cannot leave a 2-day pass covering a single day;
+ *  - a day already checked in cannot be dropped, which would strand check-in
+ *    events on a day nobody bought. Capacity and seat reduction are guarded by
+ *    triggers, and their errors are translated below.
+ */
 export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient, id: string, email: string, origin: string): Promise<Response> {
   let body: any;
   try { body = await req.json(); } catch { return adminJson({ error: 'invalid_body' }, 400, origin); }
@@ -177,6 +197,7 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
     .maybeSingle();
   if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
   if (!before.data) return adminJson({ error: 'not_found' }, 404, origin);
+  const current = before.data as any;
 
   const patch: any = {};
   if (body.payment_status === 'confirmed' || body.payment_status === 'pending' || body.payment_status === 'cancelled') {
@@ -187,40 +208,77 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
     if (!Number.isFinite(amount) || amount < 0) return adminJson({ error: 'invalid_amount' }, 400, origin);
     patch.amount_paid = amount;
   }
+  if (body.pass_type !== undefined) {
+    const passType = parsePassType(body.pass_type);
+    if (!passType) return adminJson({ error: 'invalid pass_type' }, 400, origin);
+    patch.pass_type = passType;
+  }
+  if (body.days !== undefined) {
+    const days = parseDays(body.days);
+    if (!days) return adminJson({ error: 'invalid days' }, 400, origin);
+    patch.days = days;
+  }
+  if (body.seats !== undefined) {
+    const seats = Number(body.seats);
+    if (!Number.isInteger(seats) || seats < 1 || seats > MAX_SEATS) return adminJson({ error: 'invalid_seats' }, 400, origin);
+    patch.seats = seats;
+  }
   if (Object.keys(patch).length === 0) return adminJson({ error: 'no_changes' }, 400, origin);
+
+  // Only when the request touches the pair: a status-only change must not be
+  // refused because of how the row was already stored.
+  if (patch.pass_type || patch.days) {
+    const nextPassType = (patch.pass_type ?? current.pass_type) as 'oneshot' | 'campaign';
+    const nextDays = (patch.days ?? current.days) as Array<'day1' | 'day2'>;
+    if (!daysMatchPass(nextPassType, nextDays)) return adminJson({ error: 'pass_days_mismatch' }, 400, origin);
+  }
+
+  if (patch.days) {
+    const nextDays = patch.days as Array<'day1' | 'day2'>;
+    const dropped = (current.days as Array<'day1' | 'day2'>).filter((day) => !nextDays.includes(day));
+    if (dropped.length) {
+      const checked = await checkedInDays(sb, id, dropped);
+      if (checked === null) return adminJson({ error: 'query_failed' }, 500, origin);
+      if (checked.length) return adminJson({ error: 'day_checked_in', day: checked[0] }, 409, origin);
+    }
+  }
 
   const upd = await sb.from('registrations').update(patch).eq('id', id).select().single();
   if (upd.error || !upd.data) {
-    const match = upd.error?.message?.match(/capacity_exceeded:(day1|day2)/);
+    const message = upd.error?.message ?? '';
+    const match = message.match(/capacity_exceeded:(day1|day2)/);
     if (match) return adminJson({ error: 'sold_out', day: match[1] }, 409, origin);
+    if (message.includes('seat_reduction_blocked')) return adminJson({ error: 'seats_in_use' }, 409, origin);
     return adminJson({ error: 'update_failed' }, 500, origin);
   }
+  const after = upd.data as any;
 
-  const diff = diffRows(before.data as any, { ...(before.data as any), ...patch });
+  const diff = diffRows(current, { ...current, ...patch });
   await writeAudit(sb, { actor_email: email, action: 'registration.update', target_table: 'registrations', target_id: id, diff });
 
   let emailSent = false;
   let emailSkipped: 'missing_email' | 'failed' | null = null;
-  const wasConfirmed = (before.data as any).payment_status === 'confirmed';
-  const isNowConfirmed = (upd.data as any).payment_status === 'confirmed';
+  const wasConfirmed = current.payment_status === 'confirmed';
+  const isNowConfirmed = after.payment_status === 'confirmed';
   if (!wasConfirmed && isNowConfirmed) {
-    const detail = before.data as any;
-    const user = detail.users as { name: string | null; email: string | null } | null;
-    const edition = detail.editions as EditionRow | null;
+    const user = current.users as { name: string | null; email: string | null } | null;
+    const edition = current.editions as EditionRow | null;
     if (!user?.email || !edition) {
       emailSkipped = 'missing_email';
     } else {
       try {
+        // The mail describes the pass as it now stands, not as it arrived: a
+        // correction and a confirmation can land in the same request.
         await sendRegistrationConfirmation(env, edition, {
           name: user.name || 'Guest',
           email: user.email,
-          passType: detail.pass_type,
-          days: detail.days,
-          seats: Number(detail.seats),
-          amountPaid: Number((upd.data as any).amount_paid),
-          discount: Number(detail.discount_applied || 0),
-          tier: detail.guild_tier_at_purchase,
-          promoCode: detail.promo_code ?? null,
+          passType: after.pass_type,
+          days: after.days,
+          seats: Number(after.seats),
+          amountPaid: Number(after.amount_paid),
+          discount: Number(current.discount_applied || 0),
+          tier: current.guild_tier_at_purchase,
+          promoCode: current.promo_code ?? null,
         });
         emailSent = true;
       } catch (error) {
@@ -230,5 +288,26 @@ export async function handleRegPatch(req: Request, env: Env, sb: SupabaseClient,
     }
   }
 
-  return adminJson({ ok: true, registration: upd.data, email_sent: emailSent, email_skipped: emailSkipped }, 200, origin);
+  return adminJson({ ok: true, registration: after, email_sent: emailSent, email_skipped: emailSkipped }, 200, origin);
+}
+
+/**
+ * Which of `days` already carry a check-in on this registration's seats.
+ *
+ * Voided events count: an undone check-in still names a day someone was at the
+ * door for, and the row survives the day being removed either way.
+ */
+async function checkedInDays(
+  sb: SupabaseClient,
+  registrationId: string,
+  days: Array<'day1' | 'day2'>,
+): Promise<Array<'day1' | 'day2'> | null> {
+  const seats = await sb.from('attendees').select('id').eq('registration_id', registrationId);
+  if (seats.error) return null;
+  const ids = (seats.data ?? []).map((row: any) => row.id);
+  if (!ids.length) return [];
+
+  const events = await sb.from('check_in_events').select('day').in('attendee_id', ids).in('day', days);
+  if (events.error) return null;
+  return [...new Set((events.data ?? []).map((row: any) => row.day as 'day1' | 'day2'))];
 }
