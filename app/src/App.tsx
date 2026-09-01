@@ -106,11 +106,12 @@ interface BookingProps {
   onCancelBooking: (id: string) => void;
 }
 
-function NowView({ data, saved, onToggle, now }: {
+function NowView({ data, saved, onToggle, now, booking }: {
   data: BootstrapData;
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
   now: Date;
+  booking: BookingProps;
 }) {
   if (!data.edition) {
     return <Empty title="No current edition">The next REPLAY event will appear here after organisers publish it.</Empty>;
@@ -133,14 +134,14 @@ function NowView({ data, saved, onToggle, now }: {
 
       <section className="screen-section" aria-labelledby="happening-heading">
         <div className="section-heading-row"><div><span className="eyebrow">Live programme</span><h2 id="happening-heading">Happening now</h2></div><span className="count-badge">{programme.happening.length}</span></div>
-        {programme.happening.length ? <List items={programme.happening} saved={saved} onToggle={onToggle} compact /> : (
+        {programme.happening.length ? <List items={programme.happening} saved={saved} onToggle={onToggle} booking={booking} compact /> : (
           <p className="inline-notice">Nothing timed is live right now. Check the full schedule for all-day activities and later sessions.</p>
         )}
       </section>
 
       <section className="screen-section" aria-labelledby="next-heading">
         <div className="section-heading-row"><div><span className="eyebrow">Up next</span><h2 id="next-heading">The next start time</h2></div></div>
-        {programme.next.length ? <List items={programme.next} saved={saved} onToggle={onToggle} compact /> : (
+        {programme.next.length ? <List items={programme.next} saved={saved} onToggle={onToggle} booking={booking} compact /> : (
           <p className="inline-notice">There are no more published programme starts after this point.</p>
         )}
       </section>
@@ -303,56 +304,21 @@ function VenueMapOnly() {
   );
 }
 
-function InfoView({ data }: { data: BootstrapData }) {
+/**
+ * The one piece of the old Info tab worth carrying forward.
+ *
+ * Everything else there duplicated Plan Your Visit; knowing who to ask when
+ * something goes wrong does not.
+ */
+function HelpCard({ data }: { data: BootstrapData }) {
   const edition = data.edition;
-
   return (
-    <>
-      <div className="section-heading-row"><div><span className="eyebrow">Event essentials</span><h2>Good to know</h2></div></div>
-      {edition && <section className="fact-grid"><div><small>Dates</small><strong>{formatDate(edition.start_date)}–{formatDate(edition.end_date, { day: 'numeric', month: 'short' })}</strong></div><div><small>Hours</small><strong>{formatClock(edition.daily_start_time)}–{formatClock(edition.daily_end_time)}</strong></div><div><small>Venue</small><strong>{edition.venue === 'TBD' ? 'To be announced' : edition.venue}</strong></div></section>}
-
-      <section className="info-stack">
-        <article><span className="info-number">1</span><div><h2>Check in with your registered phone number.</h2><p>{edition?.check_in_location || 'Keep your confirmation email available as a second reference, especially if somebody else booked for you.'}</p></div></article>
-        <article><span className="info-number">2</span><div><h2>Ask for an orientation.</h2><p>If you are new to board games or visiting alone, the team can help you find the library, programme, and a suitable table.</p></div></article>
-      </section>
-
-      {edition?.game_library_process && (
-        <section className="screen-section" aria-labelledby="library-heading">
-          <div className="section-heading-row"><div><span className="eyebrow">Game library</span><h2 id="library-heading">Borrowing a game</h2></div></div>
-          <div className="detail-stack"><div className="detail-block"><p>{edition.game_library_process}</p></div></div>
-        </section>
-      )}
-
-      {edition && (
-        <section className="screen-section" aria-labelledby="at-venue-heading">
-          <div className="section-heading-row"><div><span className="eyebrow">At the venue</span><h2 id="at-venue-heading">Food, water and access</h2></div></div>
-          <div className="detail-stack">
-            <Detail label="Food" value={edition.food_details} />
-            <Detail label="Water" value={edition.water_details} />
-            {/* Accessibility always renders. Someone planning around an access
-                need is worse off with silence than with an honest "not
-                confirmed yet, ask us" and a route to a human. */}
-            <div className="detail-block">
-              <small>Accessibility</small>
-              {edition.accessibility_details
-                ? <p>{edition.accessibility_details}</p>
-                : <p>Step-free access, accessible toilets, seating, sensory considerations, and accommodation contacts are still being confirmed. <a className="text-link" href="mailto:hello@replaycon.in">Email us</a> if you need to plan around a specific requirement.</p>}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="info-stack">
-        <article><span className="info-number">!</span><div><h2>Some policies are still being confirmed.</h2><p>Age policy, guardian rules, re-entry, last entry, and prohibited items are not final. Check before you travel.</p><a className="text-link" href="https://replaycon.in/plan-your-visit/" target="_blank" rel="noreferrer">Read Plan Your Visit ↗</a></div></article>
-      </section>
-
-      <section className="help-card">
-        <span className="eyebrow">Need help?</span>
-        <h2>{edition?.help_on_the_day ? 'Find us on the day.' : 'Email the REPLAY team.'}</h2>
-        <p>{edition?.help_on_the_day || 'The same-day escalation route will be added once an owner is assigned.'}</p>
-        <a className="button button--light" href="mailto:hello@replaycon.in">hello@replaycon.in</a>
-      </section>
-    </>
+    <section className="help-card">
+      <span className="eyebrow">Need help?</span>
+      <h2>{edition?.help_on_the_day ? 'Find us on the day.' : 'Email the REPLAY team.'}</h2>
+      <p>{edition?.help_on_the_day || 'The same-day escalation route will be added once an owner is assigned.'}</p>
+      <a className="button button--light" href="mailto:hello@replaycon.in">hello@replaycon.in</a>
+    </section>
   );
 }
 
@@ -557,7 +523,7 @@ export default function App() {
       )}
       {showInstallBox && <InstallBox onDismiss={() => setDismissedThisOpen(true)} />}
       <header className="topbar">
-        <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
+        <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
           {showFinishSetup && (
             <button
@@ -598,7 +564,7 @@ export default function App() {
                 <button type="button" className="text-button" onClick={() => setBookingNote(null)}>Dismiss</button>
               </p>
             )}
-            {tab === 'now' && <><NowView data={data} saved={saved} onToggle={handleToggle} now={now} /><InfoView data={data} /></>}
+            {tab === 'now' && <><NowView data={data} saved={saved} onToggle={handleToggle} now={now} booking={booking} /><HelpCard data={data} /></>}
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'map' && (device ? <VenueMapOnly /> : <MapView data={data} />)}

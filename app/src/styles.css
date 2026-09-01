@@ -15,6 +15,7 @@
   --purple: #a78bfa;
   --yellow: #ffd84d;
   --muted: #665f58;
+  --font-wordmark: "Dela Gothic One", "Space Grotesk Variable", "Arial Black", sans-serif;
   --border: 3px solid var(--ink);
   --shadow: 5px 5px 0 var(--ink);
 
@@ -42,7 +43,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
 a { color: inherit; }
 h1, h2, h3, p { margin-top: 0; }
-h1, h2, h3, .brand { font-family: "Space Grotesk Variable", "Arial Black", sans-serif; }
+h1, h2, h3 { font-family: "Space Grotesk Variable", "Arial Black", sans-serif; }
 h1 { margin-bottom: 12px; font-size: clamp(2.3rem, 9vw, 4.5rem); line-height: .94; letter-spacing: -.055em; }
 h2 { margin-bottom: 10px; font-size: clamp(1.45rem, 5.5vw, 2.15rem); line-height: 1.02; letter-spacing: -.035em; }
 h3 { margin-bottom: 8px; font-size: 1.24rem; line-height: 1.08; letter-spacing: -.025em; }
@@ -54,10 +55,9 @@ p { line-height: 1.55; }
 
 .app-shell { min-height: 100vh; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .topbar { position: sticky; z-index: 20; top: 0; display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 12px; padding: max(10px, env(safe-area-inset-top)) 16px 10px; border-bottom: var(--border); background: rgba(255, 248, 231, .96); backdrop-filter: blur(14px); }
-.brand { display: grid; grid-template-columns: 42px auto; grid-template-rows: 24px 14px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
-.brand > span { grid-row: 1 / 3; display: grid; width: 40px; height: 40px; place-items: center; border: 3px solid var(--ink); border-radius: 10px; background: var(--orange); color: var(--cream); box-shadow: 3px 3px 0 var(--indigo); font-size: 1.45rem; font-weight: 900; transform: rotate(-2deg); }
-.brand > strong { align-self: end; margin-left: 9px; font-size: 1.28rem; line-height: 1; letter-spacing: -.04em; }
-.brand > small { margin-left: 9px; color: var(--indigo); font-family: "Inter Variable", sans-serif; font-size: .61rem; font-weight: 900; letter-spacing: .18em; }
+.brand { display: grid; grid-template-rows: auto auto; gap: 2px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.brand > strong { font-family: var(--font-wordmark); font-size: 1.2rem; font-weight: 400; line-height: 1; letter-spacing: -.01em; }
+.brand > small { color: var(--indigo); font-family: "Inter Variable", sans-serif; font-size: .61rem; font-weight: 900; letter-spacing: .18em; }
 /* Controls must not be squeezed below the touch target when several share the
    bar, and they must all be the same height -- mismatched siblings in one row
    is what reads as "slightly off". */
@@ -198,10 +198,10 @@ p { line-height: 1.55; }
 
 .bottom-nav { position: fixed; z-index: 30; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px max(8px, calc((100vw - 720px) / 2)) max(8px, env(safe-area-inset-bottom)); border-top: var(--border); background: var(--paper); box-shadow: 0 -8px 24px rgba(26,26,26,.12); }
 .bottom-nav button { position: relative; display: grid; min-height: 58px; place-items: center; align-content: center; gap: 3px; padding: 4px 2px; border: 0; border-radius: 12px; background: transparent; cursor: pointer; }
-.bottom-nav button > span { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; font-family: "Space Grotesk Variable", sans-serif; font-size: 1.25rem; font-weight: 900; }
+.bottom-nav button > span { display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid transparent; border-radius: 9px; font-family: "Space Grotesk Variable", sans-serif; font-size: 1.1rem; font-weight: 900; line-height: 1; }
 .bottom-nav button small { font-size: .64rem; font-weight: 800; }
 .bottom-nav button.active { color: var(--indigo); }
-.bottom-nav button.active > span { border: 2px solid var(--ink); background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); }
+.bottom-nav button.active > span { border-color: var(--ink); background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); }
 .bottom-nav button b { position: absolute; top: 2px; left: calc(50% + 9px); display: grid; min-width: 19px; height: 19px; place-items: center; padding: 0 4px; border: 2px solid var(--ink); border-radius: 999px; background: var(--orange); color: white; font-size: .58rem; }
 
 @media (max-width: 620px) {
@@ -407,9 +407,10 @@ p { line-height: 1.55; }
 }
 .id-card__header strong {
   display: block;
-  font-family: "Space Grotesk Variable", sans-serif;
-  font-size: 1.2rem;
-  letter-spacing: -.02em;
+  font-family: var(--font-wordmark);
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 .id-card__header small {
   font-size: .68rem;
