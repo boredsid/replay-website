@@ -11,6 +11,7 @@ import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
 import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
+import { mergeSaved, pushSaved, pushUnsaved } from './lib/saved';
 import { fetchPushState, type PushState } from './lib/push';
 import PushPrompt from './components/PushPrompt';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
@@ -384,6 +385,15 @@ export default function App() {
     // blanking someone's bookings because the venue wifi dipped.
     void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
     void fetchPushState(device).then(setPush);
+    // Stars made before pairing -- which is most of them, since people plan
+    // before they arrive -- exist only on this phone, and the reminder cron
+    // cannot see a phone. Union, so pairing a second device adds rather than
+    // replaces, and a null result leaves the local list untouched.
+    void mergeSaved(device, loadAgenda(window.localStorage)).then((union) => {
+      if (!union) return;
+      saveAgenda(window.localStorage, union);
+      setSaved(union);
+    });
   }, [device]);
 
   const refreshSignups = async (current: Device) => {
@@ -453,6 +463,10 @@ export default function App() {
     setSaved((current) => {
       const next = toggleAgenda(current, id);
       saveAgenda(window.localStorage, next);
+      // Best-effort, and deliberately not awaited: the star is already saved
+      // locally, so the screen is correct either way. What a failed sync costs
+      // is the reminder, and the next start retries the whole set anyway.
+      if (device) void (next.has(id) ? pushSaved(device, id) : pushUnsaved(device, id));
       return next;
     });
   };

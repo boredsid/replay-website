@@ -27,6 +27,7 @@ import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
 import { sendSessionReminders } from './push-triggers';
+import { handleMySaved, handleSaveItem, handleUnsaveItem, handleMergeSaved } from './app-saved';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -218,6 +219,19 @@ export default {
       }
       if (path === '/api/app/push/preferences' && req.method === 'PATCH') {
         return await handlePushPreferences(req, env);
+      }
+      if (path === '/api/app/me/saved' && req.method === 'GET') {
+        return await handleMySaved(req, env);
+      }
+      if (path === '/api/app/saved/merge' && req.method === 'POST') {
+        return await handleMergeSaved(req, env);
+      }
+      const savedMatch = path.match(/^\/api\/app\/saved\/([^/]+)$/);
+      if (savedMatch && req.method === 'PUT') {
+        return await handleSaveItem(req, env, savedMatch[1]);
+      }
+      if (savedMatch && req.method === 'DELETE') {
+        return await handleUnsaveItem(req, env, savedMatch[1]);
       }
       if (path === '/api/app/signups' && req.method === 'POST') {
         return await handleSignUp(req, env);

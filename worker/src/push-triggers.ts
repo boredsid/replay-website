@@ -1,14 +1,29 @@
 // The two notifications nobody explicitly asks for: an urgent notice, and a
-// reminder that something they booked is about to start.
+// reminder that something they booked or starred is about to start.
 import type { Env } from './index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { notifyAttendees, type FanOutResult } from './push-send';
 
-/** How long before a session starts to remind the people who booked it. */
+/** How long before a session starts to remind the people counting on it. */
 export const REMINDER_LEAD_MINUTES = 15;
 
 /** How far past the lead time a reminder is still worth sending. */
 const REMINDER_WINDOW_MINUTES = 10;
+
+/**
+ * Longest session that still has a start worth being reminded about.
+ *
+ * `is_all_day` does not catch what it sounds like it catches. Board Games Open
+ * Tables, Jigsaw Puzzles and TCG all run 9-to-9 or 10-to-8 with real start and
+ * end times and `is_all_day = false`, because the schedule wants to print their
+ * hours. Buzzing someone at 08:45 that a twelve-hour drop-in table "starts
+ * soon" is the kind of notification that gets the whole channel switched off.
+ *
+ * Four hours is where the programme's real slots end: every RPG block is four,
+ * tournaments and workshops are two or three, and the only things above it are
+ * stations you wander into. Verified against the 2026 programme.
+ */
+const MAX_REMINDABLE_HOURS = 4;
 
 interface AnnouncementRow {
   id: string;
@@ -49,10 +64,9 @@ export async function notifyAnnouncement(
   });
 }
 
-interface DueSignup {
+interface DueRow {
   id: string;
   attendee_id: string;
-  schedule_item_id: string;
 }
 
 /**
@@ -64,6 +78,16 @@ interface DueSignup {
  * rather than in a batch at the end, so an interrupted run only loses the
  * reminders it had not sent yet.
  */
+/** Whether this is a session with a start to miss, rather than a drop-in. */
+export function runsShortEnoughToStart(startTime: string, endTime: string | null): boolean {
+  // No end time means nothing to judge it by, and a session with a start is
+  // worth a reminder until something says otherwise.
+  if (!endTime) return true;
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm) <= MAX_REMINDABLE_HOURS * 60;
+}
+
 export async function sendSessionReminders(
   env: Env,
   sb: SupabaseClient,
@@ -91,36 +115,54 @@ export async function sendSessionReminders(
 
   const sessions = await sb
     .from('schedule_items')
-    .select('id, title, start_time, location')
+    .select('id, title, start_time, end_time, location')
     .eq('edition_id', currentEdition.id)
     .eq('day', today)
     .eq('public_status', 'published')
+    // An all-day activity has no start to be fifteen minutes away from, and a
+    // reminder for one would arrive at whatever time the row happens to carry.
+    .eq('is_all_day', false)
     .not('start_time', 'is', null);
   if (sessions.error) return { reminded: 0, sessions: 0 };
 
-  const due = ((sessions.data ?? []) as Array<{ id: string; title: string; start_time: string; location: string | null }>)
+  const due = ((sessions.data ?? []) as Array<{
+    id: string; title: string; start_time: string; end_time: string | null; location: string | null;
+  }>)
     .filter((item) => {
       const [h, m] = item.start_time.split(':').map(Number);
       const startsIn = (h * 60 + m) - nowMinutes;
       // A window rather than an exact minute: cron ticks are not punctual, and a
       // reminder five minutes late still beats none.
-      return startsIn <= REMINDER_LEAD_MINUTES && startsIn > REMINDER_LEAD_MINUTES - REMINDER_WINDOW_MINUTES;
+      if (startsIn > REMINDER_LEAD_MINUTES || startsIn <= REMINDER_LEAD_MINUTES - REMINDER_WINDOW_MINUTES) {
+        return false;
+      }
+      return runsShortEnoughToStart(item.start_time, item.end_time);
     });
 
   let reminded = 0;
   for (const session of due) {
-    const signups = await sb
-      .from('session_signups')
-      .select('id, attendee_id, schedule_item_id')
-      .eq('schedule_item_id', session.id)
-      .eq('status', 'confirmed')
-      .is('reminded_at', null);
-    if (signups.error) continue;
+    // Two ways to mean "I intend to be there": a booked seat, and a star. Both
+    // deserve the nudge, and somebody who did both deserves exactly one.
+    const [signups, stars] = await Promise.all([
+      sb.from('session_signups')
+        .select('id, attendee_id')
+        .eq('schedule_item_id', session.id)
+        .eq('status', 'confirmed')
+        .is('reminded_at', null),
+      sb.from('saved_items')
+        .select('id, attendee_id')
+        .eq('schedule_item_id', session.id)
+        .is('reminded_at', null),
+    ]);
+    if (signups.error || stars.error) continue;
 
-    const rows = (signups.data ?? []) as DueSignup[];
-    if (rows.length === 0) continue;
+    const bookedRows = (signups.data ?? []) as DueRow[];
+    const starredRows = (stars.data ?? []) as DueRow[];
+    if (bookedRows.length === 0 && starredRows.length === 0) continue;
 
-    const result = await notifyAttendees(env, sb, rows.map((r) => r.attendee_id), 'reminders', {
+    const attendeeIds = [...new Set([...bookedRows, ...starredRows].map((r) => r.attendee_id))];
+
+    const result = await notifyAttendees(env, sb, attendeeIds, 'reminders', {
       title: `${session.title} starts soon`,
       body: session.location
         ? `In about ${REMINDER_LEAD_MINUTES} minutes, at ${session.location}.`
@@ -131,10 +173,16 @@ export async function sendSessionReminders(
 
     // Stamped whether or not anybody was actually reachable: the point is that
     // this session has had its reminder, not that every device received it.
-    await sb
-      .from('session_signups')
-      .update({ reminded_at: new Date().toISOString() })
-      .in('id', rows.map((r) => r.id));
+    // Both tables, or the next tick reminds the half that was not stamped.
+    const stamp = new Date().toISOString();
+    await Promise.all([
+      bookedRows.length > 0
+        ? sb.from('session_signups').update({ reminded_at: stamp }).in('id', bookedRows.map((r) => r.id))
+        : Promise.resolve(),
+      starredRows.length > 0
+        ? sb.from('saved_items').update({ reminded_at: stamp }).in('id', starredRows.map((r) => r.id))
+        : Promise.resolve(),
+    ]);
 
     reminded += result.sent;
   }
