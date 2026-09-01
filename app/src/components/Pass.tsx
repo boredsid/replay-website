@@ -1,26 +1,12 @@
-import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import {
-  clearDevice,
-  isCompleteCode,
-  normalizeCode,
-  pairDevice,
-  type Device,
-} from '../lib/device';
-import { API_BASE } from '../lib/api';
+import PairForm from './PairForm';
+import { clearDevice, type Device } from '../lib/device';
 
 interface Props {
   device: Device | null;
   onPaired: (device: Device) => void;
   onUnpaired: () => void;
 }
-
-const MESSAGES: Record<string, string> = {
-  malformed: 'That code is eight characters. Check it and try again.',
-  rejected: 'That code did not work. Codes last three minutes — ask the desk for a fresh one.',
-  offline: 'No connection. Try again in a moment.',
-  unavailable: 'We could not reach the event right now. Try again shortly.',
-};
 
 /**
  * The attendee's pass, or the way to get one.
@@ -30,27 +16,6 @@ const MESSAGES: Record<string, string> = {
  * counter wanting to borrow a game.
  */
 export default function Pass({ device, onPaired, onUnpaired }: Props) {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await pairDevice(API_BASE, code);
-      if (result.ok) {
-        setCode('');
-        onPaired(result.device);
-      } else {
-        setError(MESSAGES[result.reason]);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (device) {
     return (
       <section className="screen-section pass" aria-labelledby="pass-heading">
@@ -88,24 +53,7 @@ export default function Pass({ device, onPaired, onUnpaired }: Props) {
         Check in at the desk and ask for your app code. Everything else here —
         the schedule, your saved items, the map — works without it.
       </p>
-      <form className="pass__form" onSubmit={submit}>
-        <label htmlFor="pair-code">Your eight-character code</label>
-        <input
-          id="pair-code"
-          value={code}
-          onChange={(e) => setCode(normalizeCode(e.target.value))}
-          placeholder="A1B2C3D4"
-          autoComplete="one-time-code"
-          autoCapitalize="characters"
-          spellCheck={false}
-          maxLength={8}
-          aria-describedby={error ? 'pair-error' : undefined}
-        />
-        <button className="button" type="submit" disabled={busy || !isCompleteCode(code)}>
-          {busy ? 'Checking…' : 'Set up'}
-        </button>
-      </form>
-      {error && <p className="pass__error" id="pair-error" role="alert">{error}</p>}
+      <PairForm onPaired={onPaired} />
     </section>
   );
 }

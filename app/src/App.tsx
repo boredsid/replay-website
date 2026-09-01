@@ -6,7 +6,10 @@ import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
 import Pass from './components/Pass';
+import Wizard from './components/Wizard';
 import { loadDevice, type Device } from './lib/device';
+import { isStandalone, watchInstallPrompt } from './lib/pwa';
+import { loadWizard, resolveWizard, saveWizard, type WizardState } from './lib/wizard';
 import { filterSchedule, uniqueValues } from './lib/schedule';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
 import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
@@ -306,6 +309,8 @@ export default function App() {
   const [saved, setSaved] = useState<Set<string>>(() => loadAgenda(window.localStorage));
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [device, setDevice] = useState<Device | null>(() => loadDevice());
+  const [wizard, setWizard] = useState<WizardState>(() => loadWizard(window.localStorage));
+  const standalone = useMemo(() => isStandalone(), []);
   const online = useOnline();
   const now = useMinuteClock();
   const { data, error, loading, refreshing, fetchedAt, refresh } = useEventData();
@@ -325,6 +330,10 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
+    // Module-level capture: the event fires once and early, often before the
+    // wizard has mounted, so it has to be caught and replayed rather than
+    // listened for from inside a component.
+    watchInstallPrompt();
     const capture = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as InstallPromptEvent);
@@ -332,6 +341,11 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', capture);
     return () => window.removeEventListener('beforeinstallprompt', capture);
   }, []);
+
+  const updateWizard = (next: WizardState) => {
+    setWizard(next);
+    saveWizard(window.localStorage, next);
+  };
 
   const changeTab = (next: AppTab) => {
     setTab(next);
@@ -359,13 +373,33 @@ export default function App() {
     ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: data.timezone }).format(new Date(fetchedAt))
     : null;
 
+  const wizardView = resolveWizard(wizard, { paired: device !== null, standalone });
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
+      {wizardView.open && (
+        <Wizard
+          step={wizardView.step}
+          standalone={standalone}
+          onStep={(step) => updateWizard({ ...wizard, step })}
+          onDismiss={() => updateWizard({ ...wizard, dismissed: true })}
+          onPaired={(next) => { setDevice(next); updateWizard({ ...wizard, dismissed: true }); }}
+        />
+      )}
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
-          {installPrompt && <button type="button" className="install-button" onClick={install}>Install</button>}
+          {wizardView.showResume && (
+            <button
+              type="button"
+              className="install-button"
+              onClick={() => updateWizard({ step: 'pair', dismissed: false })}
+            >
+              Finish setup
+            </button>
+          )}
+          {!wizardView.showResume && installPrompt && <button type="button" className="install-button" onClick={install}>Install</button>}
           <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
             <span aria-hidden="true" className={refreshing ? 'refresh-button__icon refresh-button__icon--spinning' : 'refresh-button__icon'}>↻</span>
           </button>
