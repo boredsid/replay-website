@@ -20,6 +20,7 @@ function attendee(overrides: Record<string, unknown> = {}) {
     state: { day1: null, day2: null },
     last_event: { day1: null, day2: null },
     valid_days: ['day1', 'day2'],
+    can_pair: false,
     ...overrides,
   };
 }
@@ -164,5 +165,53 @@ describe('CheckIn', () => {
 
     await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
     expect(screen.queryByText('9876543210')).not.toBeInTheDocument();
+  });
+});
+
+describe('pairing code', () => {
+  it('offers a code only once the attendee has arrived today', async () => {
+    api.mockResolvedValue({
+      registrations: [registration([
+        attendee({ can_pair: true }),
+        attendee({ attendee_id: 'a2', seat_index: 2, name: 'Guest 2', has_name: false, is_purchaser: false, can_pair: false }),
+      ])],
+    });
+    await searchFor();
+
+    await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
+    // One button, for the one person who can pair.
+    expect(screen.getAllByRole('button', { name: 'Get app code' })).toHaveLength(1);
+  });
+
+  it('labels the revealed code with the attendee, so two at the desk cannot be confused', async () => {
+    api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/search')) {
+        return { registrations: [registration([attendee({ can_pair: true })])] };
+      }
+      return { code: 'A1B2C3D4', expires_at: new Date(Date.now() + 180_000).toISOString(), attendee_name: 'Priya' };
+    });
+    const user = await searchFor();
+    await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Get app code' }));
+
+    await waitFor(() => expect(screen.getByText('A1B2C3D4')).toBeInTheDocument());
+    expect(screen.getByText(/App code for Priya/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New code' })).toBeInTheDocument();
+  });
+
+  it('shows an expired code as expired rather than leaving it readable', async () => {
+    api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/search')) {
+        return { registrations: [registration([attendee({ can_pair: true })])] };
+      }
+      return { code: 'A1B2C3D4', expires_at: new Date(Date.now() - 1000).toISOString(), attendee_name: 'Priya' };
+    });
+    const user = await searchFor();
+    await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Get app code' }));
+
+    await waitFor(() => expect(screen.getByText(/Expired/i)).toBeInTheDocument());
   });
 });

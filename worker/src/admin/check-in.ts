@@ -14,6 +14,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { writeAudit } from './audit';
 import { getCurrentEdition } from '../editions';
+import { editionDayForToday } from './pairing';
 import {
   currentState,
   hasArrivedOn,
@@ -135,6 +136,8 @@ export async function handleCheckInSearch(
   if (regs.error || attendees.error) return adminJson({ error: 'query_failed' }, 500, origin);
 
   const attendeeRows = (attendees.data ?? []) as AttendeeRow[];
+  // Which event day today is, or null outside the event; gates pairing below.
+  const today = editionDayForToday(edition as unknown as { start_date: string; end_date: string });
   const events = await loadEvents(sb, attendeeRows.map((a) => a.id), origin);
   if (events instanceof Response) return events;
 
@@ -160,6 +163,10 @@ export async function handleCheckInSearch(
         // The row undo would cancel on each day, so the desk can reverse a
         // mistake without a second lookup. Null means nothing to undo.
         last_event: lastEventPerDay(eventsFor(events, a.id)),
+        // Whether a pairing code can be issued right now. Computed here so the
+        // button is right rather than optimistic — the endpoint refuses anyway,
+        // but a button that fails on press teaches staff to distrust the screen.
+        can_pair: today !== null && hasArrivedOn(eventsFor(events, a.id), today),
         // Days this seat may be checked in on. A day nobody bought is shown
         // disabled with a reason rather than hidden — a person missing from
         // search reads as a broken system to whoever is on the door.
@@ -167,7 +174,7 @@ export async function handleCheckInSearch(
       })),
   })).filter((r) => confirmed.has(r.registration_id));
 
-  return adminJson({ registrations: payload }, 200, origin);
+  return adminJson({ today, registrations: payload }, 200, origin);
 }
 
 async function loadEvents(

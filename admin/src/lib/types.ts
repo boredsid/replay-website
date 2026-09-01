@@ -284,6 +284,14 @@ export interface CheckInAttendee {
   last_event: Record<CheckInDay, string | null>;
   /** Days this seat's ticket covers. Anything else is refused by the database. */
   valid_days: CheckInDay[];
+  /** True only while this attendee has arrived today; gates the app code. */
+  can_pair: boolean;
+}
+
+export interface PairingCode {
+  code: string;
+  expires_at: string;
+  attendee_name: string;
 }
 
 export interface CheckInRegistration {

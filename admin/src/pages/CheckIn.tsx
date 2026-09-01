@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError, fetchAdmin, showApiError } from '@/lib/api';
-import type { CheckInAttendee, CheckInDay, CheckInRegistration, RosterRow } from '@/lib/types';
+import type { CheckInAttendee, CheckInDay, CheckInRegistration, PairingCode, RosterRow } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/Loading';
+import PairingCodePanel from '@/components/PairingCodePanel';
 import { downloadCsv, rosterToCsv } from '@/lib/csv';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import {
@@ -38,6 +39,7 @@ export default function CheckIn() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [queued, setQueued] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [codes, setCodes] = useState<Record<string, PairingCode>>({});
   const searchRef = useRef<HTMLInputElement>(null);
   const online = useOnlineStatus();
 
@@ -154,6 +156,29 @@ export default function CheckIn() {
       showApiError(error);
     } finally {
       setExporting(false);
+    }
+  }
+
+  /**
+   * Hands one attendee a code for the app.
+   *
+   * Separate from checking them in on purpose: the desk is busy on arrival and
+   * most people just want to get inside, so this is pressed when someone asks —
+   * including hours later, as often as they like.
+   */
+  async function issueCode(attendee: CheckInAttendee) {
+    setBusy(`${attendee.attendee_id}:code`);
+    try {
+      const code = await fetchAdmin<PairingCode>('/api/admin/check-in/pairing-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendee_id: attendee.attendee_id }),
+      });
+      setCodes((prev) => ({ ...prev, [attendee.attendee_id]: code }));
+    } catch (error) {
+      showApiError(error);
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -413,6 +438,28 @@ export default function CheckIn() {
                       );
                     })}
                   </div>
+
+                  {attendee.can_pair && (
+                    <div className="space-y-2">
+                      {!codes[attendee.attendee_id] && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy === `${attendee.attendee_id}:code`}
+                          onClick={() => void issueCode(attendee)}
+                        >
+                          Get app code
+                        </Button>
+                      )}
+                      {codes[attendee.attendee_id] && (
+                        <PairingCodePanel
+                          code={codes[attendee.attendee_id]}
+                          busy={busy === `${attendee.attendee_id}:code`}
+                          onReissue={() => void issueCode(attendee)}
+                        />
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
