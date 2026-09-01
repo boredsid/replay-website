@@ -5,6 +5,7 @@ import {
   parsePassType,
   parseStepReached,
   jsonResponse,
+  CORS_HEADERS,
 } from './validation';
 
 describe('sanitizePhone', () => {
@@ -77,5 +78,20 @@ describe('jsonResponse', () => {
   it('honors custom status', async () => {
     const res = jsonResponse({ error: 'no' }, 400);
     expect(res.status).toBe(400);
+  });
+});
+
+describe('CORS_HEADERS', () => {
+  it('allows every method the attendee app actually uses', () => {
+    const allowed = CORS_HEADERS['Access-Control-Allow-Methods'].split(',');
+    // Cancelling a booking is DELETE and changing push preferences is PATCH.
+    // Both are cross-origin, so a missing method here stops them at preflight.
+    for (const method of ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']) {
+      expect(allowed).toContain(method);
+    }
+  });
+
+  it('allows the Authorization header device tokens travel in', () => {
+    expect(CORS_HEADERS['Access-Control-Allow-Headers']).toContain('Authorization');
   });
 });

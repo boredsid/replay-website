@@ -3,7 +3,11 @@
 
 export const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  // The attendee app is on app.replaycon.in and the API on api.replaycon.in, so
+  // every one of these is a cross-origin call. Omitting DELETE and PATCH does not
+  // fail loudly -- the browser refuses at preflight and the app sees a generic
+  // network error, which reads as "you are offline" rather than "this is broken".
+  'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cf-Access-Jwt-Assertion',
 };
 
