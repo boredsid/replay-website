@@ -100,9 +100,10 @@ export default function SessionRoster() {
       );
       if (!result.removed) { toast.error('They were not on this session.'); return; }
       toast.success(`${person.name} removed`);
-      // No push notifications yet, so somebody has to actually go and tell them.
+      // They also get a push, but only if they subscribed -- so tell staff too
+      // rather than assuming the notification landed.
       if (result.promoted_attendee_id) {
-        toast.warning('A waitlisted attendee moved up — let them know.');
+        toast.warning('A waitlisted attendee moved up. They get a notification if they turned them on — otherwise let them know.');
       }
       await load();
     } catch (error) {

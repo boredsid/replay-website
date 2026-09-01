@@ -25,6 +25,7 @@ import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
+import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -62,6 +63,10 @@ export interface Env {
   ADMIN_EMAILS: string;
   CLOUDFLARE_PAGES_DEPLOY_HOOK: string;
   ADMIN_ORIGIN: string;
+  VAPID_PUBLIC_KEY: string;
+  VAPID_SUBJECT: string;
+  /** Worker secret. Absent locally, which disables sending rather than crashing. */
+  VAPID_PRIVATE_KEY?: string;
   PUBLIC_RATE_LIMITER?: RateLimit;
   SUBJECT_RATE_LIMITER?: RateLimit;
 }
@@ -107,7 +112,7 @@ export default {
         if (rosterMatch && req.method === 'GET') return await handleSessionRoster(req, sb, rosterMatch[1], origin);
         const sessionSignupMatch = path.match(/^\/api\/admin\/sessions\/([^/]+)\/signups$/);
         if (sessionSignupMatch && req.method === 'POST') return await handleSessionSignupCreate(req, sb, sessionSignupMatch[1], email, origin);
-        if (sessionSignupMatch && req.method === 'DELETE') return await handleSessionSignupRemove(req, sb, sessionSignupMatch[1], email, origin);
+        if (sessionSignupMatch && req.method === 'DELETE') return await handleSessionSignupRemove(req, env, sb, sessionSignupMatch[1], email, origin);
         if (path === '/api/admin/check-in/bulk' && req.method === 'POST') return await handleCheckInBulk(req, sb, email, origin);
         if (path === '/api/admin/check-in/undo' && req.method === 'POST') return await handleCheckInUndo(req, sb, email, origin);
         if (path === '/api/admin/check-in' && req.method === 'POST') return await handleCheckIn(req, sb, email, origin);
@@ -182,6 +187,18 @@ export default {
       }
       if (path === '/api/app/me/signups' && req.method === 'GET') {
         return await handleMySignups(req, env);
+      }
+      if (path === '/api/app/push' && req.method === 'GET') {
+        return await handlePushConfig(req, env);
+      }
+      if (path === '/api/app/push/subscribe' && req.method === 'POST') {
+        return await handlePushSubscribe(req, env);
+      }
+      if (path === '/api/app/push/subscribe' && req.method === 'DELETE') {
+        return await handlePushUnsubscribe(req, env);
+      }
+      if (path === '/api/app/push/preferences' && req.method === 'PATCH') {
+        return await handlePushPreferences(req, env);
       }
       if (path === '/api/app/signups' && req.method === 'POST') {
         return await handleSignUp(req, env);

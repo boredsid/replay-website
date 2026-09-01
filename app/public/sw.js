@@ -61,3 +61,48 @@ self.addEventListener('fetch', (event) => {
     })),
   );
 });
+
+// --- Push notifications -----------------------------------------------------
+
+self.addEventListener('push', (event) => {
+  // A push with no payload still means something happened, so show a neutral
+  // notice rather than nothing at all. Some services also send empty pushes to
+  // keep a subscription warm.
+  let payload = { title: 'REPLAY', body: 'Something has changed at the event.' };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+
+  event.waitUntil(self.registration.showNotification(payload.title, {
+    body: payload.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    // Tagging lets a newer notice about the same thing replace an older one
+    // rather than stacking up on the lock screen.
+    tag: payload.tag || 'replay',
+    data: { url: payload.url || '/#now' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/#now';
+
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // Reuse a tab that is already open rather than piling up windows: someone
+    // at a convention taps a lot of these.
+    for (const client of clients) {
+      if (client.url.includes(self.location.origin)) {
+        await client.focus();
+        if ('navigate' in client) await client.navigate(target);
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
+  })());
+});

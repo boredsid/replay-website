@@ -10,6 +10,7 @@ import { adminJson } from './auth';
 import { writeAudit } from './audit';
 import { getCurrentEdition } from '../editions';
 import { maskPhone, normalizePhone, seatLabel } from './check-in';
+import { notifyInBackground } from '../push-send';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -157,6 +158,7 @@ export async function handleSessionSignupCreate(
  */
 export async function handleSessionSignupRemove(
   req: Request,
+  env: Env,
   sb: SupabaseClient,
   scheduleItemId: string,
   actorEmail: string,
@@ -181,6 +183,19 @@ export async function handleSessionSignupRemove(
 
   const row = (Array.isArray(data) ? data[0] : data) as
     { cancelled: boolean; promoted_attendee_id: string | null } | undefined;
+
+  // A seat freed by staff reaches the queue exactly as one freed from a phone
+  // does, notification included.
+  if (row?.promoted_attendee_id) {
+    const session = await sb.from('schedule_items').select('title').eq('id', scheduleItemId).maybeSingle();
+    const title = (session.data as { title: string } | null)?.title ?? 'a session';
+    notifyInBackground(env, sb, [row.promoted_attendee_id], 'waitlist', {
+      title: 'A seat opened up',
+      body: `You are in for ${title}.`,
+      url: '#my-day',
+      tag: `signup-${scheduleItemId}`,
+    });
+  }
 
   await writeAudit(sb, {
     actor_email: actorEmail,

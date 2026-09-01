@@ -46,10 +46,17 @@ function rpcClient(rpcResult: { data?: unknown; error?: { message: string } | nu
     rpc: async () => ({ data: rpcResult.data ?? null, error: rpcResult.error ?? null }),
     from: (table: string) => {
       if (table === 'admin_audit_log') return { insert: async (row: unknown) => { onAudit?.(row); return { error: null }; } };
+      // Looked up to name the session in the promotion notification.
+      if (table === 'schedule_items') return {
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { title: 'Werewolf' }, error: null }) }) }),
+      };
       throw new Error(`unexpected table ${table}`);
     },
   } as never;
 }
+
+/** Push is unconfigured in tests, so notifying is a no-op rather than a fetch. */
+const ENV = {} as never;
 
 const body = (attendeeId: string) =>
   new Request('https://x', { method: 'POST', body: JSON.stringify({ attendee_id: attendeeId }) });
@@ -162,15 +169,16 @@ describe('handleSessionSignupCreate', () => {
 describe('handleSessionSignupRemove', () => {
   it('tells staff who was promoted, since nothing else will', async () => {
     const res = await handleSessionSignupRemove(
-      body(A1), rpcClient({ data: [{ cancelled: true, promoted_attendee_id: A2 }] }), SESSION, STAFF, ORIGIN,
+      body(A1), ENV, rpcClient({ data: [{ cancelled: true, promoted_attendee_id: A2 }] }), SESSION, STAFF, ORIGIN,
     );
-    // There is no push notification yet, so a human has to pass this on.
+    // Push tells them too, but not everyone subscribes -- staff seeing the name
+    // is the fallback for whoever turned notifications off.
     expect(await res.json()).toEqual({ removed: true, promoted_attendee_id: A2 });
   });
 
   it('reports nothing removed without pretending otherwise', async () => {
     const res = await handleSessionSignupRemove(
-      body(A1), rpcClient({ data: [{ cancelled: false, promoted_attendee_id: null }] }), SESSION, STAFF, ORIGIN,
+      body(A1), ENV, rpcClient({ data: [{ cancelled: false, promoted_attendee_id: null }] }), SESSION, STAFF, ORIGIN,
     );
     expect(await res.json()).toMatchObject({ removed: false });
   });

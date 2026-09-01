@@ -14,6 +14,7 @@ import { jsonResponse } from './validation';
 import { getCurrentEdition } from './editions';
 import { authenticateDevice, type DeviceIdentity } from './attendee-auth';
 import { pairingGateDay } from './event-day';
+import { notifyInBackground } from './push-send';
 import type { CheckInEvent, EventDay } from './admin/check-in-state';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -152,6 +153,24 @@ export async function handleCancelSignup(
 
   const row = (Array.isArray(data) ? data[0] : data) as
     { cancelled: boolean; promoted_attendee_id: string | null } | undefined;
+
+  // Giving up a seat is the moment somebody else gets one. Telling them is the
+  // reason push exists, and it happens in the background so a slow push service
+  // cannot make cancelling feel broken.
+  if (row?.promoted_attendee_id) {
+    const session = await sb
+      .from('schedule_items')
+      .select('title')
+      .eq('id', scheduleItemId)
+      .maybeSingle();
+    const title = (session.data as { title: string } | null)?.title ?? 'a session';
+    notifyInBackground(env, sb, [row.promoted_attendee_id], 'waitlist', {
+      title: 'A seat opened up',
+      body: `You are in for ${title}.`,
+      url: '#my-day',
+      tag: `signup-${scheduleItemId}`,
+    });
+  }
 
   // Whether somebody else was promoted is not this attendee's business, so only
   // the fact of their own cancellation comes back.

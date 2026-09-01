@@ -34,6 +34,9 @@ function tables(options: { events?: unknown[]; signups?: unknown[]; onSelect?: (
     if (table === 'session_signups') return {
       select: () => ({ eq: () => ({ neq: async () => ({ data: options.signups ?? [], error: null }) }) }),
     };
+    if (table === 'schedule_items') return {
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { title: 'Werewolf' }, error: null }) }) }),
+    };
     throw new Error(`unexpected table ${table}`);
   });
 }
@@ -165,6 +168,7 @@ describe('handleSignUp', () => {
 describe('handleCancelSignup', () => {
   it('cancels through the promoting function', async () => {
     signedIn();
+    tables();
     sbMock.rpc.mockResolvedValue({ data: [{ cancelled: true, promoted_attendee_id: 'someone-else' }], error: null });
 
     const res = await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, SESSION);
@@ -187,6 +191,7 @@ describe('handleCancelSignup', () => {
 
   it('reports nothing to cancel without pretending it worked', async () => {
     signedIn();
+    tables();
     sbMock.rpc.mockResolvedValue({ data: [{ cancelled: false, promoted_attendee_id: null }], error: null });
     expect(await (await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, SESSION)).json())
       .toEqual({ cancelled: false });

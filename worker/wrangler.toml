@@ -12,6 +12,11 @@ UPI_ID = "suranjanadatta24-1@okaxis"
 CF_ACCESS_TEAM_DOMAIN = "boardgamecompany.cloudflareaccess.com"
 CF_ACCESS_AUD = "0983cd2ae4c9939c15d1ebecabe9d57a9630e8b09ada408279a9b17d3ecf132f"
 ADMIN_ORIGIN = "https://admin.replaycon.in"
+# The VAPID public key is public by definition -- browsers need it to subscribe.
+# Its private half is a Worker secret (VAPID_PRIVATE_KEY) and is never committed.
+VAPID_PUBLIC_KEY = "BN6D4NKA9S4FLFPB4fBA0MkkZzbZFQBDOHEjPLqSitjabqGYdWJ99EhwKUEMdLF-fhKUUQ3X0JP74Q8PWmv3LBs"
+# Where a push service can reach us if a notification misbehaves.
+VAPID_SUBJECT = "mailto:hello@replaycon.in"
 
 [[routes]]
 pattern = "api.replaycon.in"
