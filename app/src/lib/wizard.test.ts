@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { loadWizard, nextStep, resolveWizard, saveWizard, type WizardState } from './wizard';
-import { detectPlatform } from './pwa';
+import { detectPlatform, isStandalone } from './pwa';
 
 function storage(initial: Record<string, string> = {}) {
   const map = new Map(Object.entries(initial));
@@ -122,5 +122,47 @@ describe('detectPlatform', () => {
   it('says nothing to an app already installed', () => {
     expect(detectPlatform({ userAgent: IPHONE, standalone: true, hasPromptEvent: false, touch: true }))
       .toBe('other');
+  });
+});
+
+describe('isStandalone', () => {
+  const original = window.matchMedia;
+  afterEach(() => { window.matchMedia = original; });
+
+  function withDisplayMode(mode: string | null) {
+    window.matchMedia = ((query: string) => ({
+      matches: mode !== null && query.includes(mode),
+      media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  it('is false in a browser tab, which is when the nudge should show', () => {
+    withDisplayMode(null);
+    expect(isStandalone()).toBe(false);
+  });
+
+  it.each(['standalone', 'minimal-ui', 'fullscreen'])(
+    'treats display-mode %s as installed', (mode) => {
+      // A browser may honour the manifest as any of these. Matching only the
+      // exact mode we asked for would nag someone who already installed.
+      withDisplayMode(mode);
+      expect(isStandalone()).toBe(true);
+    },
+  );
+
+  it('trusts the iOS flag, which has no media query', () => {
+    withDisplayMode(null);
+    const nav = window.navigator as { standalone?: boolean };
+    nav.standalone = true;
+    try {
+      // Without this branch every iPhone user is told forever to install an app
+      // they already installed.
+      expect(isStandalone()).toBe(true);
+    } finally {
+      delete nav.standalone;
+    }
   });
 });

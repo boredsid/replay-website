@@ -9,7 +9,7 @@ import Pass from './components/Pass';
 import Wizard from './components/Wizard';
 import { loadDevice, type Device } from './lib/device';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
-import { loadWizard, resolveWizard, saveWizard, type WizardState } from './lib/wizard';
+import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
 import { filterSchedule, uniqueValues } from './lib/schedule';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
 import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
@@ -310,6 +310,10 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [device, setDevice] = useState<Device | null>(() => loadDevice());
   const [wizard, setWizard] = useState<WizardState>(() => loadWizard(window.localStorage));
+  // A step the attendee asked for outright, as opposed to onboarding. Pairing
+  // ends the wizard forever, but someone already paired can still be reading
+  // this in a browser tab and wanting the install steps.
+  const [askedFor, setAskedFor] = useState<WizardStep | null>(null);
   const standalone = useMemo(() => isStandalone(), []);
   const online = useOnline();
   const now = useMinuteClock();
@@ -363,7 +367,13 @@ export default function App() {
     });
   };
   const install = async () => {
-    if (!installPrompt) return;
+    // Only Chromium ever gives us a prompt. Everywhere else -- iOS above all --
+    // the honest answer is to show the steps, which the wizard already words
+    // per platform.
+    if (!installPrompt) {
+      setAskedFor('install');
+      return;
+    }
     await installPrompt.prompt();
     await installPrompt.userChoice;
     setInstallPrompt(null);
@@ -378,13 +388,20 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
-      {wizardView.open && (
+      {(wizardView.open || askedFor) && (
         <Wizard
-          step={wizardView.step}
+          step={askedFor ?? wizardView.step}
           standalone={standalone}
-          onStep={(step) => updateWizard({ ...wizard, step })}
-          onDismiss={() => updateWizard({ ...wizard, dismissed: true })}
-          onPaired={(next) => { setDevice(next); updateWizard({ ...wizard, dismissed: true }); }}
+          onStep={(step) => (askedFor ? setAskedFor(step) : updateWizard({ ...wizard, step }))}
+          onDismiss={() => {
+            setAskedFor(null);
+            if (wizardView.open) updateWizard({ ...wizard, dismissed: true });
+          }}
+          onPaired={(next) => {
+            setDevice(next);
+            setAskedFor(null);
+            updateWizard({ ...wizard, dismissed: true });
+          }}
         />
       )}
       <header className="topbar">
@@ -399,7 +416,25 @@ export default function App() {
               Finish setup
             </button>
           )}
-          {!wizardView.showResume && installPrompt && <button type="button" className="install-button" onClick={install}>Install</button>}
+          {/* Persistent while the app is opened from a browser tab. Compact
+              because it sits beside the refresh control on a 375px screen, and
+              because it is a standing nudge rather than a call to action.
+
+              Suppressed while "Finish setup" is showing: two onboarding nudges
+              competing in one bar is both crowded -- they do not fit at 375px --
+              and confused, and that wizard's own first step is the install
+              instructions anyway. */}
+          {!standalone && !wizardView.showResume && (
+            <button
+              type="button"
+              className="install-button install-button--icon"
+              onClick={install}
+              aria-label="Add REPLAY to your home screen"
+              title="Add to home screen"
+            >
+              <span aria-hidden="true">⊞</span>
+            </button>
+          )}
           <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
             <span aria-hidden="true" className={refreshing ? 'refresh-button__icon refresh-button__icon--spinning' : 'refresh-button__icon'}>↻</span>
           </button>

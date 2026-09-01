@@ -43,10 +43,23 @@ export function detectPlatform(signals: PlatformSignals): Platform {
   return signals.touch ? 'other' : 'desktop';
 }
 
+/**
+ * Whether the app was opened from the home screen rather than a browser tab.
+ *
+ * The manifest asks for `standalone`, but a browser may honour it as
+ * `minimal-ui` or `fullscreen`, and either still means installed — matching only
+ * the exact requested mode would nag someone who already did what we asked.
+ *
+ * Safari never implemented the media query for home-screen apps, so iOS needs
+ * its own non-standard flag. Without that branch every iPhone user is told
+ * forever to install an app they already installed.
+ */
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
-  const displayMode = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
-  // Safari never implemented the media query for home-screen apps.
+  const installedModes = ['standalone', 'minimal-ui', 'fullscreen'];
+  const displayMode = installedModes.some(
+    (mode) => window.matchMedia?.(`(display-mode: ${mode})`).matches ?? false,
+  );
   const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true;
   return displayMode || iosStandalone;
 }

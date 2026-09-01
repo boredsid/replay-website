@@ -58,8 +58,12 @@ p { line-height: 1.55; }
 .brand > span { grid-row: 1 / 3; display: grid; width: 40px; height: 40px; place-items: center; border: 3px solid var(--ink); border-radius: 10px; background: var(--orange); color: var(--cream); box-shadow: 3px 3px 0 var(--indigo); font-size: 1.45rem; font-weight: 900; transform: rotate(-2deg); }
 .brand > strong { align-self: end; margin-left: 9px; font-size: 1.28rem; line-height: 1; letter-spacing: -.04em; }
 .brand > small { margin-left: 9px; color: var(--indigo); font-family: "Inter Variable", sans-serif; font-size: .61rem; font-weight: 900; letter-spacing: .18em; }
+/* Controls must not be squeezed below the touch target when several share the
+   bar, and they must all be the same height -- mismatched siblings in one row
+   is what reads as "slightly off". */
 .topbar__actions { display: flex; align-items: center; gap: 10px; }
-.install-button { padding: 8px 11px; border: 2px solid var(--ink); border-radius: 999px; background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); font-size: .76rem; font-weight: 850; cursor: pointer; }
+.topbar__actions > * { flex-shrink: 0; }
+.install-button { display: inline-flex; min-height: var(--control-min); align-items: center; padding: var(--space-2) var(--space-3); border: 2px solid var(--ink); border-radius: 999px; background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); font-size: .76rem; font-weight: 850; cursor: pointer; }
 .network-dot { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); font-size: .69rem; font-weight: 850; text-transform: uppercase; letter-spacing: .05em; }
 .network-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(88,214,141,.2); }
 .network-dot--offline i { background: var(--orange); box-shadow: none; }
@@ -323,4 +327,16 @@ p { line-height: 1.55; }
 @keyframes wizard-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
+}
+
+/* The standing install nudge. Icon-only so it can sit beside the refresh
+   control at 375px without crowding it, but still a full touch target. */
+.install-button--icon {
+  display: grid;
+  width: var(--control-min);
+  height: var(--control-min);
+  place-items: center;
+  padding: 0;
+  font-size: 1.15rem;
+  line-height: 1;
 }
