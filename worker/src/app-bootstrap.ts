@@ -86,7 +86,7 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
   const edition = editionResult.data as any;
   const scheduleResult = await sb
     .from('schedule_items')
-    .select('id, day, start_time, end_time, title, description, location, kind, section, is_all_day, host_name, signup_mode, signup_url, public_status, display_order, capacity')
+    .select('id, day, start_time, end_time, title, description, location, kind, section, is_all_day, host_name, signup_mode, public_status, display_order, capacity')
     .eq('edition_id', edition.id)
     .in('public_status', ['published', 'cancelled'])
     .order('day', { ascending: true })
@@ -151,7 +151,6 @@ export async function handleAppBootstrap(sb: SupabaseClient, now = new Date()): 
     is_all_day: item.is_all_day,
     host_name: item.host_name,
     signup_mode: item.signup_mode,
-    signup_url: item.signup_url,
     public_status: item.public_status,
     display_order: item.display_order,
     capacity: item.capacity ?? null,

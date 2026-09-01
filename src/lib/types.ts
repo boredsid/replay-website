@@ -23,7 +23,7 @@ export type ScheduleKind =
   | 'merch'
   | 'amenity'
   | 'special';
-export type ScheduleSignupMode = 'none' | 'walk-in' | 'advance' | 'on-site';
+export type ScheduleSignupMode = 'none' | 'app';
 export type SchedulePublicStatus = 'draft' | 'published' | 'cancelled';
 export type StepReached = 'phone_entered' | 'name_entered' | 'details_entered';
 export type PartnerKind = 'booth' | 'community_engagement' | 'sponsorship';
@@ -112,7 +112,6 @@ export interface ScheduleItemRow {
   is_all_day: boolean;
   host_name: string | null;
   signup_mode: ScheduleSignupMode;
-  signup_url: string | null;
   public_status: SchedulePublicStatus;
   display_order: number;
 }

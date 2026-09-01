@@ -20,7 +20,6 @@ type Form = {
   description: string;
   signup_mode: ScheduleSignupMode;
   capacity: string;
-  signup_url: string;
   public_status: SchedulePublicStatus;
   display_order: string;
 };
@@ -39,7 +38,6 @@ const EMPTY: Form = {
   description: '',
   signup_mode: 'none',
   capacity: '',
-  signup_url: '',
   public_status: 'draft',
   display_order: '0',
 };
@@ -106,7 +104,6 @@ export default function ProgrammeDrawer() {
             description: item.description ?? '',
             signup_mode: item.signup_mode,
             capacity: item.capacity === null || item.capacity === undefined ? '' : String(item.capacity),
-            signup_url: item.signup_url ?? '',
             public_status: item.public_status,
             display_order: String(item.display_order),
           });
@@ -149,7 +146,6 @@ export default function ProgrammeDrawer() {
       host_name: form.host_name.trim() || null,
       location: form.location.trim() || null,
       capacity: form.capacity.trim() === '' ? null : Number(form.capacity),
-      signup_url: form.signup_url.trim() || null,
       start_time: form.is_all_day ? null : form.start_time,
       end_time: form.is_all_day ? null : form.end_time,
       display_order: Number(form.display_order),
@@ -229,14 +225,18 @@ export default function ProgrammeDrawer() {
           <Field label="Public description"><textarea aria-label="Public description" value={form.description} maxLength={2000} rows={4} onChange={(event) => set('description', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Sign-up method">
-              <select aria-label="Sign-up method" value={form.signup_mode} onChange={(event) => set('signup_mode', event.target.value as ScheduleSignupMode)} className="w-full rounded-md border px-3 py-2">
-                <option value="none">No sign-up note</option>
-                <option value="walk-in">Walk in</option>
-                <option value="advance">Advance sign-up</option>
-                <option value="on-site">Sign up on site</option>
-                <option value="app">Book in the app</option>
-              </select>
+            <Field label="Booking">
+              {/* One real distinction, replacing four dropdown options that did
+                  nothing: either the app takes bookings for this, or it does not. */}
+              <label className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label="Take bookings in the app"
+                  checked={form.signup_mode === 'app'}
+                  onChange={(event) => set('signup_mode', event.target.checked ? 'app' : 'none')}
+                />
+                <span className="text-sm">Take bookings in the app</span>
+              </label>
             </Field>
             <Field label="Display order"><input aria-label="Display order" type="number" min="0" step="1" value={form.display_order} onChange={(event) => set('display_order', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
           </div>
@@ -257,7 +257,6 @@ export default function ProgrammeDrawer() {
               Set a capacity — app booking counts seats against it.
             </p>
           )}
-          <Field label="Sign-up URL (optional)"><input aria-label="Sign-up URL (optional)" type="url" placeholder="https://" value={form.signup_url} onChange={(event) => set('signup_url', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
           <Field label="Public status">
             <select aria-label="Public status" value={form.public_status} onChange={(event) => set('public_status', event.target.value as SchedulePublicStatus)} className="w-full rounded-md border px-3 py-2">
               <option value="draft">Draft — private</option>

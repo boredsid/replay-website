@@ -134,7 +134,6 @@ export async function getScheduleItems(editionId: string): Promise<ScheduleItemR
     is_all_day: item.is_all_day ?? false,
     host_name: item.host_name ?? null,
     signup_mode: item.signup_mode ?? 'none',
-    signup_url: item.signup_url ?? null,
     public_status: item.public_status ?? 'published',
     display_order: item.display_order ?? 0,
   })).sort((a, b) =>

@@ -59,9 +59,7 @@ const KIND_PILL: Record<ScheduleKind, string> = {
 };
 
 const SIGNUP_LABEL: Record<Exclude<ScheduleSignupMode, 'none'>, string> = {
-  'walk-in': 'Walk in',
-  advance: 'Advance sign-up',
-  'on-site': 'Sign up on site',
+  app: 'Book in the app',
 };
 
 const hhmm = (time: string | null) => time ? time.slice(0, 5) : '';
@@ -106,10 +104,8 @@ const timing = (item: ScheduleItemRow) => item.is_all_day
                 {(item.location || item.signup_mode !== 'none') && (
                   <div class="schedule-card__details">
                     {item.location && <span>◆ {item.location}</span>}
-                    {item.signup_mode !== 'none' && (
-                      item.signup_url && item.public_status !== 'cancelled'
-                        ? <a href={item.signup_url} target="_blank" rel="noopener noreferrer">{SIGNUP_LABEL[item.signup_mode]} ↗</a>
-                        : <span>{SIGNUP_LABEL[item.signup_mode]}</span>
+                    {item.signup_mode !== 'none' && item.public_status !== 'cancelled' && (
+                      <span>{SIGNUP_LABEL[item.signup_mode]}</span>
                     )}
                   </div>
                 )}

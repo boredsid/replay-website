@@ -63,8 +63,8 @@ describe('handleAppBootstrap', () => {
     const scheduleItem = {
       id: 'item-1', day: '2026-09-12', start_time: '10:00:00', end_time: '11:00:00',
       title: 'Learn a game', description: 'Friendly table', location: 'Room A', kind: 'workshop',
-      section: 'programme', is_all_day: false, host_name: 'Host', signup_mode: 'walk-in',
-      signup_url: null, public_status: 'published', display_order: 2,
+      section: 'programme', is_all_day: false, host_name: 'Host', signup_mode: 'none',
+      public_status: 'published', display_order: 2,
       created_at: 'private-implementation-detail', edition_id: 'edition-private-id',
     };
     const announcement = {
@@ -110,7 +110,7 @@ describe('handleAppBootstrap', () => {
       ...scheduleItem, created_at: undefined, edition_id: undefined,
       // Capacity and remaining seats are counts, never identities — the payload
       // still says nothing about who signed up. Null here because this item is
-      // walk-in rather than app-bookable.
+      // not app-bookable.
       capacity: null, seats_remaining: null,
     }].map(({ created_at: _created, edition_id: _edition, ...item }) => item));
     expect(body.announcements).toEqual([{
@@ -213,7 +213,7 @@ describe('handleAppBootstrap', () => {
   it('uses the same public section order as the website programme', async () => {
     const base = {
       day: '2026-09-12', start_time: null, end_time: null, description: null, location: null,
-      kind: 'special', is_all_day: true, host_name: null, signup_mode: 'none', signup_url: null,
+      kind: 'special', is_all_day: true, host_name: null, signup_mode: 'none',
       public_status: 'published', display_order: 0,
     };
     const { sb } = client({ data: edition, error: null }, { data: [

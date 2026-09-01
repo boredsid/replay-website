@@ -9,7 +9,7 @@ const BASE = {
   section: 'always-on',
   kind: 'open-play',
   is_all_day: true,
-  signup_mode: 'walk-in',
+  signup_mode: 'none',
   public_status: 'published',
   display_order: 0,
 };
@@ -110,7 +110,6 @@ describe('handleSchedulePatch', () => {
       description: null,
       location: null,
       host_name: null,
-      signup_url: null,
     };
     let updated: any = null;
     let audit: any = null;
@@ -139,14 +138,21 @@ describe('handleSchedulePatch', () => {
     expect(audit.diff.public_status).toEqual({ old: 'draft', new: 'published' });
   });
 
-  it('rejects a non-http sign-up URL', async () => {
-    const before = { id: 'item-1', ...BASE, start_time: null, end_time: null, description: null, location: null, host_name: null, signup_url: null };
+  it('rejects a sign-up mode that no longer exists', async () => {
+    const before = { id: 'item-1', ...BASE, start_time: '10:00:00', end_time: '11:00:00', description: null, location: null, host_name: null };
     const sb: any = {
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: before, error: null }) }) }) }),
+      from: (table: string) => {
+        if (table === 'schedule_items') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: before, error: null }) }) }),
+        };
+        return {};
+      },
     };
-    const req = new Request('https://x/api/admin/schedule/item-1', { method: 'PATCH', body: JSON.stringify({ signup_url: 'javascript:alert(1)' }) });
-    const res = await handleSchedulePatch(req, sb, 'item-1', 'sid@x.com', ORIGIN);
+    const req = new Request('https://x/api/admin/schedule/item-1', { method: 'PATCH', body: JSON.stringify({ signup_mode: 'walk-in' }) });
+    const res = await handleSchedulePatch(req, sb, 'item-1', 'sid@example.com', ORIGIN);
+
+    // The retired modes must be refused by the API too, not only by the database.
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'invalid_signup_url' });
+    expect(await res.json()).toEqual({ error: 'invalid_signup_mode' });
   });
 });

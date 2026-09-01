@@ -26,7 +26,7 @@ export function ScheduleCard({
         <div className="tag-row">
           <span className="tag">{titleCase(item.kind)}</span>
           {cancelled && <span className="tag tag--cancelled">Cancelled</span>}
-          {item.signup_mode !== 'none' && <span className="tag tag--soft">{titleCase(item.signup_mode)}</span>}
+          {item.signup_mode === 'app' && <span className="tag tag--soft">Bookable</span>}
         </div>
         <h3>{item.title}</h3>
         {(item.location || item.host_name) && (
@@ -46,9 +46,6 @@ export function ScheduleCard({
           >
             {saved ? '★ Saved' : cancelled ? 'Unavailable' : '☆ My Day'}
           </button>
-          {!cancelled && item.signup_url && (
-            <a className="text-link" href={item.signup_url} target="_blank" rel="noreferrer">Sign up ↗</a>
-          )}
         </div>
       </div>
     </article>

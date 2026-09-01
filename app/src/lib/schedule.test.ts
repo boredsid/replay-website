@@ -6,14 +6,14 @@ const items: ScheduleItem[] = [
   {
     id: 'one', day: '2026-09-12', start_time: '10:00:00', end_time: '11:00:00',
     title: 'Learn Azul', description: 'A friendly teach', location: 'Library', kind: 'workshop',
-    section: 'programme', is_all_day: false, host_name: 'Nia', signup_mode: 'walk-in',
-    signup_url: null, public_status: 'published', display_order: 0,
+    section: 'programme', is_all_day: false, host_name: 'Nia', signup_mode: 'app',
+    public_status: 'published', display_order: 0,
   },
   {
     id: 'two', day: '2026-09-13', start_time: '12:00:00', end_time: '13:00:00',
     title: 'Puzzle race', description: null, location: 'Main Hall', kind: 'puzzle',
-    section: 'programme', is_all_day: false, host_name: null, signup_mode: 'on-site',
-    signup_url: null, public_status: 'published', display_order: 0,
+    section: 'programme', is_all_day: false, host_name: null, signup_mode: 'app',
+    public_status: 'published', display_order: 0,
   },
 ];
 

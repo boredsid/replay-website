@@ -45,8 +45,7 @@ export interface ScheduleItem {
   section: string;
   is_all_day: boolean;
   host_name: string | null;
-  signup_mode: 'none' | 'walk-in' | 'advance' | 'on-site';
-  signup_url: string | null;
+  signup_mode: 'none' | 'app';
   public_status: 'published' | 'cancelled';
   display_order: number;
 }

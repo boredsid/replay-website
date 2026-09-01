@@ -4,7 +4,7 @@ import { diffRows, writeAudit } from './audit';
 
 const SECTIONS = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'] as const;
 const KINDS = ['workshop', 'tournament', 'open-play', 'meal', 'talk', 'ttrpg', 'story-game', 'puzzle', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'special'] as const;
-const SIGNUP_MODES = ['none', 'walk-in', 'advance', 'on-site', 'app'] as const;
+const SIGNUP_MODES = ['none', 'app'] as const;
 const PUBLIC_STATUSES = ['draft', 'published', 'cancelled'] as const;
 
 type ScheduleInput = {
@@ -21,7 +21,6 @@ type ScheduleInput = {
   host_name: string | null;
   signup_mode: typeof SIGNUP_MODES[number];
   capacity: number | null;
-  signup_url: string | null;
   public_status: typeof PUBLIC_STATUSES[number];
   display_order: number;
 };
@@ -41,17 +40,6 @@ function readTime(value: unknown): string | null {
   return match ? `${match[1]}:${match[2]}` : null;
 }
 
-function readSignupUrl(value: unknown): string | null {
-  const text = optionalText(value, 500, 'signup_url');
-  if (!text) return null;
-  try {
-    const url = new URL(text);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error();
-    return url.toString();
-  } catch {
-    throw new Error('invalid_signup_url');
-  }
-}
 
 function parseSchedule(input: any, previous?: any): ScheduleInput {
   const merged = { ...(previous ?? {}), ...(input ?? {}) };
@@ -106,7 +94,6 @@ function parseSchedule(input: any, previous?: any): ScheduleInput {
     host_name: optionalText(merged.host_name, 160, 'host_name'),
     signup_mode: signupMode,
     capacity,
-    signup_url: readSignupUrl(merged.signup_url),
     public_status: publicStatus,
     display_order: displayOrder,
   };
