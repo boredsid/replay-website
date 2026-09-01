@@ -16,6 +16,9 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const RING = '#fff8e7';
 
+/** The cream face of the play mark, which is the shape the badge is cut from. */
+const CREAM = [253, 249, 237];
+
 /**
  * A rounded-rect stroke as an overlay, sized for a 512px tile.
  *
@@ -60,3 +63,53 @@ await Promise.all([
 ]);
 
 console.log('Wrote app/public icons with the cream ring.');
+
+
+/**
+ * The notification badge: a silhouette, not an icon.
+ *
+ * Android masks the badge to its alpha channel and paints the result a flat
+ * grey in the status bar, so a full-colour tile arrives as a solid grey square.
+ * Only the shape survives, which means the shape has to be legible on its own
+ * at about 24dp.
+ *
+ * That rules out the whole mark. Its three offset triangles collapse into one
+ * silhouette with a stepped left edge, and the steps are illegible mush at
+ * status-bar size. The front cream face alone is a clean play triangle, so the
+ * badge is cut from just that: cream pixels become opaque white, everything
+ * else transparent, then trimmed to the triangle and padded back out.
+ *
+ * iOS ignores `badge` entirely; this is Android-only.
+ */
+async function badge() {
+  const source = sharp(join(root, 'admin/public/icon-512.png'));
+  const { data, info } = await source.raw().toBuffer({ resolveWithObject: true });
+  const mask = Buffer.alloc(512 * 512 * 4);
+
+  for (let i = 0, p = 0; i < data.length; i += info.channels, p += 4) {
+    // A tolerance rather than an equality: the mark's edges are anti-aliased,
+    // and an exact match would leave the triangle with a ragged fringe.
+    const near = Math.abs(data[i] - CREAM[0]) < 40
+      && Math.abs(data[i + 1] - CREAM[1]) < 40
+      && Math.abs(data[i + 2] - CREAM[2]) < 40;
+    mask[p] = 255; mask[p + 1] = 255; mask[p + 2] = 255;
+    mask[p + 3] = near ? 255 : 0;
+  }
+
+  const trimmed = await sharp(mask, { raw: { width: 512, height: 512, channels: 4 } })
+    .png()
+    .trim()
+    .toBuffer();
+
+  // Contained rather than cropped, with the padding transparent: Android adds
+  // its own inset, and a triangle running edge to edge would collide with it.
+  return sharp(trimmed)
+    .resize(76, 76, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .extend({ top: 10, bottom: 10, left: 10, right: 10, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+}
+
+await sharp(await badge()).toFile(out('badge-96.png'));
+
+console.log('Wrote app/public/badge-96.png.');

@@ -1,7 +1,7 @@
-const CACHE_VERSION = 'replay-attendee-v2';
+const CACHE_VERSION = 'replay-attendee-v3';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png'];
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/badge-96.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));
@@ -80,7 +80,10 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(payload.title, {
     body: payload.body,
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    // A silhouette, not the icon: Android reduces the badge to its alpha
+    // channel and paints it flat grey, so the full-colour tile arrived as a
+    // grey square. iOS ignores this field entirely.
+    badge: '/badge-96.png',
     // Tagging lets a newer notice about the same thing replace an older one
     // rather than stacking up on the lock screen.
     tag: payload.tag || 'replay',
