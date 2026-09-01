@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { fetchAdmin, showApiError } from '@/lib/api';
+import { ApiError, fetchAdmin, showApiError } from '@/lib/api';
 import type { CheckInAttendee, CheckInDay, CheckInRegistration } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/Loading';
 import { useOnlineStatus } from '@/lib/use-online-status';
+import {
+  flushQueue,
+  indexedDbStore,
+  isPermanentFailure,
+  type QueuedCheckIn,
+} from '@/lib/check-in-queue';
 
 const DAY_LABEL: Record<CheckInDay, string> = { day1: 'Sat', day2: 'Sun' };
 
@@ -29,12 +35,85 @@ export default function CheckIn() {
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [queued, setQueued] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const online = useOnlineStatus();
 
   // The desk types a number the moment someone walks up; nothing else on this
   // screen deserves the cursor.
   useEffect(() => { searchRef.current?.focus(); }, []);
+
+  const flush = useCallback(async () => {
+    try {
+      const outcome = await flushQueue(indexedDbStore, async (entry: QueuedCheckIn) => {
+        try {
+          await fetchAdmin(entry.path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry.body),
+          });
+          return { ok: true as const };
+        } catch (error) {
+          const status = error instanceof ApiError ? error.status : 0;
+          return isPermanentFailure(status)
+            ? { ok: false as const, permanent: true as const, error: (error as Error).message }
+            : { ok: false as const, permanent: false as const };
+        }
+      });
+      setQueued(outcome.remaining);
+      if (outcome.sent > 0) toast.success(`${outcome.sent} queued check-in${outcome.sent === 1 ? '' : 's'} saved`);
+      for (const { error } of outcome.rejected) {
+        // Dropped rather than retried forever, so the operator has to see it.
+        toast.error(`A queued check-in was refused: ${error}`);
+      }
+    } catch {
+      // A failed flush is not worth interrupting the desk over; the entries stay
+      // queued and the next reconnect tries again.
+    }
+  }, []);
+
+  // Drain on load and whenever the network comes back.
+  useEffect(() => { void flush(); }, [flush]);
+  useEffect(() => { if (online) void flush(); }, [online, flush]);
+
+  const enqueue = useCallback(async (path: string, body: Record<string, unknown>) => {
+    await indexedDbStore.add({
+      client_event_id: String(body.client_event_id),
+      path,
+      body,
+      queued_at: new Date().toISOString(),
+      attempts: 0,
+    });
+    setQueued((n) => n + 1);
+  }, []);
+
+  /**
+   * Sends now, or queues if the network is not cooperating. The id travels with
+   * the body either way, so a queued action replayed later is deduplicated
+   * server-side rather than checking someone in twice.
+   */
+  const submit = useCallback(async (
+    path: string,
+    body: Record<string, unknown>,
+  ): Promise<{ queued: boolean; data?: { warning?: string | null } }> => {
+    if (!online) {
+      await enqueue(path, body);
+      return { queued: true };
+    }
+    try {
+      const data = await fetchAdmin<{ warning?: string | null }>(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return { queued: false, data };
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : 0;
+      if (isPermanentFailure(status)) throw error;
+      await enqueue(path, body);
+      return { queued: true };
+    }
+  }, [enqueue, online]);
 
   const search = useCallback(async (term: string) => {
     if (term.trim().length < 2) { setResults(null); return; }
@@ -70,35 +149,31 @@ export default function CheckIn() {
     kind: 'in' | 'out',
   ) {
     const draft = draftFor(attendee.attendee_id);
+    const who = draft.name.trim() || attendee.name;
     setBusy(`${attendee.attendee_id}:${day}`);
     try {
-      const body = await fetchAdmin<{ warning: string | null; deduped: boolean }>(
-        '/api/admin/check-in',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            attendee_id: attendee.attendee_id,
-            day,
-            kind,
-            client_event_id: newClientEventId(),
-            display_name: draft.name.trim() || undefined,
-            phone: draft.phone.trim() || undefined,
-          }),
-        },
-      );
-      toast.success(
-        kind === 'in'
-          ? `${draft.name.trim() || attendee.name} checked in · ${DAY_LABEL[day]}`
-          : `${draft.name.trim() || attendee.name} checked out · ${DAY_LABEL[day]}`,
-      );
-      if (body.warning?.startsWith('phone_already_used_by:')) {
-        // Shared numbers are normal for couples and families, so this informs
-        // rather than blocks.
-        toast.warning(`That number is also on ${body.warning.split(':')[1]}'s badge.`);
+      const result = await submit('/api/admin/check-in', {
+        attendee_id: attendee.attendee_id,
+        day,
+        kind,
+        client_event_id: newClientEventId(),
+        display_name: draft.name.trim() || undefined,
+        phone: draft.phone.trim() || undefined,
+      });
+
+      if (result.queued) {
+        toast.success(`${who} queued · ${DAY_LABEL[day]}. Will save when you're back online.`);
+      } else {
+        toast.success(`${who} checked ${kind === 'in' ? 'in' : 'out'} · ${DAY_LABEL[day]}`);
+        if (result.data?.warning?.startsWith('phone_already_used_by:')) {
+          // Shared numbers are normal for couples and families, so this informs
+          // rather than blocks.
+          toast.warning(`That number is also on ${result.data.warning.split(':')[1]}'s badge.`);
+        }
       }
+
       setDrafts((prev) => ({ ...prev, [attendee.attendee_id]: { name: '', phone: '' } }));
-      await search(query);
+      if (!result.queued) await search(query);
     } catch (error) {
       showApiError(error);
     } finally {
@@ -111,13 +186,16 @@ export default function CheckIn() {
     if (!eventId) return;
     setBusy(`${attendee.attendee_id}:${day}`);
     try {
-      await fetchAdmin('/api/admin/check-in/undo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId, client_event_id: newClientEventId() }),
+      const result = await submit('/api/admin/check-in/undo', {
+        event_id: eventId,
+        client_event_id: newClientEventId(),
       });
-      toast.success(`Undone · ${attendee.name}, ${DAY_LABEL[day]}`);
-      await search(query);
+      toast.success(
+        result.queued
+          ? `Undo queued · ${attendee.name}, ${DAY_LABEL[day]}`
+          : `Undone · ${attendee.name}, ${DAY_LABEL[day]}`,
+      );
+      if (!result.queued) await search(query);
     } catch (error) {
       showApiError(error);
     } finally {
@@ -132,25 +210,28 @@ export default function CheckIn() {
     if (pending.length === 0) return;
     setBusy(`${registration.registration_id}:${day}`);
     try {
-      await fetchAdmin('/api/admin/check-in/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entries: pending.map((a) => {
-            const draft = draftFor(a.attendee_id);
-            return {
-              attendee_id: a.attendee_id,
-              day,
-              kind: 'in',
-              client_event_id: newClientEventId(),
-              display_name: draft.name.trim() || undefined,
-              phone: draft.phone.trim() || undefined,
-            };
-          }),
+      const result = await submit('/api/admin/check-in/bulk', {
+        // The bulk body carries its own id so the queue can key on it, while
+        // each entry keeps the id that deduplicates that individual check-in.
+        client_event_id: newClientEventId(),
+        entries: pending.map((a) => {
+          const draft = draftFor(a.attendee_id);
+          return {
+            attendee_id: a.attendee_id,
+            day,
+            kind: 'in',
+            client_event_id: newClientEventId(),
+            display_name: draft.name.trim() || undefined,
+            phone: draft.phone.trim() || undefined,
+          };
         }),
       });
-      toast.success(`${pending.length} checked in · ${DAY_LABEL[day]}`);
-      await search(query);
+      toast.success(
+        result.queued
+          ? `${pending.length} queued · ${DAY_LABEL[day]}`
+          : `${pending.length} checked in · ${DAY_LABEL[day]}`,
+      );
+      if (!result.queued) await search(query);
     } catch (error) {
       showApiError(error);
     } finally {
@@ -169,9 +250,12 @@ export default function CheckIn() {
         </p>
       </header>
 
-      {!online && (
+      {(!online || queued > 0) && (
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-          You’re offline. Check-ins can’t be saved until the connection returns.
+          {!online && 'You’re offline — keep checking people in. '}
+          {queued > 0
+            ? `${queued} check-in${queued === 1 ? '' : 's'} waiting to save${online ? ', sending now…' : '.'}`
+            : 'Anything you do is saved as soon as the connection returns.'}
         </p>
       )}
 
@@ -216,7 +300,7 @@ export default function CheckIn() {
                       key={day}
                       size="sm"
                       variant="secondary"
-                      disabled={busy !== null || !online}
+                      disabled={busy !== null}
                       onClick={() => void checkInAll(registration, day)}
                     >
                       Check in all · {DAY_LABEL[day]}
@@ -284,7 +368,7 @@ export default function CheckIn() {
                           <Button
                             size="sm"
                             variant={state === 'in' ? 'secondary' : 'default'}
-                            disabled={busy === key || !online}
+                            disabled={busy === key}
                             onClick={() => void act(attendee, day, state === 'in' ? 'out' : 'in')}
                           >
                             {state === 'in' ? `Check out · ${DAY_LABEL[day]}` : `Check in · ${DAY_LABEL[day]}`}
@@ -293,7 +377,7 @@ export default function CheckIn() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              disabled={busy === key || !online}
+                              disabled={busy === key}
                               onClick={() => void undo(attendee, day)}
                               aria-label={`Undo last ${DAY_LABEL[day]} action for ${attendee.name}`}
                             >
