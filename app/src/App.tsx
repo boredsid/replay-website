@@ -407,7 +407,11 @@ export default function App() {
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
-          {wizardView.showResume && (
+          {/* Only once the app is on the home screen. Until then the install
+              nudge takes the slot: before the event nobody can pair anyway, so
+              "Finish setup" would otherwise sit there for everyone, permanently
+              hiding the one prompt that can actually be acted on. */}
+          {wizardView.showResume && standalone && (
             <button
               type="button"
               className="install-button"
@@ -420,11 +424,10 @@ export default function App() {
               because it sits beside the refresh control on a 375px screen, and
               because it is a standing nudge rather than a call to action.
 
-              Suppressed while "Finish setup" is showing: two onboarding nudges
-              competing in one bar is both crowded -- they do not fit at 375px --
-              and confused, and that wizard's own first step is the install
-              instructions anyway. */}
-          {!standalone && !wizardView.showResume && (
+              Only one onboarding nudge at a time: two do not fit in 375px. This
+              one wins while the app is in a browser tab, and nothing is lost
+              because its wizard step leads on to pairing. */}
+          {!standalone && (
             <button
               type="button"
               className="install-button install-button--icon"

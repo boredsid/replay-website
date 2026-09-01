@@ -282,3 +282,31 @@ describe('pairingGateDay', () => {
     expect(pairingGateDay(EDITION, BOTH, inThenOut, new Date('2026-09-01T06:30:00Z'))).toBe('day1');
   });
 });
+
+describe('the day-2 question: does a day-1 check-in carry over?', () => {
+  const BOTH = ['day1', 'day2'] as const;
+  const DAY1_ONLY_ARRIVAL = ARRIVED;
+  const ON_THE_13TH = new Date('2026-09-13T06:30:00Z');
+
+  it('recognises the 13th as an event day', () => {
+    expect(editionDayForToday(EDITION, ON_THE_13TH)).toBe('day2');
+  });
+
+  it('blocks booking on the 13th when they only checked in on the 12th', () => {
+    // The relaxed branch is unreachable while the convention is running, so
+    // someone who came Saturday and skipped Sunday cannot hold Sunday seats.
+    expect(pairingGateDay(EDITION, BOTH, DAY1_ONLY_ARRIVAL, ON_THE_13TH)).toBeNull();
+  });
+
+  it('allows it once they check in on the 13th as well', () => {
+    const alsoDay2 = [
+      ...DAY1_ONLY_ARRIVAL,
+      { id: 'e2', day: 'day2', kind: 'in', voids_event_id: null, occurred_at: '2026-09-13T04:00:00Z' },
+    ];
+    expect(pairingGateDay(EDITION, BOTH, alsoDay2, ON_THE_13TH)).toBe('day2');
+  });
+
+  it('accepts a day-1 arrival only off-event, which is the rehearsal path', () => {
+    expect(pairingGateDay(EDITION, BOTH, DAY1_ONLY_ARRIVAL, new Date('2026-09-01T06:30:00Z'))).toBe('day1');
+  });
+});
