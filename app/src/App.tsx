@@ -398,6 +398,10 @@ export default function App() {
     && setupIncomplete
     && (inBrowser || wizardView.open);
   const showInstallBox = !dismissedThisOpen && !showWizard && inBrowser;
+  // The way back after dismissing. Shown whenever setup is unfinished and
+  // nothing is already on screen -- without it, dismissing the box in a browser
+  // tab leaves no route to pairing until the next reload.
+  const showFinishSetup = setupIncomplete && !showWizard && !askedFor;
 
   return (
     <div className="app-shell">
@@ -426,15 +430,11 @@ export default function App() {
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
-          {/* Only once the app is on the home screen. Until then the install
-              nudge takes the slot: before the event nobody can pair anyway, so
-              "Finish setup" would otherwise sit there for everyone, permanently
-              hiding the one prompt that can actually be acted on. */}
-          {wizardView.showResume && standalone && (
+          {showFinishSetup && (
             <button
               type="button"
               className="install-button"
-              onClick={() => updateWizard({ step: 'pair', dismissed: false })}
+              onClick={() => setAskedFor('pair')}
             >
               Finish setup
             </button>
