@@ -16,12 +16,24 @@ export function SuccessScreen({ pending, editionName }: SuccessScreenProps) {
           : `Confirmation for ${editionName} is on its way to your inbox.`}
       </p>
       <div className="flex flex-col items-center gap-3">
+        {/*
+          `.btn` lives outside a cascade layer in global.css, so it outranks
+          Tailwind's layered utilities whatever their specificity: its
+          `white-space: nowrap` and `font-size: 1rem` beat `whitespace-normal`
+          and `text-sm`, and this label ran off the card on a phone. Both have
+          to be set inline to land.
+        */}
         <a
           href={WHATSAPP_COMMUNITY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn max-w-full whitespace-normal text-sm no-underline"
-          style={{ background: '#25D366', color: '#1A1A1A' }}
+          className="btn max-w-full no-underline"
+          style={{
+            background: '#25D366',
+            color: '#1A1A1A',
+            whiteSpace: 'normal',
+            fontSize: '0.875rem',
+          }}
         >
           Join the REPLAY WhatsApp community to stay updated
         </a>

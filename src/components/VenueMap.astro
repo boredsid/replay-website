@@ -37,7 +37,10 @@ const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
 
     <div class="venue-map">
       <figure class="venue-map__figure">
-        <div class="venue-map__frame" set:html={svg} />
+        <div class="venue-map__frame">
+          <div class="venue-map__scroller" tabindex="0" set:html={svg} />
+          <span class="venue-map__cue" aria-hidden="true">Swipe for the full floor →</span>
+        </div>
       </figure>
 
       <div class="venue-map__key">
@@ -65,7 +68,8 @@ const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
 <style>
   .venue-map {
     display: grid;
-    grid-template-columns: 1fr;
+    /* minmax(0, …) so the plan's min-width below cannot widen the track. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     margin-top: 36px;
     align-items: start;
@@ -85,6 +89,7 @@ const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
 
   .venue-map__figure {
     margin: 0;
+    min-width: 0;
   }
 
   .venue-map-section {
@@ -94,6 +99,7 @@ const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
   /* A printed sheet lying on a table, not a brutalist card: the plan's own
      linework already carries the heavy black. */
   .venue-map__frame {
+    position: relative;
     border-radius: 3px;
     background: var(--color-cream);
     box-shadow: 0 18px 48px rgb(40 36 26 / 0.22);
@@ -101,10 +107,62 @@ const svg = buildVenueMapSvg({ idPrefix: 'venue-map' });
     overflow: hidden;
   }
 
+  /* The plan's label sizes live in the drawing's own user units, so they
+     shrink with it. Below ~460px of drawing the amenity labels (WATER,
+     TOILET, SNACKS) fall under 7px — the ones someone standing on the floor
+     actually needs. Hold the drawing at a width where they stay readable and
+     let the sheet pan instead of shrinking further. */
+  .venue-map__scroller {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .venue-map__scroller::-webkit-scrollbar {
+    display: none;
+  }
+
   .venue-map__frame :global(svg) {
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  /* Only below the two-column breakpoint. Above it the plan sits in a fixed
+     480px column that already sizes it, and a min-width would make that
+     column pan for no reason. */
+  @media (max-width: 899px) {
+    .venue-map__frame :global(svg) {
+      min-width: 460px;
+    }
+  }
+
+  /* The sheet's inner width is the viewport less the section's 24px gutters
+     and the frame's 14px padding, so the drawing starts panning below
+     460 + 76 = 536px. Only offer the cue where there is something to pan. */
+  .venue-map__cue {
+    display: none;
+  }
+
+  @media (max-width: 535px) {
+    .venue-map__cue {
+      display: block;
+      /* Top, not bottom: held at 460px the sheet is taller than a phone
+         screen, so a cue on its bottom edge would sit below the fold. */
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 2;
+      padding: 4px 9px;
+      border: 2px solid var(--color-ink);
+      border-radius: 999px;
+      background: var(--color-cream);
+      color: var(--color-ink);
+      font-family: var(--font-heading);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
   }
 
   .venue-map__key-heading {

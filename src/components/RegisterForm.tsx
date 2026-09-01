@@ -14,6 +14,17 @@ export interface RegisterFormProps {
 
 const MAX_TICKET_QUANTITY = 10;
 
+/*
+ * `.btn` sits outside a cascade layer in global.css, so it outranks Tailwind's
+ * layered utilities however specific they are: its `padding: 14px 28px` and
+ * `font-size: 1rem` beat `px-3`, `py-1` and `text-sm`, which left the quantity
+ * steppers 74px wide instead of the 44px square `min-w-11` asks for. Padding
+ * and font size have to be set inline on these to land. Same cause as the
+ * inline style on SuccessScreen's WhatsApp button.
+ */
+const STEPPER_PADDING = { paddingInline: '0.75rem' } as const;
+const COMPACT_BUTTON = { paddingInline: '0.75rem', paddingBlock: '0.25rem', fontSize: '0.875rem' } as const;
+
 function sanitize(p: string): string {
   const d = p.replace(/\D/g, '');
   return d.length >= 10 ? d.slice(-10) : '';
@@ -381,7 +392,8 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
                 aria-label="Decrease ticket quantity"
                 disabled={quantity <= 1}
                 onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-                className="btn btn-secondary h-11 min-w-11 px-3 disabled:opacity-50"
+                className="btn btn-secondary h-11 min-w-11 disabled:opacity-50"
+                style={STEPPER_PADDING}
               >
                 −
               </button>
@@ -391,7 +403,8 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
                 aria-label="Increase ticket quantity"
                 disabled={quantity >= quantityLimit}
                 onClick={() => setQuantity((current) => Math.min(quantityLimit, current + 1))}
-                className="btn btn-secondary h-11 min-w-11 px-3 disabled:opacity-50"
+                className="btn btn-secondary h-11 min-w-11 disabled:opacity-50"
+                style={STEPPER_PADDING}
               >
                 +
               </button>
@@ -422,7 +435,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
                       </p>
                     )}
                   </div>
-                  <button type="button" onClick={removePromo} className="btn btn-secondary shrink-0 px-3 py-1 text-sm">
+                  <button type="button" onClick={removePromo} className="btn btn-secondary shrink-0" style={COMPACT_BUTTON}>
                     Remove
                   </button>
                 </div>
