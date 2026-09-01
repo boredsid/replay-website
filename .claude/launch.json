@@ -13,6 +13,18 @@
       "runtimeArgs": ["run", "dev"],
       "port": 4321,
       "autoPort": true
+    },
+    {
+      "name": "replay-attendee-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:app", "--", "--port", "5273", "--strictPort"],
+      "port": 5273
+    },
+    {
+      "name": "replay-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "admin", "run", "dev", "--", "--port", "5274", "--strictPort"],
+      "port": 5274
     }
   ]
 }
