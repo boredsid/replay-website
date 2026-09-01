@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ChevronDown, Star, X } from 'lucide-react';
 import type { ScheduleItem } from '../types';
 import { formatClock, formatDate } from '../lib/event-time';
 import { seatsLabel, type Signup } from '../lib/signups';
@@ -34,6 +36,9 @@ export function ScheduleCard({
   const cancelled = item.public_status === 'cancelled';
   const bookable = item.signup_mode === 'app' && !cancelled;
   const seats = seatsLabel(item.seats_remaining);
+  const [open, setOpen] = useState(false);
+  // A blurb is worth reading once, not on every card in a list of sixty.
+  const expandable = Boolean(item.description) && !hideDescription;
   return (
     <article className={`schedule-card ${cancelled ? 'schedule-card--cancelled' : ''}`}>
       <div className="schedule-card__time">
@@ -49,13 +54,38 @@ export function ScheduleCard({
             <span className={`tag ${item.seats_remaining === 0 ? 'tag--cancelled' : ''}`}>{seats}</span>
           )}
         </div>
-        <h3>{item.title}</h3>
-        {(item.location || item.host_name) && (
-          <p className="schedule-card__meta">
-            {[item.location, item.host_name ? `Hosted by ${item.host_name}` : null].filter(Boolean).join(' · ')}
-          </p>
+        {expandable ? (
+          <button
+            type="button"
+            className="schedule-card__disclosure"
+            aria-expanded={open}
+            onClick={() => setOpen((was) => !was)}
+          >
+            <span>
+              <h3>{item.title}</h3>
+              {(item.location || item.host_name) && (
+                <span className="schedule-card__meta">
+                  {[item.location, item.host_name ? `Hosted by ${item.host_name}` : null].filter(Boolean).join(' · ')}
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              className={`schedule-card__chevron ${open ? 'schedule-card__chevron--open' : ''}`}
+              size={18}
+              aria-hidden="true"
+            />
+          </button>
+        ) : (
+          <>
+            <h3>{item.title}</h3>
+            {(item.location || item.host_name) && (
+              <p className="schedule-card__meta">
+                {[item.location, item.host_name ? `Hosted by ${item.host_name}` : null].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </>
         )}
-        {!compact && !hideDescription && item.description && <p>{item.description}</p>}
+        {expandable && open && <p className="schedule-card__description">{item.description}</p>}
         <div className="schedule-card__actions">
           <button
             type="button"
@@ -65,7 +95,8 @@ export function ScheduleCard({
             aria-pressed={saved}
             aria-label={saved ? `Remove ${item.title} from My Day` : `Save ${item.title} to My Day`}
           >
-            {saved ? '★ Saved' : cancelled ? 'Unavailable' : '☆ My Day'}
+            <Star size={15} strokeWidth={2.5} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+            {saved ? 'Saved' : cancelled ? 'Unavailable' : 'My Day'}
           </button>
           {bookable && canBook && (
             signup
@@ -81,7 +112,7 @@ export function ScheduleCard({
                 >
                   {/* The cross is the affordance: without it "Booked" reads as a
                       label rather than something you can undo. */}
-                  <span aria-hidden="true" className="save-button__cross">✕</span>
+                  <X size={15} strokeWidth={3} aria-hidden="true" />
                   {signup.status === 'confirmed' ? 'Booked' : 'Waiting'}
                 </button>
               )

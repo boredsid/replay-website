@@ -83,7 +83,7 @@ describe('ScheduleCard booking', () => {
     const button = screen.getByRole('button', { name: /Give up your place in Werewolf/i });
     expect(button).toHaveTextContent('Booked');
     // The cross is what makes it read as undoable rather than as a label.
-    expect(button).toHaveTextContent('✕');
+    expect(button.querySelector('.lucide-x')).not.toBeNull();
     expect(screen.getByText('You have a place.')).toBeInTheDocument();
   });
 
@@ -100,6 +100,29 @@ describe('ScheduleCard booking', () => {
 
   it('hides the blurb where it is just noise', () => {
     renderCard({ item: item({ description: 'A long description' }), hideDescription: true });
+    expect(screen.queryByText('A long description')).not.toBeInTheDocument();
+    // With nothing to reveal, the title must not pretend to be a control.
+    expect(screen.queryByRole('button', { expanded: false })).not.toBeInTheDocument();
+  });
+
+  it('keeps the blurb behind a tap on the card', async () => {
+    renderCard({ item: item({ description: 'A long description' }) });
+    expect(screen.queryByText('A long description')).not.toBeInTheDocument();
+
+    const disclosure = screen.getByRole('button', { expanded: false });
+    await userEvent.click(disclosure);
+    expect(screen.getByText('A long description')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { expanded: true }));
+    expect(screen.queryByText('A long description')).not.toBeInTheDocument();
+  });
+
+  it('leaves the actions clickable independently of the disclosure', async () => {
+    const onBook = vi.fn();
+    renderCard({ item: item({ description: 'A long description' }), onBook });
+    // Booking must not be swallowed by the card-wide tap target.
+    await userEvent.click(screen.getByRole('button', { name: /Book a place/i }));
+    expect(onBook).toHaveBeenCalledWith('item-1');
     expect(screen.queryByText('A long description')).not.toBeInTheDocument();
   });
 

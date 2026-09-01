@@ -6,6 +6,7 @@ import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
 import IdCard from './components/IdCard';
+import { Radio, CalendarDays, Star, Map as MapIcon, IdCard as IdIcon, type LucideIcon } from 'lucide-react';
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
@@ -18,12 +19,14 @@ import { filterSchedule, uniqueValues } from './lib/schedule';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
 import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
 
-const TABS: Array<{ id: AppTab; label: string; icon: string }> = [
-  { id: 'now', label: 'Now', icon: '◉' },
-  { id: 'schedule', label: 'Schedule', icon: '▦' },
-  { id: 'my-day', label: 'My Day', icon: '★' },
-  { id: 'map', label: 'Map', icon: '⌖' },
-  { id: 'info', label: 'ID', icon: '▣' },
+// Drawn icons rather than Unicode glyphs: the glyphs came from whatever face
+// happened to have them, so their weights and optical sizes never matched.
+const TABS: Array<{ id: AppTab; label: string; icon: LucideIcon }> = [
+  { id: 'now', label: 'Now', icon: Radio },
+  { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+  { id: 'my-day', label: 'My Day', icon: Star },
+  { id: 'map', label: 'Map', icon: MapIcon },
+  { id: 'info', label: 'ID', icon: IdIcon },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.id));
@@ -578,7 +581,7 @@ export default function App() {
       </main>
 
       <nav className="bottom-nav" aria-label="Event app">
-        {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => changeTab(item.id)} aria-current={tab === item.id ? 'page' : undefined}><span aria-hidden="true">{item.icon}</span><small>{item.label}</small>{item.id === 'my-day' && saved.size > 0 && <b>{saved.size}</b>}</button>)}
+        {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => changeTab(item.id)} aria-current={tab === item.id ? 'page' : undefined}><span aria-hidden="true"><item.icon size={18} strokeWidth={2.25} /></span><small>{item.label}</small>{item.id === 'my-day' && saved.size > 0 && <b>{saved.size}</b>}</button>)}
       </nav>
     </div>
   );

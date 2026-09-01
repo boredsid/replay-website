@@ -42,11 +42,8 @@ export default function IdCard({ device, onPaired }: Props) {
 
       <section className="id-card" aria-label={`REPLAY pass for ${device.display_name}`}>
         <div className="id-card__header">
-          <span className="id-card__mark" aria-hidden="true">R</span>
-          <div>
-            <strong>REPLAY</strong>
-            <small>Attendee pass</small>
-          </div>
+          <strong>REPLAY</strong>
+          <small>Attendee pass</small>
         </div>
 
         <div className="id-card__code">
