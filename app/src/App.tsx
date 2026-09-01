@@ -8,7 +8,8 @@ import { isStale, useEventData } from './lib/use-event-data';
 import Pass from './components/Pass';
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
-import { loadDevice, type Device } from './lib/device';
+import { clearDevice, loadDevice, type Device } from './lib/device';
+import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
 import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
 import { filterSchedule, uniqueValues } from './lib/schedule';
@@ -67,15 +68,37 @@ function List({
   saved,
   onToggle,
   compact = false,
+  booking,
 }: {
   items: ScheduleItem[];
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
   compact?: boolean;
+  booking?: BookingProps;
 }) {
   return <div className="schedule-list">{items.map((item) => (
-    <ScheduleCard key={item.id} item={item} saved={saved.has(item.id)} onToggle={onToggle} compact={compact} />
+    <ScheduleCard
+      key={item.id}
+      item={item}
+      saved={saved.has(item.id)}
+      onToggle={onToggle}
+      compact={compact}
+      signup={booking?.signups.get(item.id)}
+      canBook={booking?.canBook ?? false}
+      busy={booking?.busy === item.id}
+      onBook={booking?.onBook}
+      onCancelBooking={booking?.onCancelBooking}
+    />
   ))}</div>;
+}
+
+/** Booking state threaded down to every card, or absent when unpaired. */
+interface BookingProps {
+  signups: Map<string, Signup>;
+  canBook: boolean;
+  busy: string | null;
+  onBook: (id: string) => void;
+  onCancelBooking: (id: string) => void;
 }
 
 function NowView({ data, saved, onToggle, now }: {
@@ -120,10 +143,11 @@ function NowView({ data, saved, onToggle, now }: {
   );
 }
 
-function ScheduleView({ data, saved, onToggle }: {
+function ScheduleView({ data, saved, onToggle, booking }: {
   data: BootstrapData;
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
+  booking: BookingProps;
 }) {
   const [filters, setFilters] = useState<ScheduleFilters>({ day: '', kind: '', location: '', query: '' });
   const items = useMemo(() => filterSchedule(data.schedule, filters, saved), [data.schedule, filters, saved]);
@@ -143,24 +167,35 @@ function ScheduleView({ data, saved, onToggle }: {
         </div>
       </section>
       <div className="results-row"><strong>{items.length} result{items.length === 1 ? '' : 's'}</strong>{Object.values(filters).some(Boolean) && <button type="button" className="text-button" onClick={() => setFilters({ day: '', kind: '', location: '', query: '' })}>Clear filters</button>}</div>
-      {items.length ? <List items={items} saved={saved} onToggle={onToggle} /> : <Empty title="No matching sessions">Try clearing a filter or using a broader search.</Empty>}
+      {items.length ? <List items={items} saved={saved} onToggle={onToggle} booking={booking} /> : <Empty title="No matching sessions">Try clearing a filter or using a broader search.</Empty>}
     </>
   );
 }
 
-function MyDayView({ data, saved, onToggle, device, onPaired, onUnpaired }: {
+function MyDayView({ data, saved, onToggle, device, onPaired, onUnpaired, booking }: {
   data: BootstrapData;
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
   device: Device | null;
   onPaired: (device: Device) => void;
   onUnpaired: () => void;
+  booking: BookingProps;
 }) {
   const items = filterSchedule(data.schedule, { day: '', kind: '', location: '', query: '', savedOnly: true }, saved);
+  const bookedItems = data.schedule.filter((item) => booking.signups.has(item.id));
   return (
     <>
       <header className="screen-header"><span className="eyebrow">Saved on this device</span><h1>My Day</h1><p>Your picks stay in this browser. No account or attendee profile is created.</p></header>
-      {items.length ? <List items={items} saved={saved} onToggle={onToggle} /> : <Empty title="Your day is wide open">Use the star on a schedule item to save it here.</Empty>}
+      {items.length ? <List items={items} saved={saved} onToggle={onToggle} booking={booking} /> : <Empty title="Your day is wide open">Use the star on a schedule item to save it here.</Empty>}
+      {/* Bookings are not the same as saved items: a saved session is a note to
+          self, a booked one is a seat somebody else cannot have. */}
+      {bookedItems.length > 0 && (
+        <section className="screen-section">
+          <span className="eyebrow">Your bookings</span>
+          <h2>Sessions you have a place in</h2>
+          <List items={bookedItems} saved={saved} onToggle={onToggle} booking={booking} compact />
+        </section>
+      )}
       <Pass device={device} onPaired={onPaired} onUnpaired={onUnpaired} />
     </>
   );
@@ -319,6 +354,9 @@ export default function App() {
   // each time the app is opened, and dismissing it should only quiet it for the
   // sitting it was dismissed in.
   const [dismissedThisOpen, setDismissedThisOpen] = useState(false);
+  const [signups, setSignups] = useState<Signup[]>([]);
+  const [bookingBusy, setBookingBusy] = useState<string | null>(null);
+  const [bookingNote, setBookingNote] = useState<string | null>(null);
   const standalone = useMemo(() => isStandalone(), []);
   const online = useOnline();
   const now = useMinuteClock();
@@ -350,6 +388,59 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', capture);
     return () => window.removeEventListener('beforeinstallprompt', capture);
   }, []);
+
+  useEffect(() => {
+    if (!device) { setSignups([]); return; }
+    // Null means the request failed; keep whatever is on screen rather than
+    // blanking someone's bookings because the venue wifi dipped.
+    void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
+  }, [device]);
+
+  const refreshSignups = async (current: Device) => {
+    const rows = await fetchSignups(current);
+    if (rows) setSignups(rows);
+  };
+
+  const book = async (scheduleItemId: string) => {
+    if (!device) return;
+    setBookingBusy(scheduleItemId);
+    setBookingNote(null);
+    const result = await signUp(device, scheduleItemId);
+    if (result.ok) {
+      setBookingNote(result.status === 'confirmed'
+        ? 'Booked. It is in My Day.'
+        : `You are number ${result.queue_position} on the waitlist.`);
+      await refreshSignups(device);
+    } else if (result.error === 'not_checked_in') {
+      setBookingNote('Check in at the desk first, then this will work.');
+    } else if (result.error === 'unauthorised') {
+      // The token is dead, so the honest thing is to send them back to setup.
+      clearDevice();
+      setDevice(null);
+      setBookingNote('Your setup expired. Ask the desk for a new code.');
+    } else if (result.error === 'offline') {
+      setBookingNote('No connection. Try again in a moment.');
+    } else {
+      setBookingNote('That did not work. Try again shortly.');
+    }
+    setBookingBusy(null);
+  };
+
+  const cancelBooking = async (scheduleItemId: string) => {
+    if (!device) return;
+    setBookingBusy(scheduleItemId);
+    setBookingNote(null);
+    const result = await cancelSignup(device, scheduleItemId);
+    if (result.ok) {
+      setBookingNote('Given up. Somebody on the waitlist may have taken it.');
+      await refreshSignups(device);
+    } else {
+      setBookingNote(result.error === 'offline'
+        ? 'No connection. Try again in a moment.'
+        : 'That did not work. Try again shortly.');
+    }
+    setBookingBusy(null);
+  };
 
   const updateWizard = (next: WizardState) => {
     setWizard(next);
@@ -387,6 +478,14 @@ export default function App() {
   const snapshot = data && fetchedAt !== null
     ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: data.timezone }).format(new Date(fetchedAt))
     : null;
+
+  const booking = {
+    signups: bySession(signups),
+    canBook: device !== null,
+    busy: bookingBusy,
+    onBook: book,
+    onCancelBooking: cancelBooking,
+  };
 
   const wizardView = resolveWizard(wizard, { paired: device !== null, standalone });
   const inBrowser = !standalone;
@@ -452,9 +551,15 @@ export default function App() {
         {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={refresh}>Try again</button></div> : data ? (
           <>
             <Announcements announcements={notices} timezone={data.timezone} />
+            {bookingNote && (
+              <p className="booking-note" role="status">
+                {bookingNote}
+                <button type="button" className="text-button" onClick={() => setBookingNote(null)}>Dismiss</button>
+              </p>
+            )}
             {tab === 'now' && <NowView data={data} saved={saved} onToggle={handleToggle} now={now} />}
-            {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} />}
-            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} device={device} onPaired={setDevice} onUnpaired={() => setDevice(null)} />}
+            {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
+            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} device={device} onPaired={setDevice} onUnpaired={() => setDevice(null)} booking={booking} />}
             {tab === 'map' && <MapView data={data} />}
             {tab === 'info' && <InfoView data={data} />}
             <p className="updated-at" aria-live="polite">

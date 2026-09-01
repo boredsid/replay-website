@@ -48,6 +48,10 @@ export interface ScheduleItem {
   signup_mode: 'none' | 'app';
   public_status: 'published' | 'cancelled';
   display_order: number;
+  /** Null when the session takes no bookings, or takes them without a limit. */
+  capacity: number | null;
+  /** Counts only — the payload never says who holds a seat. */
+  seats_remaining: number | null;
 }
 
 export interface AnnouncementData {

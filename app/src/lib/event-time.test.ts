@@ -11,7 +11,7 @@ function item(overrides: Partial<ScheduleItem>): ScheduleItem {
   return {
     id: 'item', day: '2026-09-12', start_time: '10:00:00', end_time: '11:00:00',
     title: 'Session', description: null, location: null, kind: 'workshop', section: 'programme',
-    is_all_day: false, host_name: null, signup_mode: 'none', public_status: 'published', display_order: 0, ...overrides,
+    is_all_day: false, host_name: null, signup_mode: 'none', capacity: null, seats_remaining: null, public_status: 'published', display_order: 0, ...overrides,
   };
 }
 

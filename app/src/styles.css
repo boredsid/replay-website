@@ -340,3 +340,18 @@ p { line-height: 1.55; }
   font-size: 1.15rem;
   line-height: 1;
 }
+
+/* The result of a booking action. Sits above the screen content rather than in
+   a toast, because "you are number 3 on the waitlist" is worth reading twice. */
+.booking-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--blue);
+  font-weight: 650;
+}
