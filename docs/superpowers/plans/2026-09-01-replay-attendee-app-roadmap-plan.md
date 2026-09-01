@@ -93,16 +93,25 @@ rows. Seat 1 takes the buyer's `user_phone`, the linked user's name, and
 `sum(seats)` across registrations equals `count(*)` in `attendees` — a mismatch
 means guests are silently missing.
 
-Registration creation in `worker/src/register.ts` must then create the attendee
-rows alongside the registration, inside the same logical operation, so no new
-registration can exist without its seats. The same applies to the admin's manual
-registration path. **Check both, and cover both with tests** — a registration
-whose attendees never got created is invisible until someone shows up at the
-door and cannot be found.
+**Seat rows are created by trigger, not application code.** There are two
+registration paths (public `register.ts` and the admin's manual add), and a
+registration without its seats is invisible until someone cannot be found at the
+door — so the guarantee belongs in one place the application cannot skip. An
+`after insert on registrations` trigger creates seats 1..n; seat 1 inherits the
+buyer's phone and name, the rest start anonymous. This follows the existing
+`registrations_capacity_guard` precedent in `004_fundamentals_hardening.sql`.
 
-Editing `seats` later must reconcile: adding seats appends rows, and reducing
-seats is only allowed when the trailing rows are unused (no check-in, no
-sign-ups, no loans). Decide and enforce that rather than leaving it implicit.
+Editing `seats` reconciles through a second trigger: increasing appends;
+decreasing removes trailing rows **only while they carry no history** — no
+check-in, no sign-ups, no loans. A seat with history is a person, and deleting
+them takes their records with them. Since those tables do not exist yet, later
+migrations replace the reconcile function as each dependent table appears.
+**Do not forget this** — the guard is incomplete until they do.
+
+Verify after backfill that `sum(seats)` across registrations equals
+`count(*)` in `attendees`. As of 2026-09-01 production holds 243 registrations
+and 273 seats, of which 20 registrations cover more than one person and the
+largest covers ten.
 
 ### Task 2A.1 — Migration
 
@@ -137,21 +146,41 @@ function is how that bug gets introduced.
 
 `worker/src/admin/check-in.ts`:
 
-- `GET /api/admin/check-in/search?q=` — digits-only match on phone, current
-  edition, `payment_status = 'confirmed'`, cap 20 registrations. Matches on the
-  buyer's phone *and* any attendee phone captured at the desk. Returns each
-  registration with **all** its attendee rows: display name or "Guest N", last
-  four phone digits only, pass type, days, and that attendee's per-day state.
-- `POST /api/admin/check-in` — `{ attendee_id, day, kind, client_event_id }`.
+- `GET /api/admin/check-in/search?q=` — current edition,
+  `payment_status = 'confirmed'`, cap 20 registrations. Matches three ways:
+  the **purchaser's phone** (`registrations.user_phone`, the primary path), any
+  **attendee's own phone**, and an **attendee name** prefix. The name and
+  attendee-phone paths exist for the guest who arrives alone and does not know
+  who bought the ticket.
+
+  Groups results by purchaser so one search returns every seat that phone paid
+  for, **across registrations** — a later top-up is a separate registration and
+  must not be a separate search. Keeps the registration grouping underneath,
+  since day validity belongs to the registration.
+
+  Returns per attendee: display name or "Guest N", last four phone digits only,
+  pass type, days, and that attendee's per-day state.
+
+- `POST /api/admin/check-in` — `{ attendee_id, day, kind, client_event_id,
+  display_name?, phone? }`. When name or phone are present, writes them to the
+  attendee **in the same operation** as the event. One action, because the desk
+  is the only moment the person is reliably standing there.
+
   Insert; on unique-violation of `client_event_id` return the existing event
-  with 200, not an error. That is what makes offline replay safe.
-- `POST /api/admin/check-in/bulk` — same for a list of `attendee_id`s, one
-  `client_event_id` each, for the "check in all" case. Partial success must be
-  reported per attendee rather than failing the batch.
+  with 200, not an error. That is what makes offline replay safe. Name and phone
+  are always optional — a blocked check-in is worse than a nameless one.
+
+  If the phone already belongs to another attendee in this edition, return a
+  **warning alongside success**, never a rejection. Couples and families share
+  numbers, and pairing does not depend on the phone being unique.
+
+- `POST /api/admin/check-in/bulk` — a list of `{ attendee_id, client_event_id,
+  display_name?, phone? }` for "check in all" and for a couple arriving
+  together. Report partial success per attendee rather than failing the batch.
 - `POST /api/admin/check-in/undo` — `{ event_id, client_event_id }`, appends a
   voiding event.
-- `PATCH /api/admin/attendees/:id` — set `display_name` and optionally `phone`
-  on a guest seat. Both optional; an unnamed guest must stay fully functional.
+- `PATCH /api/admin/attendees/:id` — set `display_name` and `phone` later, for
+  details captured after the fact.
 
 All three write to `admin_audit_log`.
 
@@ -161,13 +190,23 @@ All three write to `admin_audit_log`.
 
 ### Task 2A.5 — Admin check-in screen
 
-`admin/src/pages/CheckIn.tsx` — phone search focused on load. Each result is a
-registration card listing every attendee seat with its own state and its own
-large check-in button, plus "check in all" for a group arriving together. Undo
-per attendee. Inline rename for guest seats. Use `useOnlineStatus`.
+`admin/src/pages/CheckIn.tsx` — search focused on load, defaulting to the
+purchaser's phone. Results group every seat that phone paid for under one
+header, with the registration grouping visible underneath because day validity
+belongs to the registration.
 
-The single-seat case is the common one and must stay a one-tap operation — do
-not make everyone pay for the group case with an extra step.
+Each seat row carries its own state, its own large check-in button, and inline
+**name and phone fields** filled at the moment of check-in. "Check in all" for
+groups arriving together. Undo per attendee. Use `useOnlineStatus`.
+
+Two things to hold onto while building it:
+
+- **The single-seat case is the common one and must stay a one-tap operation.**
+  A seat that already has a name and phone — the purchaser checking themselves
+  in — should need no typing at all. Do not make everyone pay for the group case.
+- **Nothing blocks on identity capture.** Empty name and phone check in fine;
+  the fields are a prompt, not a gate. A duplicate phone shows a warning next to
+  the field and still submits.
 
 An attendee whose ticket does not cover the current day still appears in
 results, with a disabled button and an explicit "not on this ticket" reason.

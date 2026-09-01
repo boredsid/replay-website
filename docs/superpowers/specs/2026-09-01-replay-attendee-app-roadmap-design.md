@@ -76,6 +76,24 @@ pair, sign up, and borrow.
 people. A backfill creates one row per existing seat, with seat 1 carrying the
 buyer's phone, name, and `is_purchaser = true`.
 
+### One phone, several registrations
+
+Buying another seat later creates a **new registration** for the same phone
+rather than editing the first. As of 2026-09-01, 17 phone/edition pairs in
+production hold more than one registration.
+
+A naive "seat 1 is the purchaser" rule would therefore give one human two
+attendee records — two QRs, two pairings, and the ability to take two seats in
+the same session — while recording the guest they actually bought for as the
+buyer. Measured against production data, that would have produced 25 duplicate
+identities out of 243 registrations.
+
+So **the purchaser identity attaches to at most one attendee per (edition,
+phone)**. Later registrations for that phone create anonymous seats, which is
+what they are: additional people. The desk names them at check-in, and search
+still finds them because it matches `registrations.user_phone` as well as
+`attendees.phone`.
+
 ### The consequence that simplifies things
 
 Pairing can no longer use the phone number as its second factor, because guest
@@ -257,17 +275,54 @@ This is deliberately a different question from the one the state helper answers.
 the gate's. Implement them as two functions and do not let one drift into
 serving both.
 
-### Groups check in one person at a time
+### Check-in is where the attendee list gets built
 
-Staff search by the buyer's phone and get the whole registration back: the
-purchaser plus every guest seat, each with its own state and its own check-in
-button, plus a "check in all" for the common case where the group walks up
-together. A friend arriving two hours later is checked in on their own, which
-is the case a single registration-level flag cannot express at all.
+The desk asks every arrival for three things:
 
-Staff can name a guest seat while checking it in, and capture a phone if the
-guest offers one. Neither is required — an unnamed guest still checks in, pairs,
-and books.
+1. **The purchaser's phone** — what staff search on.
+2. **Their own name.**
+3. **Their own phone.**
+
+Staff search the purchaser's phone, get every seat that phone paid for, pick the
+one this person is taking, and write their name and number onto it as part of
+checking them in. Not a separate edit afterwards — one action, so the identity
+is captured at the only moment the person is reliably standing there.
+
+This is what turns 55 anonymous seats into a real attendee list, and it is why
+`display_name` and `phone` sit on the attendee rather than the registration.
+
+**Capture is prompted, never enforced.** A blocked check-in is worse than a
+nameless one: someone will refuse, or be a child, or be holding two bags and a
+coffee. "Guest 2" therefore stays a fully working state end to end — check in,
+pair, book, borrow — and staff can fill the details in later from the same
+screen.
+
+### Every arrival permutation has to work
+
+Searching a purchaser's phone returns **all** their seats — across registrations,
+since a later top-up creates a new one rather than editing the first. From that
+one view staff can:
+
+- check in a single attendee who bought for themselves;
+- check in a couple on one registration together, naming the second person as
+  they go;
+- check in one of that couple now and the other three hours later;
+- check in a guest whose seat came from a second, later purchase;
+- check in the whole group at once.
+
+Seats stay grouped by registration underneath, because day validity is a
+property of the registration — one purchase may cover both days and another
+only day 1.
+
+**Search also matches an attendee's own phone and name**, not just the
+purchaser's. A guest who arrives alone and does not know who bought the ticket
+or what number they used is otherwise unfindable, and the fallback staff reach
+for in that moment is improvisation.
+
+**A phone already used by another attendee warns rather than blocks.** Couples
+and families share numbers, and a hard uniqueness rule would turn a normal
+arrival into an argument. Pairing does not depend on the phone being unique —
+the code is the whole credential — so a shared number costs nothing.
 
 ### Search response is deliberately thin
 
