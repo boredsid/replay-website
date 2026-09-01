@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./push-send', () => ({ notifyAttendees: vi.fn() }));
 
-import { notifyAnnouncement, sendSessionReminders, runsShortEnoughToStart, REMINDER_LEAD_MINUTES } from './push-triggers';
+import { notifyAnnouncement, sendSessionReminders, REMINDER_LEAD_MINUTES } from './push-triggers';
 import { notifyAttendees } from './push-send';
 import type { Env } from './index';
 
@@ -226,21 +226,12 @@ describe('sendSessionReminders', () => {
     expect(filters).toContainEqual(['is_all_day', false]);
   });
 
-  it('stays quiet about a drop-in table that happens to open at this hour', async () => {
-    // Board Games Open Tables runs 09:00-21:00 with is_all_day = false, because
-    // the schedule wants to print its hours. "Starts soon" is wrong for it.
-    const dropIn = { ...SESSION_AT_2PM, title: 'Board Games Open Tables', end_time: '02:00:00' };
+  it('reminds about a long session, since only the flag decides', async () => {
+    // A five-hour slot is still a slot with a start. Whether something is a
+    // drop-in is is_all_day's job, set from the admin -- guessing from the
+    // duration here would quietly override whoever set it.
     const result = await sendSessionReminders(
-      ENV, reminderClient({ sessions: [{ ...dropIn, start_time: '14:00:00', end_time: '23:00:00' }], signups: BOOKED }), DURING_DAY1,
-    );
-    expect(result.sessions).toBe(0);
-    expect(notify).not.toHaveBeenCalled();
-  });
-
-  it('still reminds about the longest real slot in the programme', async () => {
-    // Every RPG block is four hours. The cut has to fall above them, not on them.
-    const result = await sendSessionReminders(
-      ENV, reminderClient({ sessions: [{ ...SESSION_AT_2PM, end_time: '18:00:00' }], signups: BOOKED }), DURING_DAY1,
+      ENV, reminderClient({ sessions: [{ ...SESSION_AT_2PM, end_time: '19:00:00' }], signups: BOOKED }), DURING_DAY1,
     );
     expect(result.sessions).toBe(1);
   });
@@ -248,24 +239,5 @@ describe('sendSessionReminders', () => {
   it('mentions the lead time it actually uses', async () => {
     await sendSessionReminders(ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: BOOKED }), DURING_DAY1);
     expect(notify.mock.calls[0][4].body).toContain(String(REMINDER_LEAD_MINUTES));
-  });
-});
-
-describe('runsShortEnoughToStart', () => {
-  it('accepts a session with no end time at all', () => {
-    // Nothing to judge it by, and a start is reason enough until told otherwise.
-    expect(runsShortEnoughToStart('14:00:00', null)).toBe(true);
-  });
-
-  it('accepts the four-hour block the RPG slots use', () => {
-    expect(runsShortEnoughToStart('14:00:00', '18:00:00')).toBe(true);
-  });
-
-  it('rejects the five-hour painting station', () => {
-    expect(runsShortEnoughToStart('14:00:00', '19:00:00')).toBe(false);
-  });
-
-  it('rejects a twelve-hour open table', () => {
-    expect(runsShortEnoughToStart('09:00:00', '21:00:00')).toBe(false);
   });
 });

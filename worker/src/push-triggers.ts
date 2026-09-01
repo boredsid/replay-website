@@ -10,21 +10,6 @@ export const REMINDER_LEAD_MINUTES = 15;
 /** How far past the lead time a reminder is still worth sending. */
 const REMINDER_WINDOW_MINUTES = 10;
 
-/**
- * Longest session that still has a start worth being reminded about.
- *
- * `is_all_day` does not catch what it sounds like it catches. Board Games Open
- * Tables, Jigsaw Puzzles and TCG all run 9-to-9 or 10-to-8 with real start and
- * end times and `is_all_day = false`, because the schedule wants to print their
- * hours. Buzzing someone at 08:45 that a twelve-hour drop-in table "starts
- * soon" is the kind of notification that gets the whole channel switched off.
- *
- * Four hours is where the programme's real slots end: every RPG block is four,
- * tournaments and workshops are two or three, and the only things above it are
- * stations you wander into. Verified against the 2026 programme.
- */
-const MAX_REMINDABLE_HOURS = 4;
-
 interface AnnouncementRow {
   id: string;
   title: string;
@@ -78,16 +63,6 @@ interface DueRow {
  * rather than in a batch at the end, so an interrupted run only loses the
  * reminders it had not sent yet.
  */
-/** Whether this is a session with a start to miss, rather than a drop-in. */
-export function runsShortEnoughToStart(startTime: string, endTime: string | null): boolean {
-  // No end time means nothing to judge it by, and a session with a start is
-  // worth a reminder until something says otherwise.
-  if (!endTime) return true;
-  const [sh, sm] = startTime.split(':').map(Number);
-  const [eh, em] = endTime.split(':').map(Number);
-  return (eh * 60 + em) - (sh * 60 + sm) <= MAX_REMINDABLE_HOURS * 60;
-}
-
 export async function sendSessionReminders(
   env: Env,
   sb: SupabaseClient,
@@ -115,28 +90,24 @@ export async function sendSessionReminders(
 
   const sessions = await sb
     .from('schedule_items')
-    .select('id, title, start_time, end_time, location')
+    .select('id, title, start_time, location')
     .eq('edition_id', currentEdition.id)
     .eq('day', today)
     .eq('public_status', 'published')
-    // An all-day activity has no start to be fifteen minutes away from, and a
-    // reminder for one would arrive at whatever time the row happens to carry.
+    // A drop-in activity has no start to be fifteen minutes away from. This is
+    // the only thing that decides it: the flag is set from the admin, and a
+    // heuristic that second-guessed it would surprise whoever set it.
     .eq('is_all_day', false)
     .not('start_time', 'is', null);
   if (sessions.error) return { reminded: 0, sessions: 0 };
 
-  const due = ((sessions.data ?? []) as Array<{
-    id: string; title: string; start_time: string; end_time: string | null; location: string | null;
-  }>)
+  const due = ((sessions.data ?? []) as Array<{ id: string; title: string; start_time: string; location: string | null }>)
     .filter((item) => {
       const [h, m] = item.start_time.split(':').map(Number);
       const startsIn = (h * 60 + m) - nowMinutes;
       // A window rather than an exact minute: cron ticks are not punctual, and a
       // reminder five minutes late still beats none.
-      if (startsIn > REMINDER_LEAD_MINUTES || startsIn <= REMINDER_LEAD_MINUTES - REMINDER_WINDOW_MINUTES) {
-        return false;
-      }
-      return runsShortEnoughToStart(item.start_time, item.end_time);
+      return startsIn <= REMINDER_LEAD_MINUTES && startsIn > REMINDER_LEAD_MINUTES - REMINDER_WINDOW_MINUTES;
     });
 
   let reminded = 0;
