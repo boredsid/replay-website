@@ -7,6 +7,7 @@ import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
 import Pass from './components/Pass';
 import Wizard from './components/Wizard';
+import InstallBox from './components/InstallBox';
 import { loadDevice, type Device } from './lib/device';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
 import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
@@ -314,6 +315,10 @@ export default function App() {
   // ends the wizard forever, but someone already paired can still be reading
   // this in a browser tab and wanting the install steps.
   const [askedFor, setAskedFor] = useState<WizardStep | null>(null);
+  // Reset on every load on purpose: in a browser the nudge is meant to appear
+  // each time the app is opened, and dismissing it should only quiet it for the
+  // sitting it was dismissed in.
+  const [dismissedThisOpen, setDismissedThisOpen] = useState(false);
   const standalone = useMemo(() => isStandalone(), []);
   const online = useOnline();
   const now = useMinuteClock();
@@ -384,18 +389,31 @@ export default function App() {
     : null;
 
   const wizardView = resolveWizard(wizard, { paired: device !== null, standalone });
+  const inBrowser = !standalone;
+  const setupIncomplete = device === null;
+
+  // Setup wins whenever both would apply: its first step is the install
+  // instructions anyway, and it carries on to pairing afterwards.
+  const showWizard = !dismissedThisOpen
+    && setupIncomplete
+    && (inBrowser || wizardView.open);
+  const showInstallBox = !dismissedThisOpen && !showWizard && inBrowser;
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
-      {(wizardView.open || askedFor) && (
+      {/* In a browser the wizard reappears on every open until setup is done,
+          so the prompt actually reaches people before the event. Once installed
+          it reverts to a one-off, dismissed for good via stored state. */}
+      {(showWizard || askedFor) && (
         <Wizard
           step={askedFor ?? wizardView.step}
           standalone={standalone}
           onStep={(step) => (askedFor ? setAskedFor(step) : updateWizard({ ...wizard, step }))}
           onDismiss={() => {
             setAskedFor(null);
-            if (wizardView.open) updateWizard({ ...wizard, dismissed: true });
+            setDismissedThisOpen(true);
+            updateWizard({ ...wizard, dismissed: true });
           }}
           onPaired={(next) => {
             setDevice(next);
@@ -404,6 +422,7 @@ export default function App() {
           }}
         />
       )}
+      {showInstallBox && <InstallBox onDismiss={() => setDismissedThisOpen(true)} />}
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><span>R</span><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
@@ -418,24 +437,6 @@ export default function App() {
               onClick={() => updateWizard({ step: 'pair', dismissed: false })}
             >
               Finish setup
-            </button>
-          )}
-          {/* Persistent while the app is opened from a browser tab. Compact
-              because it sits beside the refresh control on a 375px screen, and
-              because it is a standing nudge rather than a call to action.
-
-              Only one onboarding nudge at a time: two do not fit in 375px. This
-              one wins while the app is in a browser tab, and nothing is lost
-              because its wizard step leads on to pairing. */}
-          {!standalone && (
-            <button
-              type="button"
-              className="install-button install-button--icon"
-              onClick={install}
-              aria-label="Add REPLAY to your home screen"
-              title="Add to home screen"
-            >
-              <span aria-hidden="true">⊞</span>
             </button>
           )}
           <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>

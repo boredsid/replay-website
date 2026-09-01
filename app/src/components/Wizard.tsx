@@ -19,7 +19,7 @@ interface Props {
 }
 
 /** Guidance for the platforms that cannot be handed a prompt. */
-function InstallHelp({ platform, prompt, onInstalled }: {
+export function InstallHelp({ platform, prompt, onInstalled }: {
   platform: Platform;
   prompt: InstallPromptEvent | null;
   onInstalled: () => void;
