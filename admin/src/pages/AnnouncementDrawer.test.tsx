@@ -54,3 +54,38 @@ it('creates a published urgent notice using explicit IST timestamps', async () =
   });
   expect(await screen.findByText('Announcement list')).toBeInTheDocument();
 });
+
+it('deletes an existing notice only after the confirmation is accepted', async () => {
+  const user = userEvent.setup();
+  (fetchAdmin as any).mockImplementation((path: string) => {
+    if (path === '/api/admin/editions') return Promise.resolve({ editions: [EDITION] });
+    if (path === '/api/admin/announcements/n1') return Promise.resolve({
+      announcement: {
+        id: 'n1', edition_id: 'e3', title: 'Room change', body: 'Moved to Room B.',
+        severity: 'urgent', audience: 'all', starts_at: '2026-09-12T04:30:00.000Z',
+        ends_at: null, is_published: false,
+      },
+    });
+    return Promise.resolve({ ok: true });
+  });
+
+  render(
+    <MemoryRouter initialEntries={['/announcements/n1']}>
+      <Routes>
+        <Route path="/announcements/:id" element={<AnnouncementDrawer />} />
+        <Route path="/announcements" element={<div>Announcement list</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole('heading', { name: 'Edit announcement' });
+  await user.click(screen.getByRole('button', { name: 'Delete announcement' }));
+
+  // The dialog stands between the button and the row: nothing has gone yet.
+  await screen.findByRole('heading', { name: 'Delete “Room change”?' });
+  expect((fetchAdmin as any).mock.calls.some(([, init]: [string, any]) => init?.method === 'DELETE')).toBe(false);
+
+  await user.click(screen.getByRole('button', { name: 'Delete notice' }));
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/announcements/n1', { method: 'DELETE' }));
+  expect(await screen.findByText('Announcement list')).toBeInTheDocument();
+});

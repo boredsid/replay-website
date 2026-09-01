@@ -19,7 +19,7 @@ import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
-import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
+import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch, handleAnnouncementDelete } from './admin/announcements';
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
@@ -142,6 +142,7 @@ export default {
         const announcementMatch = path.match(/^\/api\/admin\/announcements\/([^/]+)$/);
         if (announcementMatch && req.method === 'GET') return await handleAnnouncementGet(sb, announcementMatch[1], origin);
         if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, env, ctx, sb, announcementMatch[1], email, origin);
+        if (announcementMatch && req.method === 'DELETE') return await handleAnnouncementDelete(sb, announcementMatch[1], email, origin);
 
         // Matched before the `/promo-codes/:id` pattern that would swallow it.
         if (path === '/api/admin/promo-codes/validate' && req.method === 'POST') return await handlePromoValidate(req, sb, origin);

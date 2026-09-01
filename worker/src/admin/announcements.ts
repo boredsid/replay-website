@@ -190,3 +190,33 @@ export async function handleAnnouncementPatch(
 
   return adminJson({ ok: true, announcement: updated.data }, 200, origin);
 }
+
+/**
+ * DELETE /api/admin/announcements/:id — for a notice that should not have gone
+ * out at all: a duplicate, a wrong edition, a test. Unpublishing already hides
+ * a live notice from the app, so deleting is about tidying the list rather
+ * than about recall; a push that has already buzzed a phone cannot be taken
+ * back either way. The audit row keeps the deleted text.
+ */
+export async function handleAnnouncementDelete(
+  sb: SupabaseClient,
+  id: string,
+  actorEmail: string,
+  origin: string,
+): Promise<Response> {
+  const before = await sb.from('announcements').select('*').eq('id', id).maybeSingle();
+  if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  if (!before.data) return adminJson({ error: 'not_found' }, 404, origin);
+
+  const deleted = await sb.from('announcements').delete().eq('id', id);
+  if (deleted.error) return adminJson({ error: 'delete_failed' }, 500, origin);
+
+  await writeAudit(sb, {
+    actor_email: actorEmail,
+    action: 'announcement.delete',
+    target_table: 'announcements',
+    target_id: id,
+    diff: before.data,
+  });
+  return adminJson({ ok: true }, 200, origin);
+}

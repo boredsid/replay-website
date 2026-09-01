@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import type { AnnouncementAudience, AnnouncementRow, AnnouncementSeverity, EditionRow } from '@/lib/types';
 
@@ -58,6 +66,7 @@ export default function AnnouncementDrawer() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -139,6 +148,20 @@ export default function AnnouncementDrawer() {
     }
   }
 
+  async function remove() {
+    setBusy(true);
+    try {
+      await fetchAdmin(`/api/admin/announcements/${id}`, { method: 'DELETE' });
+      toast.success('Announcement deleted');
+      nav('/announcements');
+    } catch (error) {
+      showApiError(error);
+    } finally {
+      setBusy(false);
+      setConfirmDelete(false);
+    }
+  }
+
   if (!loaded) return null;
 
   return (
@@ -188,7 +211,44 @@ export default function AnnouncementDrawer() {
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
             {busy ? 'Saving…' : isNew ? 'Create announcement' : 'Save announcement'}
           </button>
+
+          {!isNew && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+              className="w-full rounded-md border border-destructive px-3 py-2 text-sm font-medium text-destructive disabled:opacity-50"
+            >
+              Delete announcement
+            </button>
+          )}
         </div>
+
+        <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete “{form.title}”?</DialogTitle>
+              <DialogDescription>
+                {form.is_published
+                  ? 'The notice disappears from the attendee app within a minute. A push that has already gone out stays on the phones that got it — unticking Published hides the notice just as well, and keeps the record.'
+                  : 'This draft goes for good. The audit log keeps a copy of the text.'}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button type="button" onClick={() => setConfirmDelete(false)} className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { void remove(); }}
+                className="w-full rounded-md bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50 sm:w-auto"
+              >
+                {busy ? 'Deleting…' : 'Delete notice'}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );

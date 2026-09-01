@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleAnnouncementCreate, handleAnnouncementPatch } from './announcements';
+import { handleAnnouncementCreate, handleAnnouncementDelete, handleAnnouncementPatch } from './announcements';
 
 const ORIGIN = 'https://admin.replaycon.in';
 /** Push is unconfigured in tests, so publishing notifies nobody. */
@@ -86,5 +86,36 @@ describe('announcement admin handlers', () => {
     const res = await handleAnnouncementCreate(req, {} as any, 'sid@example.com', ORIGIN);
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'invalid_audience' });
+  });
+
+  it('deletes a notice and keeps its text in the audit log', async () => {
+    const before = { id: 'notice-1', ...VALID };
+    let deletedId: string | undefined;
+    let audit: any;
+    const sb: any = {
+      from: (table: string) => {
+        if (table === 'announcements') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: before, error: null }) }) }),
+          delete: () => ({ eq: async (_column: string, value: string) => { deletedId = value; return { error: null }; } }),
+        };
+        if (table === 'admin_audit_log') return { insert: async (row: any) => { audit = row; return { error: null }; } };
+        throw new Error(`unexpected table ${table}`);
+      },
+    };
+    const res = await handleAnnouncementDelete(sb, 'notice-1', 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(200);
+    expect(deletedId).toBe('notice-1');
+    expect(audit.action).toBe('announcement.delete');
+    expect(audit.diff.title).toBe('Room change');
+  });
+
+  it('reports a missing notice rather than a silent delete', async () => {
+    const sb: any = {
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+    };
+    const res = await handleAnnouncementDelete(sb, 'gone', 'sid@example.com', ORIGIN);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: 'not_found' });
   });
 });
