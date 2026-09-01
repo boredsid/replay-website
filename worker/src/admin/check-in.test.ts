@@ -3,6 +3,7 @@ import {
   handleCheckIn,
   handleCheckInBulk,
   handleCheckInUndo,
+  matchingRegistrationIds,
   normalizePhone,
   maskPhone,
   seatLabel,
@@ -238,5 +239,71 @@ describe('handleCheckInUndo', () => {
 
     expect(res.status).toBe(200);
     expect(inserted).toMatchObject({ voids_event_id: 'event-1', attendee_id: ATTENDEE, day: 'day1' });
+  });
+});
+
+/**
+ * Chainable Supabase double for search. Each fixture key is a table plus the
+ * filter that defines the branch, e.g. `registrations|in:user_phone`, so a test
+ * asserts which route found the person rather than how the query was built.
+ */
+function makeSearchClient(fixtures: Record<string, any[]>) {
+  const queried: string[] = [];
+  function node(table: string, ops: string[]): any {
+    const rec = (op: string) => node(table, [...ops, op]);
+    return {
+      select: () => rec('select'),
+      eq: (col: string) => rec(`eq:${col}`),
+      limit: () => rec('limit'),
+      like: (col: string) => rec(`like:${col}`),
+      ilike: (col: string) => rec(`ilike:${col}`),
+      in: (col: string) => rec(`in:${col}`),
+      then: (resolve: (value: any) => void) => {
+        const filter = [...ops].reverse().find((op) => /^(like|ilike|in):/.test(op)) ?? 'none';
+        const key = `${table}|${filter}`;
+        queried.push(key);
+        resolve({ data: fixtures[key] ?? [], error: null });
+      },
+    };
+  }
+  return { sb: { from: (table: string) => node(table, []) } as any, queried };
+}
+
+describe('matchingRegistrationIds', () => {
+  it('finds the buyer by name when their seat is still anonymous', async () => {
+    // The seat carries no name, so the only trace of "Siddhant" is the account.
+    const { sb, queried } = makeSearchClient({
+      'users|ilike:name': [{ phone: '9982200768' }],
+      'registrations|in:user_phone': [{ id: 'reg-live' }],
+      'attendees|ilike:display_name': [],
+    });
+
+    const ids = await matchingRegistrationIds(sb, 'ed-1', 'Siddhant');
+
+    expect([...ids!]).toEqual(['reg-live']);
+    expect(queried).toContain('users|ilike:name');
+  });
+
+  it('still finds a seat named at the desk, whoever bought it', async () => {
+    const { sb } = makeSearchClient({
+      'users|ilike:name': [],
+      'attendees|ilike:display_name': [{ registration_id: 'reg-guest' }],
+    });
+
+    const ids = await matchingRegistrationIds(sb, 'ed-1', 'Priya');
+
+    expect([...ids!]).toEqual(['reg-guest']);
+  });
+
+  it('does not go looking for accounts when the query is a phone number', async () => {
+    const { sb, queried } = makeSearchClient({
+      'registrations|like:user_phone': [{ id: 'reg-live' }],
+      'attendees|like:phone': [],
+    });
+
+    const ids = await matchingRegistrationIds(sb, 'ed-1', '9982200768');
+
+    expect([...ids!]).toEqual(['reg-live']);
+    expect(queried).not.toContain('users|ilike:name');
   });
 });

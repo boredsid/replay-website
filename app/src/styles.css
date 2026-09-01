@@ -355,3 +355,89 @@ p { line-height: 1.55; }
   background: var(--blue);
   font-weight: 650;
 }
+
+/* --- Booking state, stated in the card it belongs to --------------------- */
+.schedule-card__booking {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid var(--indigo);
+  background: rgba(26, 0, 136, .06);
+  font-size: .9rem;
+  font-weight: 650;
+}
+.schedule-card__booking--waitlisted { border-left-color: var(--orange); background: rgba(255, 90, 54, .08); }
+
+.save-button--book { background: var(--blue); }
+.save-button--booked { background: var(--green); }
+/* The cross carries the affordance; the label alone reads as a status. */
+.save-button__cross { margin-right: var(--space-1); font-weight: 900; }
+
+/* --- The ID page --------------------------------------------------------- */
+.id-card {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: var(--border);
+  border-radius: 22px;
+  background: var(--indigo);
+  color: var(--cream);
+  box-shadow: 8px 8px 0 var(--ink);
+}
+.id-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-self: stretch;
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid rgba(255, 248, 231, .3);
+}
+.id-card__mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 3px solid var(--cream);
+  border-radius: 10px;
+  background: var(--orange);
+  font-family: "Space Grotesk Variable", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  transform: rotate(-2deg);
+}
+.id-card__header strong {
+  display: block;
+  font-family: "Space Grotesk Variable", sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: -.02em;
+}
+.id-card__header small {
+  font-size: .68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  opacity: .75;
+}
+/* White ground regardless of the card around it: scanners need the contrast
+   and the quiet zone, and the indigo behind is nowhere near white enough. */
+.id-card__code {
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  border-radius: 16px;
+  background: #fff;
+}
+.id-card__name {
+  margin: 0;
+  font-family: "Space Grotesk Variable", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.id-card__hint {
+  margin: 0;
+  max-width: 34ch;
+  color: rgba(255, 248, 231, .8);
+  font-size: .85rem;
+  text-align: center;
+}

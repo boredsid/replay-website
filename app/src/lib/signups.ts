@@ -14,6 +14,8 @@ export interface Signup {
   status: SignupStatus;
   signed_up_at: string;
   promoted_at: string | null;
+  /** Place in the queue when waitlisted, so the card can say it in place. */
+  queue_position: number;
 }
 
 export type SignupError =

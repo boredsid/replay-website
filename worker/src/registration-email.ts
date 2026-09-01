@@ -7,6 +7,9 @@ import { editionOrdinal, shortDateRange, capitalize } from './format';
 import { buildGoogleCalendarUrl, buildWhatsAppShareUrl } from './calendar';
 import type { Day, PassType } from './validation';
 
+/** The same group the post-registration success screen sends people to. */
+const WHATSAPP_COMMUNITY_URL = 'https://chat.whatsapp.com/KMfBSQORNArFC88yvJs5ha?mode=gi_t';
+
 export interface ConfirmationInput {
   name: string;
   email: string;
@@ -48,6 +51,7 @@ export async function sendRegistrationConfirmation(
       schedule_url: 'https://replaycon.in/schedule',
       instagram_url: 'https://instagram.com/replaycon',
       whatsapp_share_url: buildWhatsAppShareUrl(edition),
+      whatsapp_community_url: WHATSAPP_COMMUNITY_URL,
     },
   });
 }

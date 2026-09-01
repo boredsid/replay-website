@@ -87,8 +87,17 @@ describe('nextStep', () => {
     expect(nextStep('welcome', { paired: false, standalone: true })).toBe('pair');
   });
 
-  it('ends after pairing', () => {
+  it('ends after pairing when nobody paired', () => {
+    // Skipping past pairing means there is no attendee to notify.
     expect(nextStep('pair', { paired: false, standalone: false })).toBeNull();
+  });
+
+  it('offers notifications once paired', () => {
+    expect(nextStep('pair', { paired: true, standalone: false })).toBe('notifications');
+  });
+
+  it('ends after notifications', () => {
+    expect(nextStep('notifications', { paired: true, standalone: false })).toBeNull();
   });
 });
 

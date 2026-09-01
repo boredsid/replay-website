@@ -35,8 +35,8 @@ function renderCard(overrides: Partial<Parameters<typeof ScheduleCard>[0]> = {})
   );
 }
 
-const booked: Signup = { schedule_item_id: 'item-1', status: 'confirmed', signed_up_at: '', promoted_at: null };
-const waiting: Signup = { schedule_item_id: 'item-1', status: 'waitlisted', signed_up_at: '', promoted_at: null };
+const booked: Signup = { schedule_item_id: 'item-1', status: 'confirmed', signed_up_at: '', promoted_at: null, queue_position: 0 };
+const waiting: Signup = { schedule_item_id: 'item-1', status: 'waitlisted', signed_up_at: '', promoted_at: null, queue_position: 3 };
 
 describe('ScheduleCard booking', () => {
   it('offers a booking on a bookable session', () => {
@@ -81,12 +81,26 @@ describe('ScheduleCard booking', () => {
   it('shows a held seat, and offers to give it up', () => {
     renderCard({ signup: booked });
     const button = screen.getByRole('button', { name: /Give up your place in Werewolf/i });
-    expect(button).toHaveTextContent('✓ Booked');
+    expect(button).toHaveTextContent('Booked');
+    // The cross is what makes it read as undoable rather than as a label.
+    expect(button).toHaveTextContent('✕');
+    expect(screen.getByText('You have a place.')).toBeInTheDocument();
   });
 
-  it('distinguishes waiting from booked', () => {
+  it('states the queue place inside the card it belongs to', () => {
     renderCard({ signup: waiting });
-    expect(screen.getByRole('button', { name: /Give up your place/i })).toHaveTextContent('⏳ Waiting');
+    expect(screen.getByRole('button', { name: /Leave the waitlist/i })).toHaveTextContent('Waiting');
+    expect(screen.getByText('You are number 3 on the waitlist.')).toBeInTheDocument();
+  });
+
+  it('says so when a place came from the waitlist', () => {
+    renderCard({ signup: { ...booked, promoted_at: '2026-09-12T10:00:00Z' } });
+    expect(screen.getByText('A place opened up and it is yours.')).toBeInTheDocument();
+  });
+
+  it('hides the blurb where it is just noise', () => {
+    renderCard({ item: item({ description: 'A long description' }), hideDescription: true });
+    expect(screen.queryByText('A long description')).not.toBeInTheDocument();
   });
 
   it('calls back with the session id when booking', async () => {

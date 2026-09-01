@@ -5,7 +5,7 @@ import { VenueMap } from './components/VenueMap';
 import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
-import Pass from './components/Pass';
+import IdCard from './components/IdCard';
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
@@ -23,7 +23,7 @@ const TABS: Array<{ id: AppTab; label: string; icon: string }> = [
   { id: 'schedule', label: 'Schedule', icon: '▦' },
   { id: 'my-day', label: 'My Day', icon: '★' },
   { id: 'map', label: 'Map', icon: '⌖' },
-  { id: 'info', label: 'Info', icon: 'i' },
+  { id: 'info', label: 'ID', icon: '▣' },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.id));
@@ -70,12 +70,14 @@ function List({
   saved,
   onToggle,
   compact = false,
+  hideDescription = false,
   booking,
 }: {
   items: ScheduleItem[];
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
   compact?: boolean;
+  hideDescription?: boolean;
   booking?: BookingProps;
 }) {
   return <div className="schedule-list">{items.map((item) => (
@@ -85,6 +87,7 @@ function List({
       saved={saved.has(item.id)}
       onToggle={onToggle}
       compact={compact}
+      hideDescription={hideDescription}
       signup={booking?.signups.get(item.id)}
       canBook={booking?.canBook ?? false}
       busy={booking?.busy === item.id}
@@ -174,31 +177,22 @@ function ScheduleView({ data, saved, onToggle, booking }: {
   );
 }
 
-function MyDayView({ data, saved, onToggle, device, onPaired, onUnpaired, booking }: {
+function MyDayView({ data, saved, onToggle, booking }: {
   data: BootstrapData;
   saved: ReadonlySet<string>;
   onToggle: (id: string) => void;
-  device: Device | null;
-  onPaired: (device: Device) => void;
-  onUnpaired: () => void;
   booking: BookingProps;
 }) {
-  const items = filterSchedule(data.schedule, { day: '', kind: '', location: '', query: '', savedOnly: true }, saved);
-  const bookedItems = data.schedule.filter((item) => booking.signups.has(item.id));
+  // Saved or booked. Booking a session is a stronger signal than starring one,
+  // so it belongs here without needing a star as well -- and that is what made
+  // starring look like a prerequisite.
+  const items = data.schedule.filter((item) => saved.has(item.id) || booking.signups.has(item.id));
   return (
     <>
       <header className="screen-header"><span className="eyebrow">Saved on this device</span><h1>My Day</h1><p>Your picks stay in this browser. No account or attendee profile is created.</p></header>
-      {items.length ? <List items={items} saved={saved} onToggle={onToggle} booking={booking} /> : <Empty title="Your day is wide open">Use the star on a schedule item to save it here.</Empty>}
-      {/* Bookings are not the same as saved items: a saved session is a note to
-          self, a booked one is a seat somebody else cannot have. */}
-      {bookedItems.length > 0 && (
-        <section className="screen-section">
-          <span className="eyebrow">Your bookings</span>
-          <h2>Sessions you have a place in</h2>
-          <List items={bookedItems} saved={saved} onToggle={onToggle} booking={booking} compact />
-        </section>
-      )}
-      <Pass device={device} onPaired={onPaired} onUnpaired={onUnpaired} />
+      {items.length
+        ? <List items={items} saved={saved} onToggle={onToggle} booking={booking} hideDescription />
+        : <Empty title="Your day is wide open">Star a schedule item, or book a place, and it will appear here.</Empty>}
     </>
   );
 }
@@ -289,12 +283,32 @@ function MapView({ data }: { data: BootstrapData }) {
   );
 }
 
+/**
+ * The floor plan on its own.
+ *
+ * Once someone is inside, how to reach the venue is the one thing on this page
+ * they definitely no longer need — and it was pushing the plan they do need
+ * below the fold.
+ */
+function VenueMapOnly() {
+  return (
+    <>
+      <header className="screen-header">
+        <span className="eyebrow">You are here</span>
+        <h1>Where everything is</h1>
+        <p>Saved on this device, so it still works when the venue network does not.</p>
+      </header>
+      <VenueMap />
+    </>
+  );
+}
+
 function InfoView({ data }: { data: BootstrapData }) {
   const edition = data.edition;
 
   return (
     <>
-      <header className="screen-header"><span className="eyebrow">Event essentials</span><h1>Info</h1><p>Keep this guidance handy for arrival and support.</p></header>
+      <div className="section-heading-row"><div><span className="eyebrow">Event essentials</span><h2>Good to know</h2></div></div>
       {edition && <section className="fact-grid"><div><small>Dates</small><strong>{formatDate(edition.start_date)}–{formatDate(edition.end_date, { day: 'numeric', month: 'short' })}</strong></div><div><small>Hours</small><strong>{formatClock(edition.daily_start_time)}–{formatClock(edition.daily_end_time)}</strong></div><div><small>Venue</small><strong>{edition.venue === 'TBD' ? 'To be announced' : edition.venue}</strong></div></section>}
 
       <section className="info-stack">
@@ -523,6 +537,9 @@ export default function App() {
         <Wizard
           step={askedFor ?? wizardView.step}
           standalone={standalone}
+          device={device}
+          push={push}
+          onPushEnabled={() => setPush(push ? { ...push, subscribed: true } : push)}
           onStep={(step) => (askedFor ? setAskedFor(step) : updateWizard({ ...wizard, step }))}
           onDismiss={() => {
             setAskedFor(null);
@@ -532,7 +549,9 @@ export default function App() {
           onPaired={(next) => {
             setDevice(next);
             setAskedFor(null);
-            updateWizard({ ...wizard, dismissed: true });
+            // Not dismissed here any more: pairing leads on to the notifications
+            // step, which is the whole point of asking there rather than later.
+            void fetchPushState(next).then(setPush);
           }}
         />
       )}
@@ -579,11 +598,11 @@ export default function App() {
                 <button type="button" className="text-button" onClick={() => setBookingNote(null)}>Dismiss</button>
               </p>
             )}
-            {tab === 'now' && <NowView data={data} saved={saved} onToggle={handleToggle} now={now} />}
+            {tab === 'now' && <><NowView data={data} saved={saved} onToggle={handleToggle} now={now} /><InfoView data={data} /></>}
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
-            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} device={device} onPaired={setDevice} onUnpaired={() => setDevice(null)} booking={booking} />}
-            {tab === 'map' && <MapView data={data} />}
-            {tab === 'info' && <InfoView data={data} />}
+            {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
+            {tab === 'map' && (device ? <VenueMapOnly /> : <MapView data={data} />)}
+            {tab === 'info' && <IdCard device={device} onPaired={setDevice} />}
             <p className="updated-at" aria-live="polite">
               {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}
               {error ? ' · last refresh failed' : ''}

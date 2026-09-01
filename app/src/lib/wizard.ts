@@ -10,7 +10,7 @@ import type { StorageLike } from './agenda';
 
 const WIZARD_KEY = 'replay:wizard:v1';
 
-export type WizardStep = 'welcome' | 'install' | 'pair';
+export type WizardStep = 'welcome' | 'install' | 'pair' | 'notifications';
 
 export interface WizardState {
   step: WizardStep;
@@ -19,7 +19,7 @@ export interface WizardState {
 
 const DEFAULT_STATE: WizardState = { step: 'welcome', dismissed: false };
 
-const STEPS: readonly WizardStep[] = ['welcome', 'install', 'pair'];
+const STEPS: readonly WizardStep[] = ['welcome', 'install', 'pair', 'notifications'];
 
 function isStep(value: unknown): value is WizardStep {
   return typeof value === 'string' && (STEPS as readonly string[]).includes(value);
@@ -93,5 +93,8 @@ export function resolveWizard(state: WizardState, context: WizardContext): Wizar
 export function nextStep(step: WizardStep, context: WizardContext): WizardStep | null {
   if (step === 'welcome') return context.standalone ? 'pair' : 'install';
   if (step === 'install') return 'pair';
+  // Notifications only make sense once there is an attendee to notify, so this
+  // step is reached by pairing rather than by skipping past it.
+  if (step === 'pair') return context.paired ? 'notifications' : null;
   return null;
 }

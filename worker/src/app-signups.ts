@@ -83,7 +83,34 @@ export async function handleMySignups(req: Request, env: Env): Promise<Response>
     .neq('status', 'cancelled');
   if (error) return jsonResponse({ error: 'query_failed' }, 500);
 
-  return jsonResponse({ signups: data ?? [] });
+  const rows = (data ?? []) as Array<{
+    schedule_item_id: string; status: string; signed_up_at: string; promoted_at: string | null;
+  }>;
+
+  // Queue position travels with the booking so the card can state it in place,
+  // rather than the app having to remember what a one-off response said.
+  const waiting = rows.filter((row) => row.status === 'waitlisted');
+  const positions = new Map<string, number>();
+  if (waiting.length > 0) {
+    const queues = await sb
+      .from('session_signups')
+      .select('schedule_item_id, signed_up_at')
+      .in('schedule_item_id', waiting.map((row) => row.schedule_item_id))
+      .eq('status', 'waitlisted');
+    if (!queues.error) {
+      const all = (queues.data ?? []) as Array<{ schedule_item_id: string; signed_up_at: string }>;
+      for (const row of waiting) {
+        positions.set(row.schedule_item_id, all.filter(
+          (other) => other.schedule_item_id === row.schedule_item_id
+            && other.signed_up_at <= row.signed_up_at,
+        ).length);
+      }
+    }
+  }
+
+  return jsonResponse({
+    signups: rows.map((row) => ({ ...row, queue_position: positions.get(row.schedule_item_id) ?? 0 })),
+  });
 }
 
 export async function handleSignUp(req: Request, env: Env): Promise<Response> {

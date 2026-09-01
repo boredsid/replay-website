@@ -69,12 +69,70 @@ function eventsFor(all: readonly AttendeeEvent[], attendeeId: string): CheckInEv
 }
 
 /**
- * Search the desk runs on arrival.
+ * The registrations a desk query matches, by every route a person can be known.
  *
- * Matches three ways: the purchaser's phone (the primary path), an attendee's
- * own phone, and an attendee name. The last two exist for the guest who turns up
- * alone and does not know who bought the ticket — without them the fallback is
- * improvisation at the door.
+ * Phone matches the purchaser's number (the primary path) and an attendee's own
+ * number. A name matches an attendee's captured name AND the buyer's name on
+ * their account — the second is not redundant, because a seat can be anonymous
+ * while its buyer is perfectly well known: a second purchase by the same phone
+ * creates anonymous seats by design, and a first seat stays anonymous until the
+ * desk names it. Searching those by name found nothing at all before, which
+ * reads at the door as "this person is not registered".
+ */
+export async function matchingRegistrationIds(
+  sb: SupabaseClient,
+  editionId: string,
+  raw: string,
+): Promise<Set<string> | null> {
+  const digits = normalizePhone(raw);
+  const ids = new Set<string>();
+
+  const confirmedRegs = () => sb
+    .from('registrations')
+    .select('id')
+    .eq('edition_id', editionId)
+    .eq('payment_status', 'confirmed');
+
+  if (digits.length >= 4) {
+    const byPurchaser = await confirmedRegs().like('user_phone', `%${digits}%`).limit(SEARCH_LIMIT);
+    if (byPurchaser.error) return null;
+    for (const row of byPurchaser.data ?? []) ids.add((row as { id: string }).id);
+  } else {
+    // The buyer's name, from their account. Seats carry a name only once
+    // someone has typed one in.
+    const byUser = await sb
+      .from('users')
+      .select('phone')
+      .ilike('name', `${raw}%`)
+      .limit(SEARCH_LIMIT);
+    if (byUser.error) return null;
+    const phones = (byUser.data ?? []).map((row) => (row as { phone: string }).phone);
+    if (phones.length > 0) {
+      const byBuyerName = await confirmedRegs().in('user_phone', phones).limit(SEARCH_LIMIT);
+      if (byBuyerName.error) return null;
+      for (const row of byBuyerName.data ?? []) ids.add((row as { id: string }).id);
+    }
+  }
+
+  // An attendee's own details, captured at a previous check-in.
+  const attendeeMatch = sb
+    .from('attendees')
+    .select('registration_id')
+    .eq('edition_id', editionId)
+    .limit(SEARCH_LIMIT);
+  const byAttendee = digits.length >= 4
+    ? await attendeeMatch.like('phone', `%${digits}%`)
+    : await attendeeMatch.ilike('display_name', `${raw}%`);
+  if (byAttendee.error) return null;
+  for (const row of byAttendee.data ?? []) {
+    ids.add((row as { registration_id: string }).registration_id);
+  }
+
+  return ids;
+}
+
+/**
+ * Search the desk runs on arrival.
  *
  * Results group by registration, because day validity is a property of the
  * purchase: one registration may cover both days and another only day 1.
@@ -91,34 +149,8 @@ export async function handleCheckInSearch(
   const edition = await getCurrentEdition(env);
   if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
 
-  const digits = normalizePhone(raw);
-  const registrationIds = new Set<string>();
-
-  if (digits.length >= 4) {
-    const byPurchaser = await sb
-      .from('registrations')
-      .select('id')
-      .eq('edition_id', edition.id)
-      .eq('payment_status', 'confirmed')
-      .like('user_phone', `%${digits}%`)
-      .limit(SEARCH_LIMIT);
-    if (byPurchaser.error) return adminJson({ error: 'query_failed' }, 500, origin);
-    for (const row of byPurchaser.data ?? []) registrationIds.add((row as { id: string }).id);
-  }
-
-  // An attendee's own details, captured at a previous check-in.
-  const attendeeMatch = sb
-    .from('attendees')
-    .select('registration_id')
-    .eq('edition_id', edition.id)
-    .limit(SEARCH_LIMIT);
-  const byAttendee = digits.length >= 4
-    ? await attendeeMatch.like('phone', `%${digits}%`)
-    : await attendeeMatch.ilike('display_name', `${raw}%`);
-  if (byAttendee.error) return adminJson({ error: 'query_failed' }, 500, origin);
-  for (const row of byAttendee.data ?? []) {
-    registrationIds.add((row as { registration_id: string }).registration_id);
-  }
+  const registrationIds = await matchingRegistrationIds(sb, edition.id, raw);
+  if (registrationIds === null) return adminJson({ error: 'query_failed' }, 500, origin);
 
   if (registrationIds.size === 0) return adminJson({ registrations: [] }, 200, origin);
   const ids = [...registrationIds].slice(0, SEARCH_LIMIT);

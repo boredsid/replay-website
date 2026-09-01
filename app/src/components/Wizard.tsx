@@ -9,13 +9,18 @@ import {
   type Platform,
 } from '../lib/pwa';
 import { nextStep, type WizardStep } from '../lib/wizard';
+import { enablePush, permissionState, type PushState } from '../lib/push';
 
 interface Props {
   step: WizardStep;
   standalone: boolean;
+  /** Present once paired, which is what the notifications step needs. */
+  device: Device | null;
+  push: PushState | null;
   onStep: (step: WizardStep) => void;
   onDismiss: () => void;
   onPaired: (device: Device) => void;
+  onPushEnabled: () => void;
 }
 
 /** Guidance for the platforms that cannot be handed a prompt. */
@@ -71,7 +76,11 @@ export function InstallHelp({ platform, prompt, onInstalled }: {
  * schedule, because the person most likely to open this app for the first time
  * is standing in a queue wanting to know what starts next.
  */
-export default function Wizard({ step, standalone, onStep, onDismiss, onPaired }: Props) {
+export default function Wizard({
+  step, standalone, device, push, onStep, onDismiss, onPaired, onPushEnabled,
+}: Props) {
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -88,10 +97,24 @@ export default function Wizard({ step, standalone, onStep, onDismiss, onPaired }
   }, [onDismiss]);
 
   const platform = readPlatform(prompt !== null);
-  const advance = () => {
-    const next = nextStep(step, { paired: false, standalone });
+  const advance = (paired = device !== null) => {
+    const next = nextStep(step, { paired, standalone });
     if (next) onStep(next); else onDismiss();
   };
+
+  async function turnOnNotifications() {
+    if (!device || !push?.vapidPublicKey) return;
+    setPushBusy(true);
+    setPushError(null);
+    const result = await enablePush(device, push.vapidPublicKey);
+    setPushBusy(false);
+    if (result.ok) { onPushEnabled(); onDismiss(); return; }
+    setPushError(
+      result.reason === 'denied'
+        ? 'Notifications are blocked for this site. You can turn them on in your browser settings.'
+        : 'That did not work. You can still see everything by opening the app.',
+    );
+  }
 
   return (
     <div className="wizard" role="dialog" aria-modal="true" aria-labelledby="wizard-heading">
@@ -105,7 +128,7 @@ export default function Wizard({ step, standalone, onStep, onDismiss, onPaired }
               — all of it works offline once you’ve opened it.
             </p>
             <div className="wizard__actions">
-              <button type="button" className="button" onClick={advance}>Get started</button>
+              <button type="button" className="button" onClick={() => advance()}>Get started</button>
               <button type="button" className="text-button" onClick={onDismiss}>Skip for now</button>
             </div>
           </>
@@ -119,13 +142,47 @@ export default function Wizard({ step, standalone, onStep, onDismiss, onPaired }
               It opens faster, fills the screen, and keeps working when the venue
               wifi does not.
             </p>
-            <InstallHelp platform={platform} prompt={prompt} onInstalled={advance} />
+            <InstallHelp platform={platform} prompt={prompt} onInstalled={() => advance()} />
             <div className="wizard__actions">
-              <button type="button" className="button" onClick={advance}>
+              <button type="button" className="button" onClick={() => advance()}>
                 {platform === 'ios-safari' ? 'Done — next' : 'Next'}
               </button>
               <button type="button" className="text-button" onClick={onDismiss}>Skip for now</button>
             </div>
+          </>
+        )}
+
+        {step === 'notifications' && (
+          <>
+            <span className="eyebrow">Last step</span>
+            <h2 id="wizard-heading" ref={headingRef} tabIndex={-1}>Want telling when it matters?</h2>
+            <p>
+              A seat opening up on a waitlist, a session you booked starting
+              shortly, and anything urgent from the organisers. Nothing else.
+            </p>
+            {permissionState() === 'unsupported' && (
+              <p className="wizard__aside">
+                Your browser cannot do notifications here. Adding REPLAY to your
+                home screen enables them.
+              </p>
+            )}
+            {permissionState() === 'denied' && (
+              <p className="wizard__aside">
+                Notifications are blocked for this site. You can turn them on in
+                your browser settings.
+              </p>
+            )}
+            <div className="wizard__actions">
+              {permissionState() === 'default' && push?.vapidPublicKey && (
+                <button type="button" className="button" disabled={pushBusy} onClick={() => void turnOnNotifications()}>
+                  {pushBusy ? 'Just a moment…' : 'Turn on notifications'}
+                </button>
+              )}
+              <button type="button" className="text-button" onClick={onDismiss}>
+                {permissionState() === 'default' ? 'No thanks' : 'Done'}
+              </button>
+            </div>
+            {pushError && <p className="pass__error" role="alert">{pushError}</p>}
           </>
         )}
 
@@ -140,7 +197,7 @@ export default function Wizard({ step, standalone, onStep, onDismiss, onPaired }
             <p className="wizard__aside">
               You don’t need it today. Everything above works without a code.
             </p>
-            <PairForm onPaired={onPaired} submitLabel="Set up" />
+            <PairForm onPaired={(next) => { onPaired(next); onStep('notifications'); }} submitLabel="Set up" />
             <div className="wizard__actions">
               <button type="button" className="text-button" onClick={onDismiss}>
                 I’ll do this later

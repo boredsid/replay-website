@@ -10,6 +10,7 @@ export function ScheduleCard({
   saved,
   onToggle,
   compact = false,
+  hideDescription = false,
   signup,
   canBook = false,
   busy = false,
@@ -20,6 +21,8 @@ export function ScheduleCard({
   saved: boolean;
   onToggle: (id: string) => void;
   compact?: boolean;
+  /** My Day is a list of things you already chose; the blurb is just noise there. */
+  hideDescription?: boolean;
   /** This attendee's booking for this session, if they have one. */
   signup?: Signup;
   /** False until a device is paired; booking is not offered before then. */
@@ -52,7 +55,7 @@ export function ScheduleCard({
             {[item.location, item.host_name ? `Hosted by ${item.host_name}` : null].filter(Boolean).join(' · ')}
           </p>
         )}
-        {!compact && item.description && <p>{item.description}</p>}
+        {!compact && !hideDescription && item.description && <p>{item.description}</p>}
         <div className="schedule-card__actions">
           <button
             type="button"
@@ -69,18 +72,23 @@ export function ScheduleCard({
               ? (
                 <button
                   type="button"
-                  className="save-button save-button--saved"
+                  className="save-button save-button--booked"
                   disabled={busy}
                   onClick={() => onCancelBooking?.(item.id)}
-                  aria-label={`Give up your place in ${item.title}`}
+                  aria-label={signup.status === 'confirmed'
+                    ? `Give up your place in ${item.title}`
+                    : `Leave the waitlist for ${item.title}`}
                 >
-                  {signup.status === 'confirmed' ? '✓ Booked' : '⏳ Waiting'}
+                  {/* The cross is the affordance: without it "Booked" reads as a
+                      label rather than something you can undo. */}
+                  <span aria-hidden="true" className="save-button__cross">✕</span>
+                  {signup.status === 'confirmed' ? 'Booked' : 'Waiting'}
                 </button>
               )
               : (
                 <button
                   type="button"
-                  className="save-button"
+                  className="save-button save-button--book"
                   disabled={busy}
                   onClick={() => onBook?.(item.id)}
                   aria-label={`Book a place in ${item.title}`}
@@ -90,6 +98,14 @@ export function ScheduleCard({
               )
           )}
         </div>
+
+        {signup && (
+          <p className={`schedule-card__booking schedule-card__booking--${signup.status}`} role="status">
+            {signup.status === 'confirmed'
+              ? (signup.promoted_at ? 'A place opened up and it is yours.' : 'You have a place.')
+              : `You are number ${signup.queue_position} on the waitlist.`}
+          </p>
+        )}
       </div>
     </article>
   );
