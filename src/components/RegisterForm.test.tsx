@@ -161,8 +161,9 @@ describe('RegisterForm', () => {
     expect(await screen.findByText(/doesn't apply to the pass you've chosen/i)).toBeInTheDocument();
     expect(screen.queryByText(/WEEKEND applied/)).not.toBeInTheDocument();
 
-    // Sunday, not Saturday: switching pass leaves days as ['day1','day2'], so
-    // the Saturday radio already reads as checked and clicking it is a no-op.
+    // Switching back to a 1-day pass leaves no day chosen, so either pill works.
+    expect(screen.getByLabelText(/saturday/i)).not.toBeChecked();
+    expect(screen.getByLabelText(/sunday/i)).not.toBeChecked();
     await user.click(screen.getByLabelText(/sunday/i));
     expect(screen.getAllByText('₹700')).toHaveLength(2); // full price, no promo line
   });

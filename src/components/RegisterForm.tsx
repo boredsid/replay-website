@@ -357,7 +357,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
           <legend className="label-brutal">Pass type</legend>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className={`btn whitespace-normal text-center leading-tight ${passType === 'oneshot' ? 'btn-primary' : 'btn-secondary'} btn-block`}>
-              <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => setPassType('oneshot')} className="sr-only" />
+              <input type="radio" name="passType" value="oneshot" checked={passType === 'oneshot'} onChange={() => { setPassType('oneshot'); setDays([]); }} className="sr-only" />
               1-day pass — ₹{edition.pricing.oneshot}
             </label>
             <label className={`btn whitespace-normal text-center leading-tight ${passType === 'campaign' ? 'btn-primary' : 'btn-secondary'} btn-block ${campaignUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
