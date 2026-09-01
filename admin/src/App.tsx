@@ -12,6 +12,7 @@ import Editions from '@/pages/Editions';
 import EditionDrawer from '@/pages/EditionDrawer';
 import Users from '@/pages/Users';
 import UserDrawer from '@/pages/UserDrawer';
+import CheckIn from '@/pages/CheckIn';
 import Programme from '@/pages/Programme';
 import ProgrammeDrawer from '@/pages/ProgrammeDrawer';
 import Announcements from '@/pages/Announcements';
@@ -44,6 +45,7 @@ export function App() {
               <Route path="/editions" element={<Editions />} />
               <Route path="/editions/new" element={<><Editions /><EditionDrawer /></>} />
               <Route path="/editions/:id" element={<><Editions /><EditionDrawer /></>} />
+              <Route path="/check-in" element={<CheckIn />} />
               <Route path="/programme" element={<Programme />} />
               <Route path="/programme/new" element={<><Programme /><ProgrammeDrawer /></>} />
               <Route path="/programme/:id" element={<><Programme /><ProgrammeDrawer /></>} />

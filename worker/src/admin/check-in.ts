@@ -17,6 +17,7 @@ import { getCurrentEdition } from '../editions';
 import {
   currentState,
   hasArrivedOn,
+  lastEventPerDay,
   type CheckInEvent,
   type EventDay,
   type EventKind,
@@ -156,6 +157,9 @@ export async function handleCheckInSearch(
         has_phone: Boolean(a.phone),
         is_purchaser: a.is_purchaser,
         state: currentState(eventsFor(events, a.id)),
+        // The row undo would cancel on each day, so the desk can reverse a
+        // mistake without a second lookup. Null means nothing to undo.
+        last_event: lastEventPerDay(eventsFor(events, a.id)),
         // Days this seat may be checked in on. A day nobody bought is shown
         // disabled with a reason rather than hidden — a person missing from
         // search reads as a broken system to whoever is on the door.

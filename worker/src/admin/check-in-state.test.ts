@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { currentState, hasArrivedOn, nextKind, type CheckInEvent } from './check-in-state';
+import { currentState, hasArrivedOn, lastEventPerDay, nextKind, type CheckInEvent } from './check-in-state';
 
 let seq = 0;
 function event(partial: Partial<CheckInEvent> & Pick<CheckInEvent, 'kind'>): CheckInEvent {
@@ -94,6 +94,33 @@ describe('hasArrivedOn', () => {
     const undo = event({ kind: 'in', voids_event_id: first.id });
     const second = event({ kind: 'in' });
     expect(hasArrivedOn([first, undo, second], 'day1')).toBe(true);
+  });
+});
+
+describe('lastEventPerDay', () => {
+  it('has nothing to undo before anyone arrives', () => {
+    expect(lastEventPerDay([])).toEqual({ day1: null, day2: null });
+  });
+
+  it('offers the most recent event of each day', () => {
+    const a = event({ kind: 'in', day: 'day1' });
+    const b = event({ kind: 'out', day: 'day1' });
+    const c = event({ kind: 'in', day: 'day2' });
+    expect(lastEventPerDay([a, b, c])).toEqual({ day1: b.id, day2: c.id });
+  });
+
+  it('falls back to the surviving event after an undo', () => {
+    const arrival = event({ kind: 'in' });
+    const wrongExit = event({ kind: 'out' });
+    const undo = event({ kind: 'out', voids_event_id: wrongExit.id });
+    // Undoing the exit leaves the arrival as the next thing undo would cancel.
+    expect(lastEventPerDay([arrival, wrongExit, undo]).day1).toBe(arrival.id);
+  });
+
+  it('offers nothing once every event is voided', () => {
+    const arrival = event({ kind: 'in' });
+    const undo = event({ kind: 'in', voids_event_id: arrival.id });
+    expect(lastEventPerDay([arrival, undo]).day1).toBeNull();
   });
 });
 

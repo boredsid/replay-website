@@ -263,3 +263,34 @@ export interface PromoCodeRow {
   created_at: string;
   updated_at: string;
 }
+
+// --- Check-in ---------------------------------------------------------------
+
+export type CheckInDay = 'day1' | 'day2';
+export type CheckInPresence = 'in' | 'out' | null;
+
+export interface CheckInAttendee {
+  attendee_id: string;
+  seat_index: number;
+  /** Already falls back to "Guest N" server-side, so never blank. */
+  name: string;
+  has_name: boolean;
+  /** Masked to the last four digits; the desk never reads out a full number. */
+  phone_masked: string | null;
+  has_phone: boolean;
+  is_purchaser: boolean;
+  state: Record<CheckInDay, CheckInPresence>;
+  /** The event undo would cancel on each day. Null means nothing to undo. */
+  last_event: Record<CheckInDay, string | null>;
+  /** Days this seat's ticket covers. Anything else is refused by the database. */
+  valid_days: CheckInDay[];
+}
+
+export interface CheckInRegistration {
+  registration_id: string;
+  purchaser_phone_masked: string | null;
+  pass_type: PassType;
+  days: CheckInDay[];
+  seats: number;
+  attendees: CheckInAttendee[];
+}

@@ -58,6 +58,22 @@ export function currentState(events: readonly CheckInEvent[]): DayState {
 }
 
 /**
+ * The most recent live event on each day, so the desk can undo it.
+ *
+ * Undo needs the id of the thing it cancels, and the only row worth cancelling
+ * is the last one — an operator who taps the wrong button notices immediately.
+ * Returns null for a day with nothing to undo, which is also what disables the
+ * button.
+ */
+export function lastEventPerDay(events: readonly CheckInEvent[]): Record<EventDay, string | null> {
+  const last: Record<EventDay, string | null> = { day1: null, day2: null };
+  for (const event of liveEvents(events).sort(byTime)) {
+    last[event.day] = event.id;
+  }
+  return last;
+}
+
+/**
  * Whether the attendee arrived on this day at all — regardless of a later exit.
  *
  * This gates pairing and session sign-ups. It deliberately ignores whether they
