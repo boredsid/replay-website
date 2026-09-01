@@ -450,3 +450,35 @@ p { line-height: 1.55; }
 .schedule-card__chevron--open { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .schedule-card__chevron { transition: none; } }
 .schedule-card__description { margin: var(--space-3) 0 0; color: var(--muted); }
+
+
+/* --- The pass: what you hold, and whether you are in ---------------------- */
+.id-card__pass {
+  margin: var(--space-1) 0 0;
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  opacity: .75;
+}
+.pass-days { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.pass-day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.pass-day strong { font-size: .95rem; }
+.pass-day span { color: var(--muted); font-size: .8rem; font-weight: 700; }
+/* Arrived is the good state, so it is the one that gets the colour. */
+.pass-day--arrived { background: var(--yellow); }
+.pass-day--arrived span { color: var(--ink); }
+/* A day the ticket does not cover is still shown -- greyed, not hidden, because
+   "is Sunday mine?" is the question this list exists to answer. */
+.pass-day--uncovered { border-style: dashed; background: transparent; box-shadow: none; opacity: .6; }

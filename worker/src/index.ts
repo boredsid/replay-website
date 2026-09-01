@@ -28,6 +28,7 @@ import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
 import { sendSessionReminders } from './push-triggers';
 import { handleMySaved, handleSaveItem, handleUnsaveItem, handleMergeSaved } from './app-saved';
+import { handleMyPass } from './app-pass';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -219,6 +220,9 @@ export default {
       }
       if (path === '/api/app/push/preferences' && req.method === 'PATCH') {
         return await handlePushPreferences(req, env);
+      }
+      if (path === '/api/app/me/pass' && req.method === 'GET') {
+        return await handleMyPass(req, env);
       }
       if (path === '/api/app/me/saved' && req.method === 'GET') {
         return await handleMySaved(req, env);
