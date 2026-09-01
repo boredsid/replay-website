@@ -20,7 +20,7 @@ import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch } from './admin/announcements';
-import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch } from './admin/check-in';
+import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -92,6 +92,7 @@ export default {
         // Matched before the `/check-in` prefix patterns so the more specific
         // paths are not swallowed by the bare one.
         if (path === '/api/admin/check-in/search' && req.method === 'GET') return await handleCheckInSearch(req, env, sb, origin);
+        if (path === '/api/admin/check-in/roster' && req.method === 'GET') return await handleCheckInRoster(req, env, sb, origin);
         if (path === '/api/admin/check-in/bulk' && req.method === 'POST') return await handleCheckInBulk(req, sb, email, origin);
         if (path === '/api/admin/check-in/undo' && req.method === 'POST') return await handleCheckInUndo(req, sb, email, origin);
         if (path === '/api/admin/check-in' && req.method === 'POST') return await handleCheckIn(req, sb, email, origin);

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError, fetchAdmin, showApiError } from '@/lib/api';
-import type { CheckInAttendee, CheckInDay, CheckInRegistration } from '@/lib/types';
+import type { CheckInAttendee, CheckInDay, CheckInRegistration, RosterRow } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/Loading';
+import { downloadCsv, rosterToCsv } from '@/lib/csv';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import {
   flushQueue,
@@ -36,6 +37,7 @@ export default function CheckIn() {
   const [busy, setBusy] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [queued, setQueued] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const online = useOnlineStatus();
 
@@ -133,6 +135,26 @@ export default function CheckIn() {
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     void search(query);
+  }
+
+  /**
+   * The paper fallback. Pull it before doors open — once the network is down is
+   * too late, and a printed sheet is the only thing that still works when the
+   * tablet does not.
+   */
+  async function exportRoster() {
+    setExporting(true);
+    try {
+      const data = await fetchAdmin<{ roster: RosterRow[] }>('/api/admin/check-in/roster');
+      if (!data.roster.length) { toast.error('No confirmed attendees to export yet.'); return; }
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(`replay-roster-${stamp}.csv`, rosterToCsv(data.roster));
+      toast.success(`${data.roster.length} attendees exported`);
+    } catch (error) {
+      showApiError(error);
+    } finally {
+      setExporting(false);
+    }
   }
 
   function draftFor(id: string): Draft {
@@ -270,6 +292,9 @@ export default function CheckIn() {
           aria-label="Search by purchaser phone, attendee phone, or name"
         />
         <Button type="submit" disabled={searching}>Search</Button>
+        <Button type="button" variant="outline" onClick={() => void exportRoster()} disabled={exporting}>
+          {exporting ? 'Preparing…' : 'Roster'}
+        </Button>
       </form>
 
       {searching && <Loading><span>Searching…</span></Loading>}

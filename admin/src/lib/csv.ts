@@ -30,3 +30,31 @@ export function downloadCsv(filename: string, csv: string): void {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+const ROSTER_HEADERS = ['name', 'phone_last4', 'pass', 'days', 'day1', 'day2'] as const;
+
+/**
+ * The paper fallback for the door. Phones stay masked: enough to check against
+ * what someone tells you, far less to lose than a sheet of full numbers.
+ */
+export function rosterToCsv(
+  roster: readonly {
+    name: string;
+    phone_masked: string | null;
+    pass_type: string;
+    days: readonly string[];
+    state: Record<string, string | null>;
+  }[],
+): string {
+  return toCsv(
+    ROSTER_HEADERS,
+    roster.map((r) => [
+      r.name,
+      r.phone_masked?.replace(/\D/g, '') ?? '',
+      r.pass_type,
+      r.days.join(' + '),
+      r.days.includes('day1') ? (r.state.day1 ?? 'not arrived') : 'n/a',
+      r.days.includes('day2') ? (r.state.day2 ?? 'not arrived') : 'n/a',
+    ]),
+  );
+}

@@ -184,6 +184,63 @@ async function loadEvents(
   return (data ?? []) as AttendeeEvent[];
 }
 
+/**
+ * The whole confirmed roster for the current edition, for the paper fallback.
+ *
+ * This is what the door runs on when the network, the tablet, or the Worker is
+ * unavailable, so it has to stand alone on paper. Phones stay masked to the last
+ * four digits: enough to verify against what someone tells you at the door, and
+ * a far smaller liability than a printed sheet of 273 full numbers if it is left
+ * on a table.
+ */
+export async function handleCheckInRoster(
+  _req: Request,
+  env: Env,
+  sb: SupabaseClient,
+  origin: string,
+): Promise<Response> {
+  const edition = await getCurrentEdition(env);
+  if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
+
+  const regs = await sb
+    .from('registrations')
+    .select('id, user_phone, pass_type, days')
+    .eq('edition_id', edition.id)
+    .eq('payment_status', 'confirmed');
+  if (regs.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const registrations = (regs.data ?? []) as RegistrationRow[];
+  const byId = new Map(registrations.map((r) => [r.id, r]));
+
+  const attendees = await sb
+    .from('attendees')
+    .select('id, seat_index, display_name, phone, is_purchaser, registration_id')
+    .eq('edition_id', edition.id)
+    .order('seat_index', { ascending: true });
+  if (attendees.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const rows = ((attendees.data ?? []) as AttendeeRow[]).filter((a) => byId.has(a.registration_id));
+
+  const events = await loadEvents(sb, rows.map((a) => a.id), origin);
+  if (events instanceof Response) return events;
+
+  const roster = rows.map((a) => {
+    const reg = byId.get(a.registration_id)!;
+    return {
+      attendee_id: a.id,
+      name: seatLabel(a.display_name, a.seat_index),
+      seat_index: a.seat_index,
+      is_purchaser: a.is_purchaser,
+      // A guest seat has no number of its own yet, so fall back to the
+      // purchaser's — otherwise the paper row has nothing to check against.
+      phone_masked: maskPhone(a.phone ?? reg.user_phone),
+      pass_type: reg.pass_type,
+      days: reg.days,
+      state: currentState(eventsFor(events, a.id)),
+    };
+  }).sort((x, y) => x.name.localeCompare(y.name));
+
+  return adminJson({ edition: edition.slug, generated_at: new Date().toISOString(), roster }, 200, origin);
+}
+
 interface CheckInRequest {
   attendee_id: string;
   day: EventDay;

@@ -294,3 +294,15 @@ export interface CheckInRegistration {
   seats: number;
   attendees: CheckInAttendee[];
 }
+
+export interface RosterRow {
+  attendee_id: string;
+  name: string;
+  seat_index: number;
+  is_purchaser: boolean;
+  /** Falls back to the purchaser's number for a guest seat with none of its own. */
+  phone_masked: string | null;
+  pass_type: PassType;
+  days: CheckInDay[];
+  state: Record<CheckInDay, CheckInPresence>;
+}
