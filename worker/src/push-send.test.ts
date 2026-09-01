@@ -25,7 +25,12 @@ function client(rows: Array<Record<string, unknown>>, onUpdate?: (patch: Record<
       select: () => ({ in: () => ({ is: () => ({ eq: async () => ({ data: rows, error: null }) }) }) }),
       update: (patch: Record<string, unknown>) => {
         onUpdate?.(patch);
-        return { eq: async () => ({ error: null }) };
+        // Successes and prunes are bulk-updated with .in; a lone failure count
+        // still goes through .eq.
+        return {
+          eq: async () => ({ error: null }),
+          in: async () => ({ error: null }),
+        };
       },
     }),
   } as never;
@@ -50,7 +55,7 @@ describe('notifyAttendees', () => {
     const result = await notifyAttendees(
       { VAPID_PUBLIC_KEY: 'k' } as unknown as Env, client([SUB]), ['a1'], 'waitlist', NOTE,
     );
-    expect(result).toEqual({ sent: 0, pruned: 0, failed: 0 });
+    expect(result).toEqual({ sent: 0, pruned: 0, failed: 0, skipped: 0 });
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -111,7 +116,7 @@ describe('notifyAttendees', () => {
       from: () => ({ select: () => ({ in: () => ({ is: () => ({ eq: async () => ({ data: null, error: { message: 'boom' } }) }) }) }) }),
     } as never;
     // Every caller is doing something more important than notifying.
-    expect(await notifyAttendees(ENV, broken, ['a1'], 'waitlist', NOTE)).toEqual({ sent: 0, pruned: 0, failed: 0 });
+    expect(await notifyAttendees(ENV, broken, ['a1'], 'waitlist', NOTE)).toEqual({ sent: 0, pruned: 0, failed: 0, skipped: 0 });
   });
 
   it.each([
@@ -124,7 +129,7 @@ describe('notifyAttendees', () => {
     const sb = {
       from: () => ({
         select: () => ({ in: () => ({ is: () => ({ eq: async (col: string) => { filtered = col; return { data: [], error: null }; } }) }) }),
-        update: () => ({ eq: async () => ({ error: null }) }),
+        update: () => ({ eq: async () => ({ error: null }), in: async () => ({ error: null }) }),
       }),
     } as never;
 

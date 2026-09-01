@@ -1,0 +1,158 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('./push-send', () => ({ notifyAttendees: vi.fn() }));
+
+import { notifyAnnouncement, sendSessionReminders, REMINDER_LEAD_MINUTES } from './push-triggers';
+import { notifyAttendees } from './push-send';
+import type { Env } from './index';
+
+const notify = notifyAttendees as unknown as ReturnType<typeof vi.fn>;
+const ENV = {} as unknown as Env;
+const EDITION = { id: 'ed-1', start_date: '2026-09-12', end_date: '2026-09-13' };
+
+beforeEach(() => {
+  notify.mockReset();
+  notify.mockResolvedValue({ sent: 1, pruned: 0, failed: 0 });
+});
+
+function announcement(severity: string) {
+  return { id: 'n1', title: 'Room change', body: 'Meet in Room B', severity, audience: 'all' };
+}
+
+const attendeeClient = {
+  from: () => ({ select: () => ({ eq: async () => ({ data: [{ id: 'a1' }, { id: 'a2' }], error: null }) }) }),
+} as never;
+
+describe('notifyAnnouncement', () => {
+  it.each(['urgent', 'incident'])('notifies for a %s notice', async (severity) => {
+    await notifyAnnouncement(ENV, attendeeClient, announcement(severity), EDITION.id);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0][3]).toBe('announcements');
+  });
+
+  it('stays silent for routine news', async () => {
+    // A channel that buzzes for ordinary updates gets switched off, and is then
+    // not there for the notice that matters.
+    expect(await notifyAnnouncement(ENV, attendeeClient, announcement('info'), EDITION.id)).toBeNull();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('marks an incident as important in the title', async () => {
+    await notifyAnnouncement(ENV, attendeeClient, announcement('incident'), EDITION.id);
+    expect(notify.mock.calls[0][4].title).toBe('Important: Room change');
+  });
+
+  it('tags per announcement so an edit replaces its earlier self', async () => {
+    await notifyAnnouncement(ENV, attendeeClient, announcement('urgent'), EDITION.id);
+    expect(notify.mock.calls[0][4].tag).toBe('announcement-n1');
+  });
+
+  it('notifies every attendee of the edition', async () => {
+    await notifyAnnouncement(ENV, attendeeClient, announcement('urgent'), EDITION.id);
+    expect(notify.mock.calls[0][2]).toEqual(['a1', 'a2']);
+  });
+});
+
+interface ReminderFixture {
+  sessions?: Array<Record<string, unknown>>;
+  signups?: Array<Record<string, unknown>>;
+  onStamp?: (ids: string[]) => void;
+  edition?: Record<string, unknown> | null;
+}
+
+function reminderClient(f: ReminderFixture = {}) {
+  const sessions = f.sessions ?? [];
+  return {
+    from: (table: string) => {
+      if (table === 'editions') return {
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: f.edition === undefined ? EDITION : f.edition, error: null }) }) }),
+      };
+      if (table === 'schedule_items') return {
+        select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ not: async () => ({ data: sessions, error: null }) }) }) }) }),
+      };
+      if (table === 'session_signups') return {
+        select: () => ({ eq: () => ({ eq: () => ({ is: async () => ({ data: f.signups ?? [], error: null }) }) }) }),
+        update: () => ({ in: async (_col: string, ids: string[]) => { f.onStamp?.(ids); return { error: null }; } }),
+      };
+      throw new Error(`unexpected table ${table}`);
+    },
+  } as never;
+}
+
+// 13:45 IST on day 1 — a 14:00 session is exactly the lead time away.
+const DURING_DAY1 = new Date('2026-09-12T08:15:00Z');
+const SESSION_AT_2PM = { id: 's1', title: 'Werewolf', start_time: '14:00:00', location: 'Sandbox' };
+const BOOKED = [{ id: 'su1', attendee_id: 'a1', schedule_item_id: 's1' }];
+
+describe('sendSessionReminders', () => {
+  it('reminds the people booked into a session about to start', async () => {
+    const result = await sendSessionReminders(
+      ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: BOOKED }), DURING_DAY1,
+    );
+
+    expect(result).toMatchObject({ sessions: 1 });
+    expect(notify.mock.calls[0][3]).toBe('reminders');
+    expect(notify.mock.calls[0][4].title).toBe('Werewolf starts soon');
+    expect(notify.mock.calls[0][4].body).toContain('Sandbox');
+  });
+
+  it('stamps the sign-ups it reminded, which is what makes a retry safe', async () => {
+    let stamped: string[] = [];
+    await sendSessionReminders(
+      ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: BOOKED, onStamp: (ids) => { stamped = ids; } }), DURING_DAY1,
+    );
+    // Cron delivery is at-least-once; without this a retry reminds everybody twice.
+    expect(stamped).toEqual(['su1']);
+  });
+
+  it('ignores a session that is still hours away', async () => {
+    const result = await sendSessionReminders(
+      ENV, reminderClient({ sessions: [{ ...SESSION_AT_2PM, start_time: '18:00:00' }], signups: BOOKED }), DURING_DAY1,
+    );
+    expect(result.sessions).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('ignores a session that already started', async () => {
+    const result = await sendSessionReminders(
+      ENV, reminderClient({ sessions: [{ ...SESSION_AT_2PM, start_time: '13:00:00' }], signups: BOOKED }), DURING_DAY1,
+    );
+    expect(result.sessions).toBe(0);
+  });
+
+  it('sends nothing when nobody booked it', async () => {
+    await sendSessionReminders(ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: [] }), DURING_DAY1);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('does nothing at all outside the event days', async () => {
+    const result = await sendSessionReminders(
+      ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: BOOKED }), new Date('2026-09-01T08:15:00Z'),
+    );
+    // The cron runs year-round; it must be free on every other day.
+    expect(result).toEqual({ reminded: 0, sessions: 0 });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when no edition is current', async () => {
+    const result = await sendSessionReminders(ENV, reminderClient({ edition: null }), DURING_DAY1);
+    expect(result).toEqual({ reminded: 0, sessions: 0 });
+  });
+
+  it('uses IST for the day, not UTC', async () => {
+    // 20:00 UTC on the 11th is already the 12th in Bangalore, and a 01:45 IST
+    // session would be reminded then. Judged by UTC this would be the wrong day.
+    const justAfterMidnightIST = new Date('2026-09-11T20:15:00Z');
+    const result = await sendSessionReminders(
+      ENV,
+      reminderClient({ sessions: [{ ...SESSION_AT_2PM, start_time: '02:00:00' }], signups: BOOKED }),
+      justAfterMidnightIST,
+    );
+    expect(result.sessions).toBe(1);
+  });
+
+  it('mentions the lead time it actually uses', async () => {
+    await sendSessionReminders(ENV, reminderClient({ sessions: [SESSION_AT_2PM], signups: BOOKED }), DURING_DAY1);
+    expect(notify.mock.calls[0][4].body).toContain(String(REMINDER_LEAD_MINUTES));
+  });
+});

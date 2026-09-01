@@ -18,6 +18,12 @@ VAPID_PUBLIC_KEY = "BN6D4NKA9S4FLFPB4fBA0MkkZzbZFQBDOHEjPLqSitjabqGYdWJ99EhwKUEM
 # Where a push service can reach us if a notification misbehaves.
 VAPID_SUBJECT = "mailto:hello@replaycon.in"
 
+# Session reminders. Every five minutes is frequent enough that the ten-minute
+# send window never has a gap, and cheap enough to leave running year-round --
+# outside the event dates the handler returns immediately.
+[triggers]
+crons = ["*/5 * * * *"]
+
 [[routes]]
 pattern = "api.replaycon.in"
 custom_domain = true

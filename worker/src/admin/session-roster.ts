@@ -159,6 +159,7 @@ export async function handleSessionSignupCreate(
 export async function handleSessionSignupRemove(
   req: Request,
   env: Env,
+  ctx: ExecutionContext,
   sb: SupabaseClient,
   scheduleItemId: string,
   actorEmail: string,
@@ -189,7 +190,7 @@ export async function handleSessionSignupRemove(
   if (row?.promoted_attendee_id) {
     const session = await sb.from('schedule_items').select('title').eq('id', scheduleItemId).maybeSingle();
     const title = (session.data as { title: string } | null)?.title ?? 'a session';
-    notifyInBackground(env, sb, [row.promoted_attendee_id], 'waitlist', {
+    notifyInBackground(ctx, env, sb, [row.promoted_attendee_id], 'waitlist', {
       title: 'A seat opened up',
       body: `You are in for ${title}.`,
       url: '#my-day',

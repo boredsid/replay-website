@@ -13,6 +13,7 @@ const EDITION = { id: 'ed-1', start_date: '2026-09-12', end_date: '2026-09-13' }
 const ATTENDEE = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const SESSION = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const env = {} as never;
+const ctx = { waitUntil: (p: Promise<unknown>) => void p, passThroughOnException: () => {} } as never;
 
 const auth = authenticateDevice as unknown as ReturnType<typeof vi.fn>;
 const currentEdition = getCurrentEdition as unknown as ReturnType<typeof vi.fn>;
@@ -171,7 +172,7 @@ describe('handleCancelSignup', () => {
     tables();
     sbMock.rpc.mockResolvedValue({ data: [{ cancelled: true, promoted_attendee_id: 'someone-else' }], error: null });
 
-    const res = await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, SESSION);
+    const res = await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, ctx, SESSION);
 
     expect(sbMock.rpc).toHaveBeenCalledWith('cancel_session_signup', {
       p_attendee_id: ATTENDEE, p_schedule_item_id: SESSION,
@@ -186,20 +187,20 @@ describe('handleCancelSignup', () => {
     sbMock.rpc.mockResolvedValue({ data: [{ cancelled: true, promoted_attendee_id: null }], error: null });
 
     // Refusing this would keep the seat out of circulation for whoever waits.
-    expect((await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, SESSION)).status).toBe(200);
+    expect((await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, ctx, SESSION)).status).toBe(200);
   });
 
   it('reports nothing to cancel without pretending it worked', async () => {
     signedIn();
     tables();
     sbMock.rpc.mockResolvedValue({ data: [{ cancelled: false, promoted_attendee_id: null }], error: null });
-    expect(await (await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, SESSION)).json())
+    expect(await (await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, ctx, SESSION)).json())
       .toEqual({ cancelled: false });
   });
 
   it('rejects a malformed session id', async () => {
     signedIn();
-    const res = await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, 'nope');
+    const res = await handleCancelSignup(new Request('https://api/x', { method: 'DELETE' }), env, ctx, 'nope');
     expect(res.status).toBe(400);
   });
 });

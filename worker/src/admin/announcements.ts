@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { diffRows, writeAudit } from './audit';
+import { notifyAnnouncement } from '../push-triggers';
+import type { Env } from '../index';
 
 const SEVERITIES = ['info', 'urgent', 'incident'] as const;
 const AUDIENCES = ['all', 'day1', 'day2'] as const;
@@ -90,6 +92,8 @@ export async function handleAnnouncementGet(sb: SupabaseClient, id: string, orig
 
 export async function handleAnnouncementCreate(
   req: Request,
+  env: Env,
+  ctx: ExecutionContext,
   sb: SupabaseClient,
   actorEmail: string,
   origin: string,
@@ -125,11 +129,24 @@ export async function handleAnnouncementCreate(
     target_id: (inserted.data as any).id,
     diff: inserted.data,
   });
+
+  // Only a published urgent or incident notice buzzes anybody. A draft has not
+  // been decided on yet, and routine news is what makes people switch a channel
+  // off before the notice that matters arrives.
+  if (row.is_published) {
+    ctx.waitUntil(
+      notifyAnnouncement(env, sb, inserted.data as never, row.edition_id)
+        .catch((error) => console.error('announcement_push_failed', error)),
+    );
+  }
+
   return adminJson({ ok: true, announcement: inserted.data }, 200, origin);
 }
 
 export async function handleAnnouncementPatch(
   req: Request,
+  env: Env,
+  ctx: ExecutionContext,
   sb: SupabaseClient,
   id: string,
   actorEmail: string,
@@ -160,5 +177,16 @@ export async function handleAnnouncementPatch(
     target_id: id,
     diff: diffRows(before.data as any, { ...(before.data as any), ...row }),
   });
+
+  // Only on the transition into published. Editing an already-published notice
+  // must not buzz everybody again -- fixing a typo is not news.
+  const wasPublished = (before.data as { is_published: boolean }).is_published;
+  if (row.is_published && !wasPublished) {
+    ctx.waitUntil(
+      notifyAnnouncement(env, sb, updated.data as never, row.edition_id)
+        .catch((error) => console.error('announcement_push_failed', error)),
+    );
+  }
+
   return adminJson({ ok: true, announcement: updated.data }, 200, origin);
 }

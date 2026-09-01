@@ -137,6 +137,7 @@ export async function handleSignUp(req: Request, env: Env): Promise<Response> {
 export async function handleCancelSignup(
   req: Request,
   env: Env,
+  ctx: ExecutionContext,
   scheduleItemId: string,
 ): Promise<Response> {
   if (!UUID.test(scheduleItemId)) return jsonResponse({ error: 'invalid_schedule_item_id' }, 400);
@@ -164,7 +165,7 @@ export async function handleCancelSignup(
       .eq('id', scheduleItemId)
       .maybeSingle();
     const title = (session.data as { title: string } | null)?.title ?? 'a session';
-    notifyInBackground(env, sb, [row.promoted_attendee_id], 'waitlist', {
+    notifyInBackground(ctx, env, sb, [row.promoted_attendee_id], 'waitlist', {
       title: 'A seat opened up',
       body: `You are in for ${title}.`,
       url: '#my-day',

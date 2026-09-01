@@ -26,6 +26,7 @@ import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemo
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
+import { sendSessionReminders } from './push-triggers';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -72,7 +73,24 @@ export interface Env {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  /**
+   * Session reminders, on a cron trigger.
+   *
+   * Delivery is at-least-once, so this must be safe to run twice: the
+   * reminded_at stamp is what makes it so, not the schedule.
+   */
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil((async () => {
+      try {
+        const result = await sendSessionReminders(env, serviceClient(env));
+        if (result.sessions > 0) console.log('session_reminders', result);
+      } catch (error) {
+        console.error('session_reminders_failed', error);
+      }
+    })());
+  },
+
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
 
@@ -112,7 +130,7 @@ export default {
         if (rosterMatch && req.method === 'GET') return await handleSessionRoster(req, sb, rosterMatch[1], origin);
         const sessionSignupMatch = path.match(/^\/api\/admin\/sessions\/([^/]+)\/signups$/);
         if (sessionSignupMatch && req.method === 'POST') return await handleSessionSignupCreate(req, sb, sessionSignupMatch[1], email, origin);
-        if (sessionSignupMatch && req.method === 'DELETE') return await handleSessionSignupRemove(req, env, sb, sessionSignupMatch[1], email, origin);
+        if (sessionSignupMatch && req.method === 'DELETE') return await handleSessionSignupRemove(req, env, ctx, sb, sessionSignupMatch[1], email, origin);
         if (path === '/api/admin/check-in/bulk' && req.method === 'POST') return await handleCheckInBulk(req, sb, email, origin);
         if (path === '/api/admin/check-in/undo' && req.method === 'POST') return await handleCheckInUndo(req, sb, email, origin);
         if (path === '/api/admin/check-in' && req.method === 'POST') return await handleCheckIn(req, sb, email, origin);
@@ -120,10 +138,10 @@ export default {
         if (attendeeMatch && req.method === 'PATCH') return await handleAttendeePatch(req, sb, attendeeMatch[1], email, origin);
 
         if (path === '/api/admin/announcements' && req.method === 'GET') return await handleAnnouncementList(req, sb, origin);
-        if (path === '/api/admin/announcements' && req.method === 'POST') return await handleAnnouncementCreate(req, sb, email, origin);
+        if (path === '/api/admin/announcements' && req.method === 'POST') return await handleAnnouncementCreate(req, env, ctx, sb, email, origin);
         const announcementMatch = path.match(/^\/api\/admin\/announcements\/([^/]+)$/);
         if (announcementMatch && req.method === 'GET') return await handleAnnouncementGet(sb, announcementMatch[1], origin);
-        if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, sb, announcementMatch[1], email, origin);
+        if (announcementMatch && req.method === 'PATCH') return await handleAnnouncementPatch(req, env, ctx, sb, announcementMatch[1], email, origin);
 
         // Matched before the `/promo-codes/:id` pattern that would swallow it.
         if (path === '/api/admin/promo-codes/validate' && req.method === 'POST') return await handlePromoValidate(req, sb, origin);
@@ -205,7 +223,7 @@ export default {
       }
       const signupMatch = path.match(/^\/api\/app\/signups\/([^/]+)$/);
       if (signupMatch && req.method === 'DELETE') {
-        return await handleCancelSignup(req, env, signupMatch[1]);
+        return await handleCancelSignup(req, env, ctx, signupMatch[1]);
       }
       if (path === '/api/app/bootstrap' && req.method === 'GET') {
         return await handleAppBootstrap(serviceClient(env));

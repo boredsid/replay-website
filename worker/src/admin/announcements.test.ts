@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { handleAnnouncementCreate, handleAnnouncementPatch } from './announcements';
 
 const ORIGIN = 'https://admin.replaycon.in';
+/** Push is unconfigured in tests, so publishing notifies nobody. */
+const ENV = {} as never;
+const CTX = { waitUntil: (p: Promise<unknown>) => void p, passThroughOnException: () => {} } as never;
 const VALID = {
   edition_id: 'edition-3',
   title: 'Room change',
@@ -33,7 +36,7 @@ describe('announcement admin handlers', () => {
       },
     };
     const req = new Request('https://x/api/admin/announcements', { method: 'POST', body: JSON.stringify(VALID) });
-    const res = await handleAnnouncementCreate(req, sb, 'sid@example.com', ORIGIN);
+    const res = await handleAnnouncementCreate(req, ENV, CTX, sb, 'sid@example.com', ORIGIN);
 
     expect(res.status).toBe(200);
     expect(inserted).toMatchObject({ severity: 'urgent', audience: 'day1', is_published: true });
@@ -68,7 +71,7 @@ describe('announcement admin handlers', () => {
       },
     };
     const req = new Request('https://x/api/admin/announcements/notice-1', { method: 'PATCH', body: JSON.stringify({ severity: 'incident' }) });
-    const res = await handleAnnouncementPatch(req, sb, 'notice-1', 'sid@example.com', ORIGIN);
+    const res = await handleAnnouncementPatch(req, ENV, CTX, sb, 'notice-1', 'sid@example.com', ORIGIN);
 
     expect(res.status).toBe(200);
     expect(audit.action).toBe('announcement.update');

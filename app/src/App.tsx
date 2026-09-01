@@ -10,6 +10,8 @@ import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
 import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
+import { fetchPushState, type PushState } from './lib/push';
+import PushPrompt from './components/PushPrompt';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
 import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
 import { filterSchedule, uniqueValues } from './lib/schedule';
@@ -357,6 +359,10 @@ export default function App() {
   const [signups, setSignups] = useState<Signup[]>([]);
   const [bookingBusy, setBookingBusy] = useState<string | null>(null);
   const [bookingNote, setBookingNote] = useState<string | null>(null);
+  const [push, setPush] = useState<PushState | null>(null);
+  // Set only when a booking just landed someone on a waitlist, which is the one
+  // moment asking about notifications makes obvious sense.
+  const [pushAsk, setPushAsk] = useState<string | null>(null);
   const standalone = useMemo(() => isStandalone(), []);
   const online = useOnline();
   const now = useMinuteClock();
@@ -394,6 +400,7 @@ export default function App() {
     // Null means the request failed; keep whatever is on screen rather than
     // blanking someone's bookings because the venue wifi dipped.
     void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
+    void fetchPushState(device).then(setPush);
   }, [device]);
 
   const refreshSignups = async (current: Device) => {
@@ -410,6 +417,10 @@ export default function App() {
       setBookingNote(result.status === 'confirmed'
         ? 'Booked. It is in My Day.'
         : `You are number ${result.queue_position} on the waitlist.`);
+      if (result.status === 'waitlisted') {
+        const session = data?.schedule.find((s) => s.id === scheduleItemId);
+        setPushAsk(session?.title ?? 'that session');
+      }
       await refreshSignups(device);
     } else if (result.error === 'not_checked_in') {
       setBookingNote('Check in at the desk first, then this will work.');
@@ -551,6 +562,17 @@ export default function App() {
         {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={refresh}>Try again</button></div> : data ? (
           <>
             <Announcements announcements={notices} timezone={data.timezone} />
+            {device && push && pushAsk && (
+              <PushPrompt
+                device={device}
+                push={push}
+                sessionTitle={pushAsk}
+                onDone={(subscribed) => {
+                  setPushAsk(null);
+                  if (subscribed) setPush({ ...push, subscribed: true });
+                }}
+              />
+            )}
             {bookingNote && (
               <p className="booking-note" role="status">
                 {bookingNote}

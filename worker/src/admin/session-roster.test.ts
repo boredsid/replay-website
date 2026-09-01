@@ -57,6 +57,7 @@ function rpcClient(rpcResult: { data?: unknown; error?: { message: string } | nu
 
 /** Push is unconfigured in tests, so notifying is a no-op rather than a fetch. */
 const ENV = {} as never;
+const CTX = { waitUntil: (p: Promise<unknown>) => void p, passThroughOnException: () => {} } as never;
 
 const body = (attendeeId: string) =>
   new Request('https://x', { method: 'POST', body: JSON.stringify({ attendee_id: attendeeId }) });
@@ -169,7 +170,7 @@ describe('handleSessionSignupCreate', () => {
 describe('handleSessionSignupRemove', () => {
   it('tells staff who was promoted, since nothing else will', async () => {
     const res = await handleSessionSignupRemove(
-      body(A1), ENV, rpcClient({ data: [{ cancelled: true, promoted_attendee_id: A2 }] }), SESSION, STAFF, ORIGIN,
+      body(A1), ENV, CTX, rpcClient({ data: [{ cancelled: true, promoted_attendee_id: A2 }] }), SESSION, STAFF, ORIGIN,
     );
     // Push tells them too, but not everyone subscribes -- staff seeing the name
     // is the fallback for whoever turned notifications off.
@@ -178,7 +179,7 @@ describe('handleSessionSignupRemove', () => {
 
   it('reports nothing removed without pretending otherwise', async () => {
     const res = await handleSessionSignupRemove(
-      body(A1), ENV, rpcClient({ data: [{ cancelled: false, promoted_attendee_id: null }] }), SESSION, STAFF, ORIGIN,
+      body(A1), ENV, CTX, rpcClient({ data: [{ cancelled: false, promoted_attendee_id: null }] }), SESSION, STAFF, ORIGIN,
     );
     expect(await res.json()).toMatchObject({ removed: false });
   });
