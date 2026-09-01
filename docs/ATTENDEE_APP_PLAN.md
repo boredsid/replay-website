@@ -40,8 +40,8 @@ This is the first implementation slice.
   hosts, and descriptions; show cancelled items without presenting them as live.
 - **My Day:** save or remove programme items on the current device, with no
   account and no server-side behavioural profile.
-- **Map:** show the confirmed venue and external map link when available; clearly
-  state that the floor plan is pending until organisers publish one.
+- **Map:** show the confirmed venue, the floor plan drawn from the organiser
+  sketch, and the external map link when available.
 - **Event info:** date, hours, ticket-desk identity guidance, help email, venue
   status, and links to the canonical Plan Your Visit page.
 - **Install/offline:** web-app manifest, install affordance, cached shell and
@@ -55,12 +55,33 @@ Required before personal attendee functionality.
   updates, urgent notices, and incident banners, with IST start/end times,
   severity, audience, draft/published state, and audit history. Active notices
   are part of the offline-cacheable attendee bootstrap payload.
-- Venue-map publishing with accessible text alternatives, help desk,
-  food/water, accessibility points, exits, and an offline-safe asset.
-- Per-day check-in, re-entry, undo, staff attribution, search by secure QR token,
-  and an offline roster/reconciliation process.
-- App surfaces announcements and venue maps only after those admin workflows
-  and their failure modes are tested.
+- **Implemented in the repository:** the venue floor map — the five play zones,
+  Save Point (entrance and registration), the Game Library, campfire, lifts,
+  water, snacks, and the wet rooms. It is defined in code from the organiser
+  sketch rather than published from admin, ships an accessible `<title>`/`<desc>`
+  and a plain-text alternative, and is inlined as an offline-safe asset on both
+  the public site and the app. See `docs/VENUE_MAP.md`.
+  Accessibility points and marked exits are not yet on the plan.
+- Per-day check-in, re-entry, undo, staff attribution, search **by phone number**
+  at the kiosk, and an offline roster/reconciliation process. The door does not
+  scan anything; QR earns its place later, as the scan handle for library
+  borrowing.
+- Attendee identity by kiosk-issued pairing code, binding one device to one
+  registration. Check-in doubles as the identity event, so the original Phase 3
+  identity decision is no longer a prerequisite for anything.
+- A first-run wizard in the app: install to home screen, then pair or continue
+  as a guest, resumable at any time.
+- Attendee event sign-ups with capacity and a waitlist, unlocked by being
+  checked in that day.
+- Push notifications for waitlist promotion, urgent announcements, and
+  session-start reminders.
+- App surfaces check-in state and sign-ups only after those admin workflows and
+  their failure modes are tested.
+
+**The full remaining roadmap — every phase from here to game-library
+circulation, with dependencies — now lives in
+`docs/superpowers/specs/2026-09-01-replay-attendee-app-roadmap-design.md` and its
+companion plan. Those two documents supersede the phase boundaries below.**
 
 ### Phase 3 — secure attendee ticket
 
@@ -159,10 +180,13 @@ Phase 1 is ready for a preview deployment when:
 
 ## Launch decisions still required
 
-- Confirmed venue, address, venue floor plan, and accessibility annotation owner.
+- Accessibility annotations on the floor plan, and their named owner. The venue,
+  address, and floor plan itself are confirmed.
 - Same-day support route and incident communications owner.
 - Announcement publisher roles and urgent-message approval rules.
-- Identity/recovery choice, QR security, session retention, and privacy copy.
+- Privacy and data-use copy covering device pairing, the QR handle, and push
+  consent. Identity and recovery are settled: kiosk pairing code, re-pair at the
+  desk. See the roadmap design.
 - Library inventory source, library owner, loan duration, and offline ledger
   reconciliation owner.
 - Named owners for check-in source of truth, offline reconciliation, and the

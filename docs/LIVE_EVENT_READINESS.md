@@ -139,9 +139,9 @@ design and test the following operational scenario matrix before implementation.
 Build `app.replaycon.in` as an installable, mobile-first PWA. Public utility
 must work without signing in; secure personal features form a second but still
 in-scope launch layer. The detailed delivery contract lives in
-`docs/ATTENDEE_APP_PLAN.md`. Its Phase 1 public schedule/agenda shell and the
-Phase 2 announcement slice are implemented; the venue-map, secure-ticket,
-check-in, and library phases remain gated by that plan.
+`docs/ATTENDEE_APP_PLAN.md`. Its Phase 1 public schedule/agenda shell, the
+Phase 2 announcement slice, and the venue floor map are implemented; the
+secure-ticket, check-in, and library phases remain gated by that plan.
 
 ### Public utility layer
 
@@ -186,9 +186,10 @@ check-in, and library phases remain gated by that plan.
 
 ### App dependencies
 
-- Complete the admin check-in, schedule, venue-map, and library circulation
-  workflows first, and rehearse the implemented announcement workflow in
-  production.
+- Complete the admin check-in and library circulation workflows first, and
+  rehearse the implemented announcement and programme workflows in production.
+  The venue map is defined in code rather than published from admin; see
+  `docs/VENUE_MAP.md`.
 - Define identity, QR-token security, offline conflict resolution, push
   notification ownership, support staffing, and data/privacy boundaries before
   implementation.
