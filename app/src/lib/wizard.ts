@@ -68,11 +68,19 @@ export interface WizardView {
  * Decides what the attendee should see.
  *
  * Pairing wins over everything stored, so a device that paired on another screen
- * — or on a second visit — never sees the wizard again regardless of which step
- * it was left on.
+ * — or on a second visit — never sees the earlier steps again regardless of
+ * which one it was left on. The exception is notifications, which pairing is
+ * what makes possible in the first place.
  */
 export function resolveWizard(state: WizardState, context: WizardContext): WizardView {
-  if (context.paired) return { open: false, step: state.step, showResume: false };
+  if (context.paired) {
+    // Pairing ends the wizard except for the step it leads to. Notifications
+    // only make sense once there is an attendee to notify, so pairing is what
+    // opens that step -- closing the whole wizard here instead meant the one
+    // thing pairing unlocked was the one thing nobody was ever offered.
+    const pending = state.step === 'notifications' && !state.dismissed;
+    return { open: pending, step: 'notifications', showResume: false };
+  }
 
   const step = context.standalone && state.step === 'install' ? 'pair' : state.step;
   return {

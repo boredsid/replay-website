@@ -514,9 +514,11 @@ export default function App() {
 
   // Setup wins whenever both would apply: its first step is the install
   // instructions anyway, and it carries on to pairing afterwards.
+  // A browser tab reopens the wizard on every visit until setup is done, but
+  // only while setup is unfinished: once paired, whether anything is still
+  // pending is the wizard view's call.
   const showWizard = !dismissedThisOpen
-    && setupIncomplete
-    && (inBrowser || wizardView.open);
+    && (setupIncomplete ? (inBrowser || wizardView.open) : wizardView.open);
   const showInstallBox = !dismissedThisOpen && !showWizard && inBrowser;
   // The way back after dismissing. Shown whenever setup is unfinished and
   // nothing is already on screen -- without it, dismissing the box in a browser
@@ -598,7 +600,7 @@ export default function App() {
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'map' && (device ? <VenueMapOnly /> : <MapView data={data} />)}
-            {tab === 'info' && <IdCard device={device} onPaired={setDevice} />}
+            {tab === 'info' && <IdCard device={device} onPaired={setDevice} push={push} onPushChange={setPush} />}
             <p className="updated-at" aria-live="polite">
               {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}
               {error ? ' · last refresh failed' : ''}
