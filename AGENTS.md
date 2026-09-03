@@ -11,6 +11,23 @@ belong there, while ephemeral task status and secrets do not.
   schedule, device-local agenda, venue shell, and runtime announcements are
   implemented; secure tickets, maps, check-in, and library circulation remain
   gated by `docs/ATTENDEE_APP_PLAN.md`.
+
+  **Its Pages project is Direct Upload, so a merge alone has never shipped it.**
+  `.github/workflows/deploy-app.yml` now deploys it when app code lands on
+  `main`; before that workflow existed the app silently ran commits behind, and
+  PR checks stayed green throughout because only `replay-website` and
+  `replay-admin` report any. Cloudflare does not allow converting a Direct
+  Upload project to a Git integration — that would mean a new project and
+  moving the custom domain. To deploy by hand, or if the workflow is failing:
+
+  ```
+  npm run build:app
+  npx wrangler pages deploy app/dist --project-name replay-app --branch main
+  ```
+
+  Never verify this one by reading `wrangler pages deployment list`; it shows
+  the commit before the build lands. Fetch `https://app.replaycon.in/` and
+  check the `/assets/index-<hash>.js` it names against `app/dist/`.
 - `admin/` is the Vite/React operations console, deployed as a separate
   Cloudflare Pages project and protected by Cloudflare Access.
 - `worker/` is the Cloudflare Worker API for registration, capacity, discounts,

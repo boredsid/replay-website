@@ -1,0 +1,85 @@
+# Ships the attendee PWA when app code lands on main.
+#
+# `replay-app` is a Cloudflare Pages *Direct Upload* project, and Cloudflare
+# does not allow converting one to a Git integration -- you would have to make a
+# new project and move app.replaycon.in onto it. So unlike replay-website and
+# replay-admin, merging has never deployed this app. It was found four commits
+# behind on 2026-09-03, including a notification fix that looked shipped for
+# hours: every PR check was green, because only the two git-connected projects
+# report any.
+#
+# This closes that gap without touching the project or its domain. The deploy
+# is the same `wrangler pages deploy` a human would run, so the manual route
+# keeps working and stays the fallback.
+name: Deploy attendee app
+
+on:
+  push:
+    branches: [main]
+    # The app shares the root dependency tree, so a root lockfile change can
+    # alter the bundle without app/ being touched.
+    paths:
+      - 'app/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-app.yml'
+  # So a deploy can be forced without an empty commit -- recovering from a
+  # failed run, or shipping after a revert.
+  workflow_dispatch:
+
+# A second push while one deploy is in flight should supersede it, not race it.
+concurrency:
+  group: deploy-app
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Gate the deploy on the app's own suite and typecheck. A broken build
+      # reaching a phone at the venue is the thing worth spending 30s to avoid.
+      - run: npm run test:app
+      - run: npm run check:app
+      - run: npm run build:app
+
+      # Pinned rather than floating: wrangler is not a root dependency here, so
+      # an unpinned `npx wrangler` silently takes whatever is newest. 4.128.0 is
+      # the version that deployed this project by hand on 2026-09-03.
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >
+          npx --yes wrangler@4.128.0 pages deploy app/dist
+          --project-name replay-app
+          --branch main
+
+      # The deployment list shows a commit before the build has landed, so it
+      # is not proof. Fetch the served bundle and look for something the commit
+      # introduced instead.
+      - name: Verify the live bundle changed
+        run: |
+          sleep 10
+          built=$(ls app/dist/assets/index-*.js | head -1 | xargs basename)
+          echo "built bundle: $built"
+          for attempt in 1 2 3 4 5 6; do
+            live=$(curl -fsSL "https://app.replaycon.in/?cb=$RANDOM" \
+              | grep -o '/assets/index-[^"]*\.js' | head -1 | xargs basename)
+            echo "attempt $attempt: live bundle is $live"
+            if [ "$live" = "$built" ]; then
+              echo "::notice::app.replaycon.in is serving $built"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::app.replaycon.in still serves $live, expected $built"
+          exit 1
