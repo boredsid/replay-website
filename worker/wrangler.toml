@@ -22,8 +22,9 @@ VAPID_SUBJECT = "mailto:hello@replaycon.in"
 #
 # Every minute, not every five. Reminders alone were happy at five -- their send
 # window is ten minutes wide, so it could never gap. Scheduled announcements are
-# not: a notice defaults to a two-minute delivery window, so a five-minute tick
-# could arrive after the window had already closed and deliver nothing at all.
+# not: a notice defaults to a five-minute delivery window, and a five-minute
+# tick against a five-minute window has no margin at all -- a notice due just
+# after a tick would be delivered at the very end of its life, or past it.
 #
 # Still cheap enough to leave running year-round: outside the event dates both
 # queries match nothing and the handler returns immediately.
