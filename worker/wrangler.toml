@@ -18,11 +18,17 @@ VAPID_PUBLIC_KEY = "BN6D4NKA9S4FLFPB4fBA0MkkZzbZFQBDOHEjPLqSitjabqGYdWJ99EhwKUEM
 # Where a push service can reach us if a notification misbehaves.
 VAPID_SUBJECT = "mailto:hello@replaycon.in"
 
-# Session reminders. Every five minutes is frequent enough that the ten-minute
-# send window never has a gap, and cheap enough to leave running year-round --
-# outside the event dates the handler returns immediately.
+# Session reminders and scheduled notices.
+#
+# Every minute, not every five. Reminders alone were happy at five -- their send
+# window is ten minutes wide, so it could never gap. Scheduled announcements are
+# not: a notice defaults to a two-minute delivery window, so a five-minute tick
+# could arrive after the window had already closed and deliver nothing at all.
+#
+# Still cheap enough to leave running year-round: outside the event dates both
+# queries match nothing and the handler returns immediately.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 [[routes]]
 pattern = "api.replaycon.in"

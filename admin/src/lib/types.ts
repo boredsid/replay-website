@@ -154,6 +154,11 @@ export interface AnnouncementRow {
   starts_at: string;
   ends_at: string | null;
   is_published: boolean;
+  /** When the push went out. Null means it has not been dispatched yet. */
+  notified_at: string | null;
+  /** Devices reached. 0 is a real answer and means nobody was reachable. */
+  notified_sent: number | null;
+  notified_failed: number | null;
   created_at: string;
   updated_at: string;
 }

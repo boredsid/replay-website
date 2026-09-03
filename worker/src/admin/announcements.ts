@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { diffRows, writeAudit } from './audit';
-import { notifyAnnouncement } from '../push-triggers';
+import { dispatchAnnouncement } from '../push-triggers';
 import type { Env } from '../index';
 
 const SEVERITIES = ['info', 'urgent', 'incident'] as const;
@@ -56,6 +56,20 @@ function parseAnnouncement(input: any, previous?: any): AnnouncementInput {
     ends_at: endsAt,
     is_published: merged.is_published,
   };
+}
+
+/**
+ * Whether a notice is live now, as opposed to scheduled.
+ *
+ * "Send now" is not a separate mode in the data -- it is a `starts_at` of now.
+ * A few seconds of slack absorbs the round trip between the admin reading its
+ * clock and the Worker reading its own, so a genuine send-now is never mistaken
+ * for a schedule and left sitting until the next cron tick.
+ */
+const SEND_NOW_SLACK_MS = 30_000;
+
+function isLive(startsAt: string): boolean {
+  return new Date(startsAt).getTime() <= Date.now() + SEND_NOW_SLACK_MS;
 }
 
 async function editionExists(sb: SupabaseClient, editionId: string): Promise<boolean | null> {
@@ -133,9 +147,13 @@ export async function handleAnnouncementCreate(
   // Only a published urgent or incident notice buzzes anybody. A draft has not
   // been decided on yet, and routine news is what makes people switch a channel
   // off before the notice that matters arrives.
-  if (row.is_published) {
+  //
+  // And only once it is actually live. A notice written at 11am for 3pm used to
+  // buzz every phone at 11am, announcing something that had not happened; the
+  // cron picks it up when `starts_at` arrives instead.
+  if (row.is_published && isLive(row.starts_at)) {
     ctx.waitUntil(
-      notifyAnnouncement(env, sb, inserted.data as never, row.edition_id)
+      dispatchAnnouncement(env, sb, inserted.data as never, row.edition_id)
         .catch((error) => console.error('announcement_push_failed', error)),
     );
   }
@@ -178,12 +196,18 @@ export async function handleAnnouncementPatch(
     diff: diffRows(before.data as any, { ...(before.data as any), ...row }),
   });
 
-  // Only on the transition into published. Editing an already-published notice
-  // must not buzz everybody again -- fixing a typo is not news.
-  const wasPublished = (before.data as { is_published: boolean }).is_published;
-  if (row.is_published && !wasPublished) {
+  // Only on the transition into published, and only once live. Editing an
+  // already-published notice must not buzz everybody again -- fixing a typo is
+  // not news -- and one published ahead of its start time is left to the cron.
+  //
+  // A notice that has already been dispatched is never re-sent, whatever its
+  // published flag does afterwards: `notified_at` is the record of that, and
+  // unpublishing and republishing is not a way to buzz people twice.
+  const previous = before.data as { is_published: boolean; notified_at: string | null };
+  const alreadySent = previous.notified_at !== null;
+  if (row.is_published && !previous.is_published && !alreadySent && isLive(row.starts_at)) {
     ctx.waitUntil(
-      notifyAnnouncement(env, sb, updated.data as never, row.edition_id)
+      dispatchAnnouncement(env, sb, updated.data as never, row.edition_id)
         .catch((error) => console.error('announcement_push_failed', error)),
     );
   }

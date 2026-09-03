@@ -27,3 +27,11 @@ src/generated/
 # Regenerate from Supabase with the query in docs/REPLAY3_EMAIL_HANDOFF.md.
 marketing/replay-3/bgc-recipients.txt
 marketing/replay-3/batches/
+
+# Where assistant-generated artwork, exports and one-off working files go. This
+# repo builds a website; binary deliverables like logo kits, wristband codes and
+# social exports are outputs of a conversation, not inputs to the build, and they
+# run to megabytes each. Anything the site actually ships belongs in `public/`
+# or `sponsor-logos/` instead. See AGENTS.md.
+scratch/
+brand-assets/
