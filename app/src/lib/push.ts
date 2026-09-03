@@ -78,6 +78,56 @@ function urlBase64ToUint8Array(value: string): Uint8Array {
   return out;
 }
 
+/** Hands one browser's subscription to the server. Upserts on the endpoint. */
+async function registerSubscription(device: Device, subscription: PushSubscription): Promise<boolean> {
+  const raw = subscription.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+  try {
+    const response = await fetch(`${API_BASE}/api/app/push/subscribe`, {
+      method: 'POST',
+      headers: authHeaders(device),
+      body: JSON.stringify({ endpoint: raw.endpoint, keys: raw.keys }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Corrects the server's idea of "subscribed" with what this browser actually holds.
+ *
+ * The server answers per attendee, not per browser: any live row makes it say
+ * yes. So a phone that has lost its subscription -- the app removed from the
+ * home screen and added again, site data cleared, the endpoint rotated -- is
+ * told it is already subscribed, offers nobody the switch, and never registers
+ * again. Every notification then goes to the old endpoint, which Apple and
+ * Google keep accepting for a while after the install behind it is gone: sends
+ * report success and no phone ever buzzes.
+ *
+ * Asking the browser is the only reliable answer. Re-subscribing needs no prompt
+ * when permission is already granted, so this is silent, and re-registering an
+ * unchanged endpoint is an upsert -- which also repairs a row left pointing at
+ * the wrong attendee after re-pairing.
+ */
+export async function reconcilePush(device: Device, state: PushState): Promise<PushState> {
+  if (!state.vapidPublicKey || !pushSupported()) return { ...state, subscribed: false };
+  // Without permission there is nothing to reconcile, and the UI should be free
+  // to offer the switch again rather than believing a row from a dead install.
+  if (Notification.permission !== 'granted') return { ...state, subscribed: false };
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription()
+      ?? await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(state.vapidPublicKey).slice().buffer as ArrayBuffer,
+      });
+    return { ...state, subscribed: await registerSubscription(device, subscription) };
+  } catch {
+    return { ...state, subscribed: false };
+  }
+}
+
 /**
  * Asks permission, subscribes with the push service, and registers the result.
  *
@@ -102,13 +152,7 @@ export async function enablePush(device: Device, vapidPublicKey: string): Promis
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey).slice().buffer as ArrayBuffer,
     });
 
-    const raw = subscription.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-    const response = await fetch(`${API_BASE}/api/app/push/subscribe`, {
-      method: 'POST',
-      headers: authHeaders(device),
-      body: JSON.stringify({ endpoint: raw.endpoint, keys: raw.keys }),
-    });
-    if (!response.ok) return { ok: false, reason: 'failed' };
+    if (!await registerSubscription(device, subscription)) return { ok: false, reason: 'failed' };
     return { ok: true };
   } catch {
     return { ok: false, reason: 'failed' };
