@@ -320,3 +320,60 @@ export interface RosterRow {
   days: CheckInDay[];
   state: Record<CheckInDay, CheckInPresence>;
 }
+
+
+// --- Game library -----------------------------------------------------------
+
+export interface LibraryHold {
+  loan_id: string;
+  copy_id: string;
+  copy_number: number | null;
+  title: string | null;
+  title_key: string | null;
+  expires_at: string;
+  /** Lapsed holds are still shown to the desk, flagged. */
+  expired: boolean;
+}
+
+export interface LibraryOpenLoan {
+  loan_id: string;
+  copy_id: string;
+  copy_number: number | null;
+  title: string | null;
+  title_key: string | null;
+  due_at: string | null;
+  overdue: boolean;
+}
+
+/** What a scanned pass tells the desk. One reply, every action it implies. */
+export interface LibraryScan {
+  attendee_id: string;
+  name: string;
+  pass_type: string;
+  days: string[];
+  arrived_today: boolean;
+  library: { hold: LibraryHold | null; loan: LibraryOpenLoan | null };
+}
+
+export interface LibraryLoan {
+  loan_id: string;
+  attendee_id: string;
+  attendee_name: string;
+  contact_phone: string | null;
+  /** True when the number belongs to the buyer, not the borrower. */
+  contact_is_purchaser: boolean;
+  title: string;
+  title_key: string;
+  copy_number: number;
+  checked_out_at: string;
+  due_at: string;
+  overdue: boolean;
+  minutes_remaining: number;
+}
+
+export interface LibraryTitle {
+  id: string;
+  key: string;
+  title: string;
+  free_copies: Array<{ id: string; copy_number: number }>;
+}

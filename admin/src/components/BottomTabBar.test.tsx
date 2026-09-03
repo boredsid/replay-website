@@ -14,14 +14,17 @@ function renderAt(path = '/', moreOpen = false) {
 }
 
 describe('BottomTabBar', () => {
-  it('keeps four phone-sized primary tabs and a More action', () => {
+  it('keeps the on-the-day screens on the bar and a More action', () => {
+    // The bar is what staff use standing up: checking someone in, lending a
+    // game, reading the programme, sending an urgent notice. Registration admin
+    // is sitting-down work and lives under More.
     renderAt();
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Registrations' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Programme' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Announcements' })).toBeInTheDocument();
+    for (const name of ['Dashboard', 'Check in', 'Game library', 'Programme', 'Announcements']) {
+      expect(screen.getByRole('link', { name })).toBeInTheDocument();
+    }
     expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Editions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Registrations' })).not.toBeInTheDocument();
   });
 
   it('opens the More sheet and reflects its expanded state', () => {

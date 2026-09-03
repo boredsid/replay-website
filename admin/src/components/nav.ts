@@ -1,13 +1,14 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0 },
-  { to: '/editions', label: 'Editions', mobileLabel: 'Editions', icon: Calendar, end: false, mobile: 'more', mobileOrder: 0 },
+  { to: '/editions', label: 'Editions', mobileLabel: 'Editions', icon: Calendar, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/check-in', label: 'Check in', mobileLabel: 'Check in', icon: UserCheck, end: false, mobile: 'primary', mobileOrder: 1 },
+  { to: '/library', label: 'Game library', mobileLabel: 'Library', icon: Library, end: false, mobile: 'primary', mobileOrder: 2 },
   { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 4 },
-  { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 2 },
-  { to: '/promos', label: 'Promo codes', mobileLabel: 'Promos', icon: TicketPercent, end: false, mobile: 'more', mobileOrder: 1 },
+  { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'more', mobileOrder: 0 },
+  { to: '/promos', label: 'Promo codes', mobileLabel: 'Promos', icon: TicketPercent, end: false, mobile: 'more', mobileOrder: 2 },
   { to: '/partners', label: 'Partners', mobileLabel: 'Partners', icon: Handshake, end: false, mobile: 'more', mobileOrder: 2 },
   { to: '/partner-logos', label: 'Partner logos', mobileLabel: 'Logos', icon: ImageIcon, end: false, mobile: 'more', mobileOrder: 3 },
   { to: '/users', label: 'Users', mobileLabel: 'Users', icon: Users, end: false, mobile: 'more', mobileOrder: 4 },
