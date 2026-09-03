@@ -12,16 +12,58 @@ export interface UpiBottomSheetProps {
   error?: string | null;
 }
 
-function buildUpiUrl(
-  scheme: string,
-  path: string,
-  amount: number,
-  upiId: string,
-  payeeName: string,
-  transactionRef: string,
-): string {
-  return `${scheme}://${path}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
+/**
+ * NPCI caps the transaction reference at 35 alphanumeric characters, and since
+ * 2025-02-01 anything with a special character in it is declined outright. Our
+ * references are UUIDs, so strip the hyphens (36 chars -> 32) before handing one
+ * to a UPI app. The un-stripped UUID still goes to the worker as registration_id.
+ */
+function upiQuery(amount: number, upiId: string, payeeName: string, transactionRef: string): string {
+  const tr = transactionRef.replace(/[^A-Za-z0-9]/g, '').slice(0, 35);
+  return `pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount.toFixed(2)}&tr=${encodeURIComponent(tr)}&cu=INR`;
 }
+
+/**
+ * Chrome for Android will not follow a bare custom scheme like `tez://` — it
+ * fails with ERR_UNKNOWN_URL_SCHEME unless an installed app claims the scheme,
+ * and Google Pay dropped the Tez-era one. The Android-native form is an intent
+ * URI naming the package, which also sends people to the Play Store listing
+ * when the app is missing instead of an error page.
+ */
+function androidIntentUrl(androidPackage: string, query: string): string {
+  return `intent://pay?${query}#Intent;scheme=upi;package=${androidPackage};end`;
+}
+
+function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+}
+
+const UPI_APPS = [
+  {
+    key: 'gpay',
+    label: 'Google Pay',
+    icon: '/payment-app-icons/gpay.png',
+    androidPackage: 'com.google.android.apps.nbu.paisa.user',
+    scheme: 'tez',
+    path: 'upi/',
+  },
+  {
+    key: 'phonepe',
+    label: 'PhonePe',
+    icon: '/payment-app-icons/phonepe.png',
+    androidPackage: 'com.phonepe.app',
+    scheme: 'phonepe',
+    path: '',
+  },
+  {
+    key: 'paytm',
+    label: 'Paytm',
+    icon: '/payment-app-icons/paytm.jpg',
+    androidPackage: 'net.one97.paytm',
+    scheme: 'paytmmp',
+    path: '',
+  },
+] as const;
 
 export function UpiBottomSheet({
   amount,
@@ -34,10 +76,9 @@ export function UpiBottomSheet({
   error = null,
 }: UpiBottomSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&tr=${encodeURIComponent(transactionRef)}&cu=INR`;
-  const gpayUrl = buildUpiUrl('tez', 'upi/', amount, upiId, payeeName, transactionRef);
-  const phonepeUrl = buildUpiUrl('phonepe', '', amount, upiId, payeeName, transactionRef);
-  const paytmUrl = buildUpiUrl('paytmmp', '', amount, upiId, payeeName, transactionRef);
+  const query = upiQuery(amount, upiId, payeeName, transactionRef);
+  const upiUrl = `upi://pay?${query}`;
+  const android = isAndroid();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -86,30 +127,17 @@ export function UpiBottomSheet({
         <div className="mb-4">
           <p className="label-brutal text-center mb-3">Or pay directly with</p>
           <div className="grid grid-cols-3 gap-3">
-            <a
-              href={gpayUrl}
-              aria-label="Pay with Google Pay"
-              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
-              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
-            >
-              <img src="/payment-app-icons/gpay.png" alt="Google Pay" className="max-h-10 max-w-[80%] object-contain" />
-            </a>
-            <a
-              href={phonepeUrl}
-              aria-label="Pay with PhonePe"
-              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
-              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
-            >
-              <img src="/payment-app-icons/phonepe.png" alt="PhonePe" className="max-h-10 max-w-[80%] object-contain" />
-            </a>
-            <a
-              href={paytmUrl}
-              aria-label="Pay with Paytm"
-              className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
-              style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
-            >
-              <img src="/payment-app-icons/paytm.jpg" alt="Paytm" className="max-h-10 max-w-[80%] object-contain" />
-            </a>
+            {UPI_APPS.map((app) => (
+              <a
+                key={app.key}
+                href={android ? androidIntentUrl(app.androidPackage, query) : `${app.scheme}://${app.path}pay?${query}`}
+                aria-label={`Pay with ${app.label}`}
+                className="flex items-center justify-center h-16 rounded-xl no-underline transition-transform hover:-translate-x-[2px] hover:-translate-y-[2px]"
+                style={{ background: '#FFFFFF', border: '3px solid #1A1A1A', boxShadow: '4px 4px 0 #1A1A1A' }}
+              >
+                <img src={app.icon} alt={app.label} className="max-h-10 max-w-[80%] object-contain" />
+              </a>
+            ))}
           </div>
         </div>
         {error && <p role="alert" className="mb-4 text-sm font-medium text-[var(--color-error)]">{error}</p>}
