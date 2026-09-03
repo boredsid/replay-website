@@ -29,6 +29,16 @@ import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, hand
 import { sendSessionReminders, sendDueAnnouncements } from './push-triggers';
 import { handleMySaved, handleSaveItem, handleUnsaveItem, handleMergeSaved } from './app-saved';
 import { handleMyPass } from './app-pass';
+import { handleLibraryState, handleLibraryRequest, handleLibraryCancel } from './app-library';
+import {
+  handleLibraryCheckout,
+  handleLibraryReturn,
+  handleLibraryWithdraw,
+  handleLibraryRestore,
+  handleLibraryLost,
+  handleLibraryLoans,
+  handleLibraryTitleSearch,
+} from './admin/library';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
 import {
@@ -135,6 +145,16 @@ export default {
         if (path === '/api/admin/check-in/pairing-code' && req.method === 'POST') return await handlePairingCodeIssue(req, env, sb, email, origin);
         if (path === '/api/admin/scan' && req.method === 'POST') return await handleScan(req, env, sb, origin);
 
+        // Matched before the bare /library so the more specific paths are not
+        // swallowed by it.
+        if (path === '/api/admin/library/titles' && req.method === 'GET') return await handleLibraryTitleSearch(req, sb, origin);
+        if (path === '/api/admin/library/loans' && req.method === 'GET') return await handleLibraryLoans(req, sb, origin);
+        if (path === '/api/admin/library/checkout' && req.method === 'POST') return await handleLibraryCheckout(req, sb, email, origin);
+        if (path === '/api/admin/library/return' && req.method === 'POST') return await handleLibraryReturn(req, sb, email, origin);
+        if (path === '/api/admin/library/withdraw' && req.method === 'POST') return await handleLibraryWithdraw(req, sb, email, origin);
+        if (path === '/api/admin/library/restore' && req.method === 'POST') return await handleLibraryRestore(req, sb, email, origin);
+        if (path === '/api/admin/library/lost' && req.method === 'POST') return await handleLibraryLost(req, sb, email, origin);
+
         // Matched before the `/sessions/:id` patterns so the search is not
         // treated as a session id.
         if (path === '/api/admin/sessions/attendees' && req.method === 'GET') return await handleSessionAttendeeSearch(req, env, sb, origin);
@@ -230,6 +250,15 @@ export default {
       }
       if (path === '/api/app/push/preferences' && req.method === 'PATCH') {
         return await handlePushPreferences(req, env);
+      }
+      if (path === '/api/app/library' && req.method === 'GET') {
+        return await handleLibraryState(req, env);
+      }
+      if (path === '/api/app/library/request' && req.method === 'POST') {
+        return await handleLibraryRequest(req, env);
+      }
+      if (path === '/api/app/library/request' && req.method === 'DELETE') {
+        return await handleLibraryCancel(req, env);
       }
       if (path === '/api/app/me/pass' && req.method === 'GET') {
         return await handleMyPass(req, env);

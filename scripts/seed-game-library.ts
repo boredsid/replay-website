@@ -29,7 +29,43 @@ if (!key) {
   console.error('  SUPABASE_SERVICE_KEY=... npm run seed:library');
   process.exit(1);
 }
+/**
+ * Says what is wrong with a key without ever printing it.
+ *
+ * "Invalid API key" from PostgREST is almost always one of two things: the
+ * anon key pasted where service_role was wanted, or a key from a different
+ * project. Both are invisible by eye, and neither is worth debugging by
+ * pasting a secret into a terminal someone is watching.
+ */
+function describeKey(value: string, projectUrl: string): string {
+  const ref = projectUrl.match(/https:\/\/([a-z0-9]+)\.supabase\./)?.[1] ?? '(unknown)';
+  if (value.startsWith('sb_secret_')) return `new-style secret key, project ${ref}`;
+  if (value.startsWith('sb_publishable_')) {
+    return `PUBLISHABLE key -- that is the public one. You need the secret key. Project ${ref}`;
+  }
+  const parts = value.split('.');
+  if (parts.length !== 3) return `unrecognised key format (${value.length} chars), project ${ref}`;
+  try {
+    const claims = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8')) as { role?: string; ref?: string };
+    const mismatch = claims.ref && claims.ref !== ref ? `  <-- belongs to "${claims.ref}", not "${ref}"` : '';
+    return `role="${claims.role}", project "${claims.ref}"${mismatch}`;
+  } catch {
+    return `a JWT that would not decode, project ${ref}`;
+  }
+}
+
+console.log(`Key: ${describeKey(key, url)}`);
+
 const sb = createClient(url, key, { auth: { persistSession: false } });
+
+// Fail early and legibly rather than partway through the first write.
+const probe = await sb.from('library_titles').select('id', { count: 'exact', head: true });
+if (probe.error) {
+  console.error(`\nCannot reach library_titles: ${probe.error.message}`);
+  console.error('If the key line above does not say role="service_role" or "new-style secret key",');
+  console.error('that is the problem: the anon/publishable key has no grants on these tables.');
+  process.exit(1);
+}
 
 interface SnapshotGame {
   key: string;

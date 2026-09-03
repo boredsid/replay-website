@@ -7,6 +7,7 @@
 import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
+import { loansForAttendee } from './library';
 import { writeAudit } from './audit';
 import { getCurrentEdition } from '../editions';
 import { generatePairingCode, hashToken, normalizePairingCode } from '../attendee-tokens';
@@ -176,6 +177,12 @@ export async function handleScan(
   }
 
   const eventRows = (events.data ?? []) as CheckInEvent[];
+
+  // One scan answers the whole desk. Staff never choose between a "lend" mode
+  // and a "return" mode, because choosing the wrong one is the mistake a queue
+  // reliably produces.
+  const library = await loansForAttendee(sb, row.id);
+
   return adminJson(
     {
       attendee_id: row.id,
@@ -185,9 +192,7 @@ export async function handleScan(
       pass_type: registration.pass_type,
       days: registration.days,
       arrived_today: registration.days.some((day) => hasArrivedOn(eventRows, day)),
-      // Populated once the library ships; present now so the scan surface does
-      // not change shape later.
-      active_loans: [],
+      library,
     },
     200,
     origin,

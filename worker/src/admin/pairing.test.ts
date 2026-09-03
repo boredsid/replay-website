@@ -167,6 +167,7 @@ interface ScanFixture {
   attendee?: Record<string, unknown> | null;
   registration?: Record<string, unknown> | null;
   events?: Array<Record<string, unknown>>;
+  loans?: Array<Record<string, unknown>>;
 }
 
 function scanClient(f: ScanFixture = {}) {
@@ -188,6 +189,10 @@ function scanClient(f: ScanFixture = {}) {
       };
       if (table === 'check_in_events') return {
         select: () => ({ eq: async () => ({ data: f.events ?? ARRIVED, error: null }) }),
+      };
+      // One scan answers the whole desk, library included.
+      if (table === 'library_loans') return {
+        select: () => ({ eq: () => ({ in: async () => ({ data: f.loans ?? [], error: null }) }) }),
       };
       throw new Error(`unexpected table ${table}`);
     },
@@ -214,6 +219,27 @@ describe('handleScan', () => {
     expect(Object.keys(body)).toEqual(
       expect.not.arrayContaining(['phone', 'email', 'registration_id', 'user_phone']),
     );
+  });
+
+  it('says what the holder currently has out, so one scan answers the desk', async () => {
+    // Staff never pick between a "lend" mode and a "return" mode. Picking the
+    // wrong one is the mistake a queue reliably produces.
+    const res = await handleScan(scanRequest(), env, scanClient({
+      loans: [{
+        id: 'loan-1', status: 'checked_out', copy_id: 'copy-1',
+        request_expires_at: new Date().toISOString(),
+        due_at: new Date(Date.now() + 3_600_000).toISOString(),
+        library_copies: { copy_number: 2, library_titles: { key: 'bgg-1', title: 'Catan' } },
+      }],
+    }), ORIGIN);
+    const body = await res.json() as { library: { loan: Record<string, unknown> | null } };
+    expect(body.library.loan).toMatchObject({ title: 'Catan', copy_number: 2, overdue: false });
+  });
+
+  it('says nothing is out when nothing is', async () => {
+    const res = await handleScan(scanRequest(), env, scanClient(), ORIGIN);
+    const body = await res.json() as { library: { hold: unknown; loan: unknown } };
+    expect(body.library).toEqual({ hold: null, loan: null });
   });
 
   it('reports an unknown pass', async () => {

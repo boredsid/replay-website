@@ -13,7 +13,7 @@ import { serviceClient } from './supabase';
 import { jsonResponse } from './validation';
 import { getCurrentEdition } from './editions';
 import { authenticateDevice, type DeviceIdentity } from './attendee-auth';
-import { pairingGateDay } from './event-day';
+import { attendeeGateDay } from './attendee-gate';
 import { notifyInBackground } from './push-send';
 import type { CheckInEvent, EventDay } from './admin/check-in-state';
 
@@ -43,31 +43,16 @@ async function requireDevice(
 /**
  * Whether this attendee may book right now.
  *
- * During the event: they must have arrived today, so a booked seat means someone
- * in the building. Outside it: any day their ticket covers, which lets the whole
- * flow be rehearsed rather than first run at the door. Same rule as issuing a
- * pairing code, from the same function, so the two cannot disagree.
+ * The rule itself lives in `attendeeGateDay`, shared with game-library
+ * borrowing, so the two cannot drift into disagreeing about who is allowed
+ * what.
  */
 async function canBook(
   sb: SupabaseClient,
   attendeeId: string,
   edition: { start_date: string; end_date: string },
 ): Promise<boolean> {
-  const [attendee, events] = await Promise.all([
-    sb.from('attendees').select('registration_id').eq('id', attendeeId).maybeSingle(),
-    sb.from('check_in_events').select('id, day, kind, voids_event_id, occurred_at').eq('attendee_id', attendeeId),
-  ]);
-  if (attendee.error || events.error || !attendee.data) return false;
-
-  const reg = await sb
-    .from('registrations')
-    .select('days')
-    .eq('id', (attendee.data as { registration_id: string }).registration_id)
-    .maybeSingle();
-  if (reg.error) return false;
-
-  const ticketDays = (reg.data as { days: EventDay[] } | null)?.days ?? [];
-  return pairingGateDay(edition, ticketDays, (events.data ?? []) as CheckInEvent[]) !== null;
+  return (await attendeeGateDay(sb, attendeeId, edition)) !== null;
 }
 
 /** Everything this attendee currently holds, confirmed or queued. */
