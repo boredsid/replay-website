@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import PairForm from './PairForm';
+import NotificationSettings from './NotificationSettings';
 import type { Device } from '../lib/device';
+import type { PushState } from '../lib/push';
 import { fetchPass, passLabel, dayName, dayStatus, type Pass } from '../lib/pass';
 
 interface Props {
   device: Device | null;
   onPaired: (device: Device) => void;
+  /** Null until the server has answered, or when it cannot be reached. */
+  push: PushState | null;
+  onPushChange: (state: PushState) => void;
 }
 
 /**
@@ -16,7 +21,7 @@ interface Props {
  * standing at the library counter — which is exactly where the venue network is
  * least reliable.
  */
-export default function IdCard({ device, onPaired }: Props) {
+export default function IdCard({ device, onPaired, push, onPushChange }: Props) {
   const [pass, setPass] = useState<Pass | null>(null);
 
   useEffect(() => {
@@ -95,6 +100,8 @@ export default function IdCard({ device, onPaired }: Props) {
           </ul>
         </section>
       )}
+
+      {push && <NotificationSettings device={device} push={push} onChange={onPushChange} />}
 
       <section className="help-card">
         <span className="eyebrow">Lost your phone?</span>

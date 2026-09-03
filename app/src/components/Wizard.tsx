@@ -173,7 +173,12 @@ export default function Wizard({
               </p>
             )}
             <div className="wizard__actions">
-              {permissionState() === 'default' && push?.vapidPublicKey && (
+              {/* Offered while asking is still possible, and also when permission
+                  is already granted but this browser holds no subscription --
+                  a reinstalled home-screen app lands there, and without a
+                  button it has no way back. */}
+              {push?.vapidPublicKey
+                && (permissionState() === 'default' || (permissionState() === 'granted' && !push.subscribed)) && (
                 <button type="button" className="button" disabled={pushBusy} onClick={() => void turnOnNotifications()}>
                   {pushBusy ? 'Just a moment…' : 'Turn on notifications'}
                 </button>

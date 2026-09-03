@@ -12,7 +12,7 @@ import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
 import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
 import { mergeSaved, pushSaved, pushUnsaved } from './lib/saved';
-import { fetchPushState, type PushState } from './lib/push';
+import { fetchPushState, reconcilePush, type PushState } from './lib/push';
 import PushPrompt from './components/PushPrompt';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
 import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
@@ -35,6 +35,19 @@ const VALID_TABS = new Set(TABS.map((tab) => tab.id));
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+/**
+ * Push state as the server has it, corrected by what this browser actually holds.
+ *
+ * The server answers per attendee, so a subscription made on a previous install
+ * makes it say "subscribed" to a phone that holds nothing. Reconciling here is
+ * what keeps the switch honest and re-registers a browser that quietly lost its
+ * subscription.
+ */
+async function livePushState(device: Device): Promise<PushState | null> {
+  const state = await fetchPushState(device);
+  return state ? reconcilePush(device, state) : null;
 }
 
 function initialTab(): AppTab {
@@ -384,7 +397,7 @@ export default function App() {
     // Null means the request failed; keep whatever is on screen rather than
     // blanking someone's bookings because the venue wifi dipped.
     void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
-    void fetchPushState(device).then(setPush);
+    void livePushState(device).then(setPush);
     // Stars made before pairing -- which is most of them, since people plan
     // before they arrive -- exist only on this phone, and the reminder cron
     // cannot see a phone. Union, so pairing a second device adds rather than
@@ -501,9 +514,11 @@ export default function App() {
 
   // Setup wins whenever both would apply: its first step is the install
   // instructions anyway, and it carries on to pairing afterwards.
+  // A browser tab reopens the wizard on every visit until setup is done, but
+  // only while setup is unfinished: once paired, whether anything is still
+  // pending is the wizard view's call.
   const showWizard = !dismissedThisOpen
-    && setupIncomplete
-    && (inBrowser || wizardView.open);
+    && (setupIncomplete ? (inBrowser || wizardView.open) : wizardView.open);
   const showInstallBox = !dismissedThisOpen && !showWizard && inBrowser;
   // The way back after dismissing. Shown whenever setup is unfinished and
   // nothing is already on screen -- without it, dismissing the box in a browser
@@ -534,7 +549,7 @@ export default function App() {
             setAskedFor(null);
             // Not dismissed here any more: pairing leads on to the notifications
             // step, which is the whole point of asking there rather than later.
-            void fetchPushState(next).then(setPush);
+            void livePushState(next).then(setPush);
           }}
         />
       )}
@@ -585,7 +600,7 @@ export default function App() {
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'map' && (device ? <VenueMapOnly /> : <MapView data={data} />)}
-            {tab === 'info' && <IdCard device={device} onPaired={setDevice} />}
+            {tab === 'info' && <IdCard device={device} onPaired={setDevice} push={push} onPushChange={setPush} />}
             <p className="updated-at" aria-live="polite">
               {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}
               {error ? ' · last refresh failed' : ''}

@@ -58,6 +58,19 @@ describe('resolveWizard', () => {
     expect(view).toMatchObject({ open: false, showResume: false });
   });
 
+  it('carries on to notifications after pairing', () => {
+    // The step pairing leads to. Closing the wizard outright here meant the one
+    // thing pairing unlocked was the one thing nobody was ever offered, so a
+    // phone that had never been asked was never asked.
+    const view = resolveWizard({ step: 'notifications', dismissed: false }, { paired: true, standalone: true });
+    expect(view).toMatchObject({ open: true, step: 'notifications' });
+  });
+
+  it('does not reopen notifications once they have been answered', () => {
+    const view = resolveWizard({ step: 'notifications', dismissed: true }, { paired: true, standalone: true });
+    expect(view.open).toBe(false);
+  });
+
   it('closes when dismissed but leaves a way back', () => {
     const view = resolveWizard({ step: 'install', dismissed: true }, { paired: false, standalone: false });
     // Someone who skipped it at home still needs to pair once they reach the desk.
