@@ -355,6 +355,42 @@ p { line-height: 1.55; }
   font-weight: 650;
 }
 
+/* --- The one moment notifications are worth asking about ------------------ */
+
+/* Purple because it is not a notice: it sits in the same slot as
+   .booking-note but asks for something rather than reporting something, and
+   reading as another blue band would let it be dismissed as one. */
+.push-prompt {
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: 18px;
+  background: var(--purple);
+  box-shadow: var(--shadow);
+}
+/* Indigo on purple is legible but muddy, and this line is the context for
+   everything under it. */
+.push-prompt .eyebrow { color: var(--ink); }
+.push-prompt h3 { margin: 0 0 var(--space-2); }
+.push-prompt p { margin-bottom: var(--space-4); max-width: 46ch; }
+/* .button carries no fill of its own -- only its --dark/--light variants do --
+   so without this the primary action is a transparent outline on purple. */
+.push-prompt .button { background: var(--yellow); }
+.push-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.push-prompt .pass__error { margin: var(--space-3) 0 0; }
+
+/* Kept here rather than in the shared max-width block near the top of this
+   file: these selectors have the same specificity as the rules above, so from
+   up there the later base rule wins and the override silently does nothing. */
+@media (max-width: 620px) {
+  .push-prompt { padding: var(--space-4); box-shadow: 4px 4px 0 var(--ink); }
+}
+
 /* --- Booking state, stated in the card it belongs to --------------------- */
 .schedule-card__booking {
   margin: var(--space-3) 0 0;

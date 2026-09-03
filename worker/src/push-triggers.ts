@@ -18,11 +18,30 @@ interface AnnouncementRow {
   audience: string;
 }
 
+/** A seat, with the days the ticket behind it covers. */
+interface AudienceRow {
+  id: string;
+  // PostgREST embeds a many-to-one relation as an object, but returns an array
+  // when it cannot resolve the relationship to a single row. Tolerate both
+  // rather than silently notifying nobody if that inference ever changes.
+  registrations: { days: string[] | null } | Array<{ days: string[] | null }> | null;
+}
+
+function ticketDays(row: AudienceRow): string[] {
+  const registration = Array.isArray(row.registrations) ? row.registrations[0] : row.registrations;
+  return registration?.days ?? [];
+}
+
 /**
- * Notifies everyone about an urgent or incident notice.
+ * Notifies the announcement's audience about an urgent or incident notice.
  *
  * Routine updates are deliberately excluded. A channel that buzzes for ordinary
  * news gets turned off, and then it is not there for the notice that matters.
+ *
+ * The same reasoning is why `audience` is honoured. A day-1 notice sent to
+ * every attendee reaches day-2 ticket holders who are not at the venue and
+ * cannot act on it, and it is precisely the urgent channel it spends -- the one
+ * that has to still be trusted during an incident.
  */
 export async function notifyAnnouncement(
   env: Env,
@@ -34,11 +53,18 @@ export async function notifyAnnouncement(
 
   const { data, error } = await sb
     .from('attendees')
-    .select('id')
+    .select('id, registrations(days)')
     .eq('edition_id', editionId);
   if (error) return null;
 
-  const attendeeIds = ((data ?? []) as Array<{ id: string }>).map((row) => row.id);
+  const rows = (data ?? []) as AudienceRow[];
+  // 'all' is the default and the common case; anything else names a single day
+  // of the edition, which the ticket's `days` array either covers or does not.
+  const audience = announcement.audience;
+  const attendeeIds = (audience === 'all' || !audience
+    ? rows
+    : rows.filter((row) => ticketDays(row).includes(audience))
+  ).map((row) => row.id);
   return notifyAttendees(env, sb, attendeeIds, 'announcements', {
     title: announcement.severity === 'incident' ? `Important: ${announcement.title}` : announcement.title,
     body: announcement.body.slice(0, 200),

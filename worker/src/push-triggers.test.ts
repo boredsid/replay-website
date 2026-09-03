@@ -15,13 +15,30 @@ beforeEach(() => {
   notify.mockResolvedValue({ sent: 1, pruned: 0, failed: 0 });
 });
 
-function announcement(severity: string) {
-  return { id: 'n1', title: 'Room change', body: 'Meet in Room B', severity, audience: 'all' };
+function announcement(severity: string, audience = 'all') {
+  return { id: 'n1', title: 'Room change', body: 'Meet in Room B', severity, audience };
 }
 
 const attendeeClient = {
   from: () => ({ select: () => ({ eq: async () => ({ data: [{ id: 'a1' }, { id: 'a2' }], error: null }) }) }),
 } as never;
+
+/** Seats whose tickets cover the given days. */
+function audienceClient(rows: Array<{ id: string; days: string[] | null }>, asArray = false) {
+  const data = rows.map((row) => ({
+    id: row.id,
+    registrations: asArray ? [{ days: row.days }] : { days: row.days },
+  }));
+  return {
+    from: () => ({ select: () => ({ eq: async () => ({ data, error: null }) }) }),
+  } as never;
+}
+
+const MIXED = [
+  { id: 'both', days: ['day1', 'day2'] },
+  { id: 'only-1', days: ['day1'] },
+  { id: 'only-2', days: ['day2'] },
+];
 
 describe('notifyAnnouncement', () => {
   it.each(['urgent', 'incident'])('notifies for a %s notice', async (severity) => {
@@ -50,6 +67,40 @@ describe('notifyAnnouncement', () => {
   it('notifies every attendee of the edition', async () => {
     await notifyAnnouncement(ENV, attendeeClient, announcement('urgent'), EDITION.id);
     expect(notify.mock.calls[0][2]).toEqual(['a1', 'a2']);
+  });
+
+  it.each([
+    ['day1', ['both', 'only-1']],
+    ['day2', ['both', 'only-2']],
+  ])('sends a %s notice only to tickets covering that day', async (audience, expected) => {
+    // A day-1 notice reaching a day-2 ticket holder is noise they cannot act
+    // on, spent from the one channel that has to be trusted in an incident.
+    await notifyAnnouncement(ENV, audienceClient(MIXED), announcement('urgent', audience), EDITION.id);
+    expect(notify.mock.calls[0][2]).toEqual(expected);
+  });
+
+  it('still reaches everyone when the audience is all', async () => {
+    await notifyAnnouncement(ENV, audienceClient(MIXED), announcement('urgent', 'all'), EDITION.id);
+    expect(notify.mock.calls[0][2]).toEqual(['both', 'only-1', 'only-2']);
+  });
+
+  it('filters correctly when the embed arrives as an array', async () => {
+    // PostgREST returns a many-to-one embed as an object, but falls back to an
+    // array if it cannot resolve the relationship. Either shape must filter.
+    await notifyAnnouncement(ENV, audienceClient(MIXED, true), announcement('urgent', 'day2'), EDITION.id);
+    expect(notify.mock.calls[0][2]).toEqual(['both', 'only-2']);
+  });
+
+  it('sends to nobody rather than everybody when a ticket has no days', async () => {
+    // The failure that matters is the loud one: a seat with no ticket behind it
+    // must not fall through into a day-specific notice.
+    await notifyAnnouncement(
+      ENV,
+      audienceClient([{ id: 'orphan', days: null }]),
+      announcement('urgent', 'day1'),
+      EDITION.id,
+    );
+    expect(notify.mock.calls[0][2]).toEqual([]);
   });
 });
 
