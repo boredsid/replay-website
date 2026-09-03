@@ -1,4 +1,3 @@
--- supabase/migrations/001_initial_schema.sql
 -- REPLAY core schema. See docs/superpowers/specs/2026-05-18-replay-rebuild-design.md.
 
 create extension if not exists "pgcrypto";
