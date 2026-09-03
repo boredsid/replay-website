@@ -5,7 +5,7 @@ import { VenueMap } from './components/VenueMap';
 import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
-import IdCard from './components/IdCard';
+import IdOverlay from './components/IdOverlay';
 import { Radio, CalendarDays, Star, Map as MapIcon, IdCard as IdIcon, Library as LibraryIcon, type LucideIcon } from 'lucide-react';
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
@@ -36,6 +36,13 @@ const TABS: Array<{ id: AppTab; label: string; icon: LucideIcon }> = [
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.id));
 
+/**
+ * The pass is not a tab any more, but `#info` still has to mean something: it
+ * is what the app shipped with, so bookmarks and older service-worker shells
+ * point at it. It opens the pass over whatever tab was showing.
+ */
+const ID_HASH = 'info';
+
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -54,8 +61,12 @@ async function livePushState(device: Device): Promise<PushState | null> {
   return state ? reconcilePush(device, state) : null;
 }
 
+function currentHash(): string {
+  return window.location.hash.replace(/^#/, '');
+}
+
 function initialTab(): AppTab {
-  const value = window.location.hash.replace(/^#/, '') as AppTab;
+  const value = currentHash() as AppTab;
   return VALID_TABS.has(value) ? value : 'now';
 }
 
@@ -345,6 +356,7 @@ function HelpCard({ data }: { data: BootstrapData }) {
 
 export default function App() {
   const [tab, setTab] = useState<AppTab>(initialTab);
+  const [idOpen, setIdOpen] = useState(() => currentHash() === ID_HASH);
   const [saved, setSaved] = useState<Set<string>>(() => loadAgenda(window.localStorage));
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [device, setDevice] = useState<Device | null>(() => loadDevice());
@@ -382,7 +394,14 @@ export default function App() {
   const stale = isStale(fetchedAt, now.getTime());
 
   useEffect(() => {
-    const onHash = () => setTab(initialTab());
+    const onHash = () => {
+      // An unknown hash is not a tab change. Treating it as one is what made
+      // the pass button need two taps: it set the hash, the listener failed to
+      // recognise it, and the tab snapped back to Now.
+      if (currentHash() === ID_HASH) { setIdOpen(true); return; }
+      setIdOpen(false);
+      setTab(initialTab());
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -491,6 +510,7 @@ export default function App() {
   };
 
   const changeTab = (next: AppTab) => {
+    setIdOpen(false);
     setTab(next);
     window.location.hash = next;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -580,6 +600,14 @@ export default function App() {
         />
       )}
       {showInstallBox && <InstallBox onDismiss={() => setDismissedThisOpen(true)} />}
+      <IdOverlay
+        open={idOpen}
+        device={device}
+        push={push}
+        onPaired={setDevice}
+        onPushChange={setPush}
+        onClose={() => setIdOpen(false)}
+      />
       <header className="topbar">
         <button type="button" className="brand" onClick={() => changeTab('now')} aria-label="REPLAY event app home"><strong>REPLAY</strong><small>EVENT APP</small></button>
         <div className="topbar__actions">
@@ -594,10 +622,10 @@ export default function App() {
           )}
           <button
             type="button"
-            className={`refresh-button ${tab === 'info' ? 'refresh-button--active' : ''}`}
-            onClick={() => changeTab('info')}
+            className={`refresh-button ${idOpen ? 'refresh-button--active' : ''}`}
+            onClick={() => setIdOpen((was) => !was)}
             aria-label="Your ID and pass"
-            aria-current={tab === 'info' ? 'page' : undefined}
+            aria-expanded={idOpen}
           >
             <IdIcon size={18} strokeWidth={2.25} aria-hidden="true" />
           </button>
@@ -645,7 +673,7 @@ export default function App() {
                 onFinishSetup={() => setAskedFor('pair')}
               />
             )}
-            {tab === 'info' && <IdCard device={device} onPaired={setDevice} push={push} onPushChange={setPush} />}
+
             <p className="updated-at" aria-live="polite">
               {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}
               {error ? ' · last refresh failed' : ''}

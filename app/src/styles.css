@@ -614,3 +614,86 @@ p { line-height: 1.55; }
   text-align: center;
 }
 .refresh-button--active { background: var(--yellow); }
+
+
+/* --- The pass, over the top of everything --------------------------------- */
+.id-overlay {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: rgba(26, 26, 26, .55);
+  backdrop-filter: blur(3px);
+}
+.id-overlay__panel {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border: var(--border);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 10px 10px 0 var(--ink);
+}
+.id-overlay__close {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  width: var(--control-min);
+  height: var(--control-min);
+  place-items: center;
+  border: var(--border);
+  border-radius: 50%;
+  background: var(--paper);
+  cursor: pointer;
+}
+/* The pass screen brings its own page header; inside a sheet it is redundant. */
+.id-overlay__content .screen-header { margin-top: 0; padding-right: var(--control-min); }
+.id-overlay__content .updated-at { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .id-overlay__panel { animation: id-overlay-in 160ms ease-out; }
+}
+@keyframes id-overlay-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* --- Library filter chips ------------------------------------------------- */
+.library-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.library-chips legend { margin-bottom: var(--space-2); padding: 0; }
+.library-chip {
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--paper);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.library-chip--on { background: var(--yellow); box-shadow: 3px 3px 0 var(--ink); }
+.library-filters__count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 800;
+}

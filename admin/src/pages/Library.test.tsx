@@ -37,7 +37,7 @@ function scanReply(library: Record<string, unknown>) {
   };
 }
 
-function wire(options: { library?: Record<string, unknown>; loans?: unknown[] } = {}) {
+function wire(options: { library?: Record<string, unknown>; loans?: unknown[]; people?: unknown[] } = {}) {
   fetchAdmin.mockImplementation(async (path: string) => {
     if (path.startsWith('/api/admin/library/loans')) {
       const loans = options.loans ?? [];
@@ -45,6 +45,12 @@ function wire(options: { library?: Record<string, unknown>; loans?: unknown[] } 
     }
     if (path === '/api/admin/scan') return scanReply(options.library ?? { hold: null, loan: null });
     if (path.startsWith('/api/admin/library/titles')) return { titles: [] };
+    if (path.startsWith('/api/admin/sessions/attendees')) {
+      return { attendees: options.people ?? [] };
+    }
+    if (path.startsWith('/api/admin/library/attendees/')) {
+      return scanReply(options.library ?? { hold: null, loan: null });
+    }
     return { ok: true };
   });
 }
@@ -181,5 +187,43 @@ describe('what is out', () => {
     wire({ loans: [] });
     renderDesk();
     expect(await screen.findByText('Nothing is out right now.')).toBeInTheDocument();
+  });
+});
+
+
+describe('lending without the app', () => {
+  const PERSON = { attendee_id: 'att-1', name: 'Siddhant Narula', phone_masked: '·····0768' };
+
+  it('finds somebody by phone and opens the same panel a scan would', async () => {
+    // A dead battery or a declined install must not shut the library to
+    // someone. The panel and its actions are identical either way.
+    wire({ people: [PERSON], library: { hold: null, loan: LOAN } });
+    renderDesk();
+    await userEvent.type(screen.getByLabelText(/Find them by phone or name/), '0768');
+    await userEvent.click(await screen.findByRole('button', { name: /Siddhant Narula/ }));
+
+    expect(await screen.findByRole('button', { name: 'Take it back' })).toBeInTheDocument();
+  });
+
+  it('does not search on a single character', async () => {
+    wire({ people: [PERSON] });
+    renderDesk();
+    await userEvent.type(screen.getByLabelText(/Find them by phone or name/), '0');
+    expect(fetchAdmin).not.toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/sessions/attendees'),
+    );
+  });
+
+  it('refreshes through the same path after an action', async () => {
+    wire({ people: [PERSON], library: { hold: HOLD, loan: null } });
+    renderDesk();
+    await userEvent.type(screen.getByLabelText(/Find them by phone or name/), '0768');
+    await userEvent.click(await screen.findByRole('button', { name: /Siddhant Narula/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Hand it over' }));
+
+    // Re-read by id, not by a token this person never had.
+    await waitFor(() => {
+      expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/library/attendees/att-1');
+    });
   });
 });

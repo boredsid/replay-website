@@ -377,3 +377,10 @@ export interface LibraryTitle {
   title: string;
   free_copies: Array<{ id: string; copy_number: number }>;
 }
+
+/** A person found by phone or name, for lending without the app. */
+export interface LibraryAttendeeMatch {
+  attendee_id: string;
+  name: string;
+  phone_masked: string;
+}

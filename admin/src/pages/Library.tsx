@@ -4,8 +4,8 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import QrScanner from '@/components/QrScanner';
-import { AlertTriangle, BookOpen, Clock, Search } from 'lucide-react';
-import type { LibraryLoan, LibraryScan, LibraryTitle } from '@/lib/types';
+import { AlertTriangle, BookOpen, Clock, Search, UserSearch } from 'lucide-react';
+import type { LibraryAttendeeMatch, LibraryLoan, LibraryScan, LibraryTitle } from '@/lib/types';
 
 /**
  * The game-library desk.
@@ -20,6 +20,7 @@ export default function Library() {
   // Kept because the scan response deliberately does not echo the token back,
   // and refreshing after an action means looking the same person up again.
   const [lastToken, setLastToken] = useState<string | null>(null);
+  const [lastAttendeeId, setLastAttendeeId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loans, setLoans] = useState<LibraryLoan[]>([]);
   const [overdueCount, setOverdueCount] = useState(0);
@@ -27,6 +28,8 @@ export default function Library() {
   const [titleQuery, setTitleQuery] = useState('');
   const [titles, setTitles] = useState<LibraryTitle[]>([]);
   const [searchingTitles, setSearchingTitles] = useState(false);
+  const [personQuery, setPersonQuery] = useState('');
+  const [people, setPeople] = useState<LibraryAttendeeMatch[]>([]);
 
   const loadLoans = useCallback(async (query = '') => {
     try {
@@ -57,12 +60,47 @@ export default function Library() {
       });
       setScan(data);
       setLastToken(token);
+      setLastAttendeeId(null);
       setTitles([]);
       setTitleQuery('');
     } catch (error) {
       setScan(null);
       showApiError(error);
     } finally { setBusy(false); }
+  }, []);
+
+  /**
+   * Finds somebody without their phone in the loop.
+   *
+   * Reuses the attendee search the session roster already has -- it matches on
+   * phone digits or name and is the same set of people -- then loads the
+   * borrowing context separately so the panel below is identical whether they
+   * were scanned or typed.
+   */
+  const searchPeople = useCallback(async (query: string) => {
+    setPersonQuery(query);
+    if (query.trim().length < 2) { setPeople([]); return; }
+    try {
+      const data = await fetchAdmin<{ attendees: LibraryAttendeeMatch[] }>(
+        `/api/admin/sessions/attendees?q=${encodeURIComponent(query.trim())}`,
+      );
+      setPeople(data.attendees);
+    } catch (error) { showApiError(error); }
+  }, []);
+
+  const pickPerson = useCallback(async (attendeeId: string) => {
+    setBusy(true);
+    try {
+      const data = await fetchAdmin<LibraryScan>(`/api/admin/library/attendees/${attendeeId}`);
+      setScan(data);
+      // No token: refreshes after an action go back through this same path.
+      setLastToken(null);
+      setLastAttendeeId(attendeeId);
+      setPeople([]);
+      setPersonQuery('');
+      setTitles([]);
+      setTitleQuery('');
+    } catch (error) { showApiError(error); } finally { setBusy(false); }
   }, []);
 
   const act = useCallback(async (path: string, body: Record<string, unknown>, done: string) => {
@@ -73,9 +111,10 @@ export default function Library() {
       // Re-read rather than patching local state: another member of staff may
       // have touched the same copy between the scan and the tap.
       if (lastToken) await lookUp(lastToken);
+      else if (lastAttendeeId) await pickPerson(lastAttendeeId);
       await loadLoans(loansQuery);
     } catch (error) { showApiError(error); } finally { setBusy(false); }
-  }, [lastToken, lookUp, loadLoans, loansQuery]);
+  }, [lastToken, lastAttendeeId, lookUp, pickPerson, loadLoans, loansQuery]);
 
   const searchTitles = useCallback(async (query: string) => {
     setTitleQuery(query);
@@ -123,6 +162,33 @@ export default function Library() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-4" aria-label="Scan a pass">
           <QrScanner onScan={(token) => void lookUp(token)} busy={busy} />
+
+          <div className="space-y-2 rounded-lg border p-3">
+            <label htmlFor="person-search" className="flex items-center gap-2 text-sm font-medium">
+              <UserSearch className="h-4 w-4" aria-hidden="true" />
+              No app? Find them by phone or name
+            </label>
+            <Input
+              id="person-search"
+              value={personQuery}
+              onChange={(event) => void searchPeople(event.target.value)}
+              placeholder="Phone number or name…"
+              autoComplete="off"
+              inputMode="tel"
+            />
+            {people.map((person) => (
+              <button
+                key={person.attendee_id}
+                type="button"
+                className="flex w-full items-center justify-between gap-2 rounded-md border p-2 text-left text-sm hover:bg-muted"
+                disabled={busy}
+                onClick={() => void pickPerson(person.attendee_id)}
+              >
+                <span>{person.name}</span>
+                <span className="text-muted-foreground">{person.phone_masked}</span>
+              </button>
+            ))}
+          </div>
 
           {scan && (
             <div className="space-y-4 rounded-lg border p-4">

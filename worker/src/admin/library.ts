@@ -12,6 +12,8 @@ import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { writeAudit } from './audit';
+import { seatLabel } from './check-in';
+import { hasArrivedOn, type CheckInEvent, type EventDay } from './check-in-state';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -342,5 +344,62 @@ export async function handleLibraryTitleSearch(
       title: row.title,
       free_copies: (byTitle.get(row.id) ?? []).sort((a, b) => a.copy_number - b.copy_number),
     })),
+  }, 200, origin);
+}
+
+
+/**
+ * The same reply a scan gives, for somebody found by phone instead.
+ *
+ * Not everyone will have the app -- a dead battery, a declined install, a guest
+ * who never paired. Without this the library would be shut to them, which turns
+ * a convenience into a requirement. The shape matches the scan exactly so the
+ * desk has one panel and one set of actions rather than two that drift.
+ */
+export async function handleLibraryAttendee(
+  sb: SupabaseClient,
+  attendeeId: string,
+  origin: string,
+): Promise<Response> {
+  if (!UUID.test(attendeeId)) return adminJson({ error: 'invalid_body' }, 400, origin);
+
+  const [attendee, events] = await Promise.all([
+    sb.from('attendees')
+      .select('id, seat_index, display_name, registration_id')
+      .eq('id', attendeeId)
+      .maybeSingle(),
+    sb.from('check_in_events')
+      .select('id, day, kind, voids_event_id, occurred_at')
+      .eq('attendee_id', attendeeId),
+  ]);
+  if (attendee.error || events.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  if (!attendee.data) return adminJson({ error: 'attendee_not_found' }, 404, origin);
+
+  const row = attendee.data as {
+    id: string; seat_index: number; display_name: string | null; registration_id: string;
+  };
+
+  const registration = await sb
+    .from('registrations')
+    .select('pass_type, days, payment_status')
+    .eq('id', row.registration_id)
+    .maybeSingle();
+  if (registration.error) return adminJson({ error: 'query_failed' }, 500, origin);
+
+  const reg = registration.data as { pass_type: string; days: EventDay[]; payment_status: string } | null;
+  if (!reg || reg.payment_status !== 'confirmed') {
+    return adminJson({ error: 'not_confirmed' }, 409, origin);
+  }
+
+  const history = (events.data ?? []) as CheckInEvent[];
+  const library = await loansForAttendee(sb, row.id);
+
+  return adminJson({
+    attendee_id: row.id,
+    name: seatLabel(row.display_name, row.seat_index),
+    pass_type: reg.pass_type,
+    days: reg.days,
+    arrived_today: reg.days.some((day) => hasArrivedOn(history, day)),
+    library,
   }, 200, origin);
 }

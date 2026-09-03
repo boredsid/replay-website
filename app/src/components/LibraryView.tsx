@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Clock, Search } from 'lucide-react';
+// The same pure helpers the public /library page uses, so the two cannot drift
+// into disagreeing about what "light" or "under 30 min" means.
+import {
+  DURATION_BANDS,
+  EMPTY_FILTERS,
+  PLAYER_COUNTS,
+  WEIGHT_BANDS,
+  filterGames,
+  formatPlayers,
+  formatTime,
+  isFiltered,
+  type DurationBand,
+  type LibraryFilters,
+  type LibraryGame,
+  type WeightBand,
+} from '../../../src/lib/game-library';
 import type { Device } from '../lib/device';
 import {
   cancelRequest,
@@ -10,34 +26,17 @@ import {
   type LibraryState,
 } from '../lib/library';
 
-/** The fields of the catalogue snapshot this screen actually uses. */
-export interface CatalogueGame {
-  key: string;
-  title: string;
-  minPlayers: number | null;
-  maxPlayers: number | null;
-  minTime: number | null;
-  maxTime: number | null;
-  weight: number | null;
-}
+export type CatalogueGame = LibraryGame;
 
 /**
  * Rendering 586 rows costs more than anyone gains from scrolling them. The cap
- * is a prompt to type something rather than a limit on the shelf.
+ * is a prompt to narrow the question rather than a limit on the shelf.
  */
 const MAX_ROWS = 60;
 
-function playersLabel(game: CatalogueGame): string {
-  if (game.minPlayers === null && game.maxPlayers === null) return '';
-  if (game.minPlayers === game.maxPlayers) return `${game.minPlayers}p`;
-  return `${game.minPlayers ?? '?'}–${game.maxPlayers ?? '?'}p`;
-}
-
-function timeLabel(game: CatalogueGame): string {
-  if (!game.maxTime) return '';
-  return game.minTime && game.minTime !== game.maxTime
-    ? `${game.minTime}–${game.maxTime} min`
-    : `${game.maxTime} min`;
+/** Add or remove a value — chips toggle, they do not cycle. */
+function toggle<T>(values: T[], value: T): T[] {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
 interface Props {
@@ -52,8 +51,7 @@ interface Props {
 export default function LibraryView({
   device, state, catalogue, catalogueError, onChanged, onFinishSetup,
 }: Props) {
-  const [query, setQuery] = useState('');
-  const [players, setPlayers] = useState('');
+  const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   // Ticks the countdown without re-fetching. A hold is five minutes long and
@@ -68,21 +66,14 @@ export default function LibraryView({
 
   const unavailable = useMemo(() => new Set(state?.unavailable ?? []), [state?.unavailable]);
 
-  const results = useMemo(() => {
-    if (!catalogue) return [];
-    const needle = query.trim().toLowerCase();
-    const count = players ? Number(players) : null;
-    return catalogue
-      .filter((game) => {
-        if (needle && !game.title.toLowerCase().includes(needle)) return false;
-        if (count !== null) {
-          if (game.minPlayers !== null && count < game.minPlayers) return false;
-          if (game.maxPlayers !== null && count > game.maxPlayers) return false;
-        }
-        return true;
-      })
-      .slice(0, MAX_ROWS);
-  }, [catalogue, query, players]);
+  const matches = useMemo(
+    () => (catalogue ? filterGames(catalogue, filters) : []),
+    [catalogue, filters],
+  );
+  const results = useMemo(() => matches.slice(0, MAX_ROWS), [matches]);
+
+  const set = <K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) =>
+    setFilters((current) => ({ ...current, [key]: value }));
 
   const request = async (titleKey: string) => {
     if (!device) return;
@@ -180,22 +171,67 @@ export default function LibraryView({
               <Search size={16} strokeWidth={2.5} aria-hidden="true" />
               <input
                 type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={filters.query}
+                onChange={(event) => set('query', event.target.value)}
                 placeholder="Game name…"
                 autoComplete="off"
               />
             </span>
           </label>
-          <label>
-            <span className="eyebrow">Players</span>
-            <select value={players} onChange={(event) => setPlayers(event.target.value)}>
-              <option value="">Any</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={n}>{n} player{n === 1 ? '' : 's'}</option>
-              ))}
-            </select>
-          </label>
+
+          <fieldset className="library-chips">
+            <legend className="eyebrow">Players</legend>
+            {PLAYER_COUNTS.map((count) => (
+              <button
+                key={count}
+                type="button"
+                className={`library-chip ${filters.players.includes(count) ? 'library-chip--on' : ''}`}
+                aria-pressed={filters.players.includes(count)}
+                onClick={() => set('players', toggle(filters.players, count))}
+              >
+                {count}
+              </button>
+            ))}
+          </fieldset>
+
+          <fieldset className="library-chips">
+            <legend className="eyebrow">How long</legend>
+            {DURATION_BANDS.map((band) => (
+              <button
+                key={band.id}
+                type="button"
+                className={`library-chip ${filters.durations.includes(band.id) ? 'library-chip--on' : ''}`}
+                aria-pressed={filters.durations.includes(band.id)}
+                onClick={() => set('durations', toggle<DurationBand>(filters.durations, band.id))}
+              >
+                {band.label}
+              </button>
+            ))}
+          </fieldset>
+
+          <fieldset className="library-chips">
+            <legend className="eyebrow">How heavy</legend>
+            {WEIGHT_BANDS.map((band) => (
+              <button
+                key={band.id}
+                type="button"
+                className={`library-chip ${filters.weights.includes(band.id) ? 'library-chip--on' : ''}`}
+                aria-pressed={filters.weights.includes(band.id)}
+                onClick={() => set('weights', toggle<WeightBand>(filters.weights, band.id))}
+              >
+                {band.label}
+              </button>
+            ))}
+          </fieldset>
+
+          {isFiltered(filters) && (
+            <p className="library-filters__count">
+              {matches.length} game{matches.length === 1 ? '' : 's'}
+              <button type="button" className="text-button" onClick={() => setFilters(EMPTY_FILTERS)}>
+                Clear filters
+              </button>
+            </p>
+          )}
         </div>
 
         {catalogueError ? (
@@ -206,7 +242,9 @@ export default function LibraryView({
         ) : !catalogue ? (
           <p className="library-empty">Loading the shelf…</p>
         ) : results.length === 0 ? (
-          <p className="library-empty">No game matches that. Try a shorter search.</p>
+          <p className="library-empty">
+            Nothing on the shelf matches that. Try clearing a filter.
+          </p>
         ) : (
           <ul className="library-list">
             {results.map((game) => {
@@ -220,7 +258,7 @@ export default function LibraryView({
                   <div className="library-item__body">
                     <h3>{game.title}</h3>
                     <p className="library-item__meta">
-                      {[playersLabel(game), timeLabel(game)].filter(Boolean).join(' · ')}
+                      {[formatPlayers(game), formatTime(game)].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   {out ? (
@@ -241,10 +279,10 @@ export default function LibraryView({
                 </li>
               );
             })}
-            {catalogue.length > MAX_ROWS && results.length === MAX_ROWS && (
+            {matches.length > MAX_ROWS && (
               <li className="library-list__more">
                 <BookOpen size={15} aria-hidden="true" />
-                Showing the first {MAX_ROWS}. Search to narrow it down.
+                Showing {MAX_ROWS} of {matches.length}. Narrow it down to see the rest.
               </li>
             )}
           </ul>

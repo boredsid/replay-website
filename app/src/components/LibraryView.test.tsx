@@ -17,10 +17,18 @@ const DEVICE: Device = {
   token: 't', qr_token: 'q', display_name: 'Siddhant', expires_at: '2026-12-31T00:00:00Z',
 };
 
+function game(overrides: Partial<CatalogueGame> & Pick<CatalogueGame, 'key' | 'title'>): CatalogueGame {
+  return {
+    bggId: null, year: null, thumb: null, rating: null, bestWith: [], copies: 1,
+    minPlayers: null, maxPlayers: null, minTime: null, maxTime: null, weight: null,
+    ...overrides,
+  };
+}
+
 const CATALOGUE: CatalogueGame[] = [
-  { key: 'bgg-1', title: 'Catan', minPlayers: 3, maxPlayers: 4, minTime: 60, maxTime: 90, weight: 2.3 },
-  { key: 'bgg-2', title: 'Wingspan', minPlayers: 1, maxPlayers: 5, minTime: 40, maxTime: 70, weight: 2.4 },
-  { key: 'bgg-3', title: 'Hive', minPlayers: 2, maxPlayers: 2, minTime: 20, maxTime: 20, weight: 2.3 },
+  game({ key: 'bgg-1', title: 'Catan', minPlayers: 3, maxPlayers: 4, minTime: 60, maxTime: 90, weight: 2.3 }),
+  game({ key: 'bgg-2', title: 'Wingspan', minPlayers: 1, maxPlayers: 5, minTime: 40, maxTime: 70, weight: 2.4 }),
+  game({ key: 'bgg-3', title: 'Hive', minPlayers: 2, maxPlayers: 2, minTime: 20, maxTime: 20, weight: 1.9 }),
 ];
 
 function state(overrides: Partial<LibraryState> = {}): LibraryState {
@@ -69,16 +77,46 @@ describe('browsing', () => {
 
   it('filters by how many people are actually at the table', async () => {
     renderView();
-    await userEvent.selectOptions(screen.getByRole('combobox'), '2');
+    await userEvent.click(screen.getByRole('button', { name: '2', pressed: false }));
     expect(screen.getByText('Hive')).toBeInTheDocument();
     expect(screen.getByText('Wingspan')).toBeInTheDocument();
     // Catan needs three.
     expect(screen.queryByText('Catan')).not.toBeInTheDocument();
   });
 
-  it('says a two-player-only game is two players, not 2–2', async () => {
+  it('filters by how long there is to play', async () => {
     renderView();
-    expect(screen.getByText('2p · 20 min')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Under 30 min' }));
+    expect(screen.getByText('Hive')).toBeInTheDocument();
+    expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+  });
+
+  it('filters by how heavy the rulebook is', async () => {
+    renderView();
+    await userEvent.click(screen.getByRole('button', { name: 'Light' }));
+    expect(screen.getByText('Hive')).toBeInTheDocument();
+    expect(screen.queryByText('Wingspan')).not.toBeInTheDocument();
+  });
+
+  it('stacks filters, and clears them all at once', async () => {
+    renderView();
+    await userEvent.click(screen.getByRole('button', { name: '2', pressed: false }));
+    await userEvent.click(screen.getByRole('button', { name: 'Under 30 min' }));
+    expect(screen.getByText(/^1 game$/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(screen.getByText('Catan')).toBeInTheDocument();
+    expect(screen.getByText('Wingspan')).toBeInTheDocument();
+  });
+
+  it('toggles a chip off when tapped twice', async () => {
+    // Chips toggle rather than cycle: tapping "2" again means "never mind".
+    renderView();
+    const two = screen.getByRole('button', { name: '2', pressed: false });
+    await userEvent.click(two);
+    expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '2', pressed: true }));
+    expect(screen.getByText('Catan')).toBeInTheDocument();
   });
 
   it('reserves the title that was tapped', async () => {

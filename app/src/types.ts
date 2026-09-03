@@ -1,4 +1,4 @@
-export type AppTab = 'now' | 'schedule' | 'my-day' | 'map' | 'library' | 'info';
+export type AppTab = 'now' | 'schedule' | 'my-day' | 'map' | 'library';
 
 /**
  * Organiser-authored practical guidance, mirroring `EditionVisitDetails` in the
