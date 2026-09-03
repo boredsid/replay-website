@@ -6,12 +6,14 @@ import { loadAgenda, saveAgenda, toggleAgenda } from './lib/agenda';
 import { visibleAnnouncements } from './lib/announcements';
 import { isStale, useEventData } from './lib/use-event-data';
 import IdCard from './components/IdCard';
-import { Radio, CalendarDays, Star, Map as MapIcon, IdCard as IdIcon, type LucideIcon } from 'lucide-react';
+import { Radio, CalendarDays, Star, Map as MapIcon, IdCard as IdIcon, Library as LibraryIcon, type LucideIcon } from 'lucide-react';
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
 import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
 import { mergeSaved, pushSaved, pushUnsaved } from './lib/saved';
+import { fetchLibrary, type LibraryState } from './lib/library';
+import LibraryView, { type CatalogueGame } from './components/LibraryView';
 import { fetchPushState, reconcilePush, type PushState } from './lib/push';
 import PushPrompt from './components/PushPrompt';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
@@ -27,7 +29,9 @@ const TABS: Array<{ id: AppTab; label: string; icon: LucideIcon }> = [
   { id: 'schedule', label: 'Schedule', icon: CalendarDays },
   { id: 'my-day', label: 'My Day', icon: Star },
   { id: 'map', label: 'Map', icon: MapIcon },
-  { id: 'info', label: 'ID', icon: IdIcon },
+  // The ID lives in the top bar instead: it is a thing you hold up on demand,
+  // not a place you spend time, and the bar is reachable from every screen.
+  { id: 'library', label: 'Library', icon: LibraryIcon },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.id));
@@ -357,6 +361,9 @@ export default function App() {
   const [bookingBusy, setBookingBusy] = useState<string | null>(null);
   const [bookingNote, setBookingNote] = useState<string | null>(null);
   const [push, setPush] = useState<PushState | null>(null);
+  const [library, setLibrary] = useState<LibraryState | null>(null);
+  const [catalogue, setCatalogue] = useState<CatalogueGame[] | null>(null);
+  const [catalogueError, setCatalogueError] = useState(false);
   // Set only when a booking just landed someone on a waitlist, which is the one
   // moment asking about notifications makes obvious sense.
   const [pushAsk, setPushAsk] = useState<string | null>(null);
@@ -408,6 +415,25 @@ export default function App() {
       setSaved(union);
     });
   }, [device]);
+
+  useEffect(() => {
+    if (tab !== 'library' || catalogue || catalogueError) return;
+    let cancelled = false;
+    void import('../../src/data/game-library.json')
+      .then((module) => {
+        if (cancelled) return;
+        const snapshot = (module.default ?? module) as { games: CatalogueGame[] };
+        setCatalogue(snapshot.games);
+      })
+      .catch(() => { if (!cancelled) setCatalogueError(true); });
+    return () => { cancelled = true; };
+  }, [tab, catalogue, catalogueError]);
+
+  const refreshLibrary = async () => {
+    if (!device) return;
+    const next = await fetchLibrary(device);
+    if (next) setLibrary(next);
+  };
 
   const refreshSignups = async (current: Device) => {
     const rows = await fetchSignups(current);
@@ -566,6 +592,15 @@ export default function App() {
               Finish setup
             </button>
           )}
+          <button
+            type="button"
+            className={`refresh-button ${tab === 'info' ? 'refresh-button--active' : ''}`}
+            onClick={() => changeTab('info')}
+            aria-label="Your ID and pass"
+            aria-current={tab === 'info' ? 'page' : undefined}
+          >
+            <IdIcon size={18} strokeWidth={2.25} aria-hidden="true" />
+          </button>
           <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
             <span aria-hidden="true" className={refreshing ? 'refresh-button__icon refresh-button__icon--spinning' : 'refresh-button__icon'}>↻</span>
           </button>
@@ -600,6 +635,16 @@ export default function App() {
             {tab === 'schedule' && <ScheduleView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'my-day' && <MyDayView data={data} saved={saved} onToggle={handleToggle} booking={booking} />}
             {tab === 'map' && (device ? <VenueMapOnly /> : <MapView data={data} />)}
+            {tab === 'library' && (
+              <LibraryView
+                device={device}
+                state={library}
+                catalogue={catalogue}
+                catalogueError={catalogueError}
+                onChanged={() => void refreshLibrary()}
+                onFinishSetup={() => setAskedFor('pair')}
+              />
+            )}
             {tab === 'info' && <IdCard device={device} onPaired={setDevice} push={push} onPushChange={setPush} />}
             <p className="updated-at" aria-live="polite">
               {snapshot ? `Updated ${snapshot} IST` : 'Updating…'}

@@ -518,3 +518,99 @@ p { line-height: 1.55; }
 /* A day the ticket does not cover is still shown -- greyed, not hidden, because
    "is Sunday mine?" is the question this list exists to answer. */
 .pass-day--uncovered { border-style: dashed; background: transparent; box-shadow: none; opacity: .6; }
+
+
+/* --- Game library --------------------------------------------------------- */
+.library-card {
+  margin-bottom: var(--space-4);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.library-card h2 { margin: var(--space-1) 0 var(--space-2); }
+.library-card--loan { background: var(--indigo); color: var(--cream); }
+.library-card--loan .eyebrow { color: var(--yellow); }
+.library-card--hold { background: var(--yellow); }
+.library-card__due {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-weight: 900;
+}
+.library-card__due--over { color: var(--orange); }
+.library-card__hint { margin: var(--space-2) 0 var(--space-3); font-size: .85rem; opacity: .85; }
+.library-card--loan .library-card__hint { opacity: .8; }
+
+.library-filters { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+.library-filters__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.library-filters__field input {
+  min-height: var(--control-min);
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+}
+.library-filters__field input:focus { outline: none; }
+.library-filters select {
+  min-height: var(--control-min);
+  width: 100%;
+  padding: 0 var(--space-3);
+  border: var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.library-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.library-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.library-item h3 { margin: 0; font-size: .95rem; }
+.library-item__meta { margin: 2px 0 0; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.library-item__body { min-width: 0; }
+/* Out is shown, not hidden: knowing a game exists but is taken is worth more
+   than the shelf appearing to be missing it. */
+.library-item--out { opacity: .55; }
+.library-item__status {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.library-list__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+}
+.library-empty {
+  padding: var(--space-6) var(--space-4);
+  border: 2px dashed var(--muted);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+.refresh-button--active { background: var(--yellow); }
