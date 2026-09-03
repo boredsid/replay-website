@@ -26,7 +26,7 @@ import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemo
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
-import { sendSessionReminders } from './push-triggers';
+import { sendSessionReminders, sendDueAnnouncements } from './push-triggers';
 import { handleMySaved, handleSaveItem, handleUnsaveItem, handleMergeSaved } from './app-saved';
 import { handleMyPass } from './app-pass';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
@@ -76,18 +76,28 @@ export interface Env {
 
 export default {
   /**
-   * Session reminders, on a cron trigger.
+   * Session reminders and scheduled notices, on a cron trigger.
    *
-   * Delivery is at-least-once, so this must be safe to run twice: the
-   * reminded_at stamp is what makes it so, not the schedule.
+   * Delivery is at-least-once, so both must be safe to run twice: the
+   * reminded_at and notified_at stamps are what make them so, not the schedule.
+   *
+   * They are dispatched independently. A notice about a room change should not
+   * be lost because the reminder query failed, and the reverse.
    */
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil((async () => {
+      const sb = serviceClient(env);
       try {
-        const result = await sendSessionReminders(env, serviceClient(env));
+        const result = await sendSessionReminders(env, sb);
         if (result.sessions > 0) console.log('session_reminders', result);
       } catch (error) {
         console.error('session_reminders_failed', error);
+      }
+      try {
+        const result = await sendDueAnnouncements(env, sb, new Date());
+        if (result.sent > 0 || result.expired > 0) console.log('announcement_dispatch', result);
+      } catch (error) {
+        console.error('announcement_dispatch_failed', error);
       }
     })());
   },

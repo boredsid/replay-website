@@ -39,6 +39,7 @@ it('creates a published urgent notice using explicit IST timestamps', async () =
   await user.type(screen.getByLabelText('Message'), 'The tournament has moved to Room B.');
   await user.selectOptions(screen.getByLabelText('Severity'), 'urgent');
   await user.selectOptions(screen.getByLabelText('Audience'), 'day1');
+  await user.click(screen.getByLabelText('Schedule'));
   await user.clear(screen.getByLabelText('Starts at (IST)'));
   await user.type(screen.getByLabelText('Starts at (IST)'), '2026-09-12T10:00');
   await user.type(screen.getByLabelText('Ends at (IST, optional)'), '2026-09-12T13:00');
@@ -53,6 +54,58 @@ it('creates a published urgent notice using explicit IST timestamps', async () =
     starts_at: '2026-09-12T04:30:00.000Z', ends_at: '2026-09-12T07:30:00.000Z',
   });
   expect(await screen.findByText('Announcement list')).toBeInTheDocument();
+});
+
+it('sends now with a start of this moment and a two-minute default window', async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={['/announcements/new?edition_id=e3']}>
+      <Routes>
+        <Route path="/announcements/new" element={<AnnouncementDrawer />} />
+        <Route path="/announcements" element={<div>Announcement list</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole('heading', { name: 'New announcement' });
+  // Send now is the default, so nothing is clicked to choose it, and there is
+  // no start field to fill in.
+  expect(screen.queryByLabelText('Starts at (IST)')).toBeNull();
+  await user.type(screen.getByLabelText('Title'), 'Fire alarm test');
+  await user.type(screen.getByLabelText('Message'), 'Ignore the alarm at 2pm.');
+  await user.selectOptions(screen.getByLabelText('Severity'), 'urgent');
+  await user.click(screen.getByLabelText('Published'));
+
+  const before = Date.now();
+  await user.click(screen.getByRole('button', { name: 'Create announcement' }));
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/announcements', expect.objectContaining({ method: 'POST' })));
+  const after = Date.now();
+
+  const call = (fetchAdmin as any).mock.calls.find(([path]: [string]) => path === '/api/admin/announcements');
+  const payload = JSON.parse(call[1].body);
+  const startsAt = new Date(payload.starts_at).getTime();
+  expect(startsAt).toBeGreaterThanOrEqual(before);
+  expect(startsAt).toBeLessThanOrEqual(after);
+  // Blank end means the default window, not forever.
+  expect(new Date(payload.ends_at).getTime() - startsAt).toBe(2 * 60_000);
+});
+
+it('warns that an information notice reaches no phone', async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={['/announcements/new?edition_id=e3']}>
+      <Routes>
+        <Route path="/announcements/new" element={<AnnouncementDrawer />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole('heading', { name: 'New announcement' });
+  // The trap this replaces: nothing on the form said which severities notify,
+  // so an important notice filed as Information reached nobody, silently.
+  expect(screen.getByText('Appears in the app only. No phone will be notified.')).toBeInTheDocument();
+  await user.selectOptions(screen.getByLabelText('Severity'), 'urgent');
+  expect(screen.getByText('Sends a push notification to attendees who turned them on.')).toBeInTheDocument();
 });
 
 it('deletes an existing notice only after the confirmation is accepted', async () => {

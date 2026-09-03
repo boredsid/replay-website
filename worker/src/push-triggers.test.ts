@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./push-send', () => ({ notifyAttendees: vi.fn() }));
 
-import { notifyAnnouncement, sendSessionReminders, REMINDER_LEAD_MINUTES } from './push-triggers';
+import { notifyAnnouncement, sendDueAnnouncements, sendSessionReminders, REMINDER_LEAD_MINUTES } from './push-triggers';
 import { notifyAttendees } from './push-send';
 import type { Env } from './index';
 
@@ -101,6 +101,97 @@ describe('notifyAnnouncement', () => {
       EDITION.id,
     );
     expect(notify.mock.calls[0][2]).toEqual([]);
+  });
+});
+
+interface DispatchFixture {
+  due?: Array<Record<string, unknown>>;
+  onUpdate?: (id: string, patch: Record<string, unknown>) => void;
+  /** Records the `starts_at <= ?` bound the query asked for. */
+  onDueFilter?: (column: string, value: unknown) => void;
+}
+
+function dispatchClient(f: DispatchFixture = {}) {
+  return {
+    from: (table: string) => {
+      if (table === 'attendees') {
+        return { select: () => ({ eq: async () => ({ data: [{ id: 'a1' }, { id: 'a2' }], error: null }) }) };
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            is: () => ({
+              lte: async (column: string, value: unknown) => {
+                f.onDueFilter?.(column, value);
+                return { data: f.due ?? [], error: null };
+              },
+            }),
+          }),
+        }),
+        update: (patch: Record<string, unknown>) => ({
+          eq: async (_column: string, id: string) => { f.onUpdate?.(id, patch); return { error: null }; },
+        }),
+      };
+    },
+  } as never;
+}
+
+function due(over: Record<string, unknown> = {}) {
+  return {
+    id: 'n1', edition_id: 'ed-1', title: 'Room change', body: 'Room B',
+    severity: 'urgent', audience: 'all', ends_at: null, ...over,
+  };
+}
+
+describe('sendDueAnnouncements', () => {
+  const NOW = new Date('2026-09-12T06:00:00.000Z');
+
+  it('sends a notice that has come due and records what it reached', async () => {
+    const stamps: Array<[string, Record<string, unknown>]> = [];
+    const result = await sendDueAnnouncements(ENV, dispatchClient({
+      due: [due()],
+      onUpdate: (id, patch) => stamps.push([id, patch]),
+    }), NOW);
+
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ sent: 1, expired: 0 });
+    // The stamp is what stops the next tick sending it again.
+    expect(stamps[0][0]).toBe('n1');
+    expect(stamps[0][1]).toMatchObject({ notified_sent: 1, notified_failed: 0 });
+    expect(stamps[0][1].notified_at).toEqual(expect.any(String));
+  });
+
+  it('only asks for notices whose start time has passed', async () => {
+    const filters: Array<[string, unknown]> = [];
+    await sendDueAnnouncements(ENV, dispatchClient({ onDueFilter: (c, v) => filters.push([c, v]) }), NOW);
+    expect(filters).toEqual([['starts_at', NOW.toISOString()]]);
+  });
+
+  it('stamps without sending a notice whose window closed before the tick', async () => {
+    // Buzzing a phone about something already over is worse than silence, and
+    // leaving it unstamped would mean trying again on every tick, forever.
+    const stamps: Array<[string, Record<string, unknown>]> = [];
+    const result = await sendDueAnnouncements(ENV, dispatchClient({
+      due: [due({ ends_at: '2026-09-12T05:59:00.000Z' })],
+      onUpdate: (id, patch) => stamps.push([id, patch]),
+    }), NOW);
+
+    expect(notify).not.toHaveBeenCalled();
+    expect(result).toEqual({ sent: 0, expired: 1 });
+    expect(stamps[0][1]).toMatchObject({ notified_sent: 0, notified_failed: 0 });
+  });
+
+  it('stamps an info notice it never pushes, so the cron lets go of it', async () => {
+    notify.mockResolvedValue({ sent: 0, pruned: 0, failed: 0 });
+    const stamps: Array<[string, Record<string, unknown>]> = [];
+    await sendDueAnnouncements(ENV, dispatchClient({
+      due: [due({ severity: 'info' })],
+      onUpdate: (id, patch) => stamps.push([id, patch]),
+    }), NOW);
+
+    expect(notify).not.toHaveBeenCalled();
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0][1]).toMatchObject({ notified_sent: 0 });
   });
 });
 

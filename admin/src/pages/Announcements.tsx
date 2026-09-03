@@ -26,6 +26,22 @@ function deliveryState(item: AnnouncementRow, now = new Date()): DeliveryState {
   return 'live';
 }
 
+/**
+ * What the push actually did, in as few words as fit.
+ *
+ * Null and zero are different answers and must not read the same: null is "not
+ * dispatched", zero is "dispatched and reached nobody". The second is the one
+ * you need to see immediately, because it means the notice went nowhere.
+ */
+function reach(item: AnnouncementRow): string {
+  if (item.severity === 'info') return 'app only';
+  if (!item.notified_at) return item.is_published ? 'not sent yet' : '—';
+  const sent = item.notified_sent ?? 0;
+  const failed = item.notified_failed ?? 0;
+  if (sent === 0) return failed > 0 ? `reached nobody · ${failed} failed` : 'reached nobody';
+  return failed > 0 ? `${sent} phones · ${failed} failed` : `${sent} phones`;
+}
+
 function formatIst(value: string): string {
   return new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'medium',
@@ -152,6 +168,11 @@ export default function Announcements() {
                   <div className="shrink-0 text-left font-mono text-xs text-muted-foreground sm:text-right">
                     <div>{formatIst(announcement.starts_at)} IST</div>
                     {announcement.ends_at && <div>to {formatIst(announcement.ends_at)} IST</div>}
+                    {/* Whether anyone was actually reached. Without this a notice
+                        that went to forty phones and one that went to none look
+                        identical, which is the wrong thing to be guessing at
+                        during an incident. */}
+                    <div className="mt-1">{reach(announcement)}</div>
                   </div>
                 </div>
               </Link>

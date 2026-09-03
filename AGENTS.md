@@ -40,6 +40,18 @@ belong there, while ephemeral task status and secrets do not.
 - `README.md` documents local setup, verification, current behavior, and the
   deployment/secret boundary.
 - `docs/LIVE_EVENT_READINESS.md` is the deliberately deferred launch checklist.
+- `scratch/` is gitignored, and is where generated artwork, exports and one-off
+  working files go.
+
+**Where generated files go.** This repo builds a website. Binary deliverables
+produced during a conversation — logo kits, wristband codes, social exports,
+render dumps — are outputs of that conversation, not inputs to the build, and
+they run to megabytes each. Put them in `scratch/`, or somewhere outside the
+repo entirely. Do not create new top-level folders for them: a `brand-assets/`
+directory accumulated 6.8 MB of untracked files this way before anyone noticed,
+and none of it was referenced by the build. Assets the site genuinely ships are
+a different thing and belong in `public/` or `sponsor-logos/`, committed
+deliberately.
 
 Run the root and attendee-app tests/builds, the admin tests/build, and the Worker
 tests/typecheck before publishing. Run `npm audit` separately in all three

@@ -13,12 +13,26 @@ import {
 import { fetchAdmin, showApiError } from '@/lib/api';
 import type { AnnouncementAudience, AnnouncementRow, AnnouncementSeverity, EditionRow } from '@/lib/types';
 
+/**
+ * How long a notice stays up when no end time is given.
+ *
+ * Change this in one place. It is deliberately short: a notice is a thing that
+ * is true for a moment, and one still on screen after it stops being true is
+ * how a live board loses its authority.
+ */
+const DEFAULT_WINDOW_MINUTES = 2;
+
+/** The severities that reach a phone. The other one only updates the app. */
+const PUSHES: AnnouncementSeverity[] = ['urgent', 'incident'];
+
 type Form = {
   edition_id: string;
   title: string;
   body: string;
   severity: AnnouncementSeverity;
   audience: AnnouncementAudience;
+  /** 'now' is not stored -- it resolves to a starts_at of the moment you save. */
+  mode: 'now' | 'schedule';
   starts_at: string;
   ends_at: string;
   is_published: boolean;
@@ -52,6 +66,10 @@ const EMPTY: Form = {
   body: '',
   severity: 'info',
   audience: 'all',
+  // Send now by default: during the event the reason to write a notice is
+  // almost always that something has just happened. Scheduling is the
+  // exception, so it is the one you opt into.
+  mode: 'now',
   starts_at: defaultStart(),
   ends_at: '',
   is_published: false,
@@ -88,6 +106,9 @@ export default function AnnouncementDrawer() {
             body: announcement.body,
             severity: announcement.severity,
             audience: announcement.audience,
+            // An existing notice always has a real start time, and re-saving it
+            // must not silently move that to now.
+            mode: 'schedule',
             starts_at: isoToIstInput(announcement.starts_at),
             ends_at: announcement.ends_at ? isoToIstInput(announcement.ends_at) : '',
             is_published: announcement.is_published,
@@ -106,21 +127,30 @@ export default function AnnouncementDrawer() {
   }
 
   async function save() {
-    if (!form.edition_id || !form.title.trim() || !form.body.trim() || !form.starts_at) {
-      toast.error('Edition, title, message and start time are required.');
+    const scheduled = form.mode === 'schedule';
+    if (!form.edition_id || !form.title.trim() || !form.body.trim() || (scheduled && !form.starts_at)) {
+      toast.error(scheduled
+        ? 'Edition, title, message and start time are required.'
+        : 'Edition, title and message are required.');
       return;
     }
 
     let startsAt: string;
-    let endsAt: string | null;
+    let endsAt: string;
     try {
-      startsAt = istInputToIso(form.starts_at);
-      endsAt = form.ends_at ? istInputToIso(form.ends_at) : null;
+      // "Send now" is not a mode the API knows about -- it is a start time of
+      // this moment, which the Worker reads as live and dispatches at once.
+      startsAt = scheduled ? istInputToIso(form.starts_at) : new Date().toISOString();
+      // Blank means the default window, not forever. A notice with no end sits
+      // on the board after it has stopped being true.
+      endsAt = form.ends_at
+        ? istInputToIso(form.ends_at)
+        : new Date(new Date(startsAt).getTime() + DEFAULT_WINDOW_MINUTES * 60_000).toISOString();
     } catch {
       toast.error('Use valid IST dates and times.');
       return;
     }
-    if (endsAt && endsAt <= startsAt) {
+    if (endsAt <= startsAt) {
       toast.error('End time must be after start time.');
       return;
     }
@@ -184,10 +214,17 @@ export default function AnnouncementDrawer() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Severity">
               <select aria-label="Severity" value={form.severity} onChange={(event) => set('severity', event.target.value as AnnouncementSeverity)} className="w-full rounded-md border px-3 py-2">
-                <option value="info">Information</option>
-                <option value="urgent">Urgent change</option>
-                <option value="incident">Safety incident</option>
+                <option value="info">Information — app only</option>
+                <option value="urgent">Urgent change — notifies phones</option>
+                <option value="incident">Safety incident — notifies phones</option>
               </select>
+              {/* Which severities buzz a phone is not guessable from their
+                  names, and picking wrong means nobody is told at all. */}
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {PUSHES.includes(form.severity)
+                  ? 'Sends a push notification to attendees who turned them on.'
+                  : 'Appears in the app only. No phone will be notified.'}
+              </span>
             </Field>
             <Field label="Audience">
               <select aria-label="Audience" value={form.audience} onChange={(event) => set('audience', event.target.value as AnnouncementAudience)} className="w-full rounded-md border px-3 py-2">
@@ -198,10 +235,44 @@ export default function AnnouncementDrawer() {
             </Field>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Starts at (IST)"><input aria-label="Starts at (IST)" type="datetime-local" value={form.starts_at} onChange={(event) => set('starts_at', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
-            <Field label="Ends at (IST, optional)"><input aria-label="Ends at (IST, optional)" type="datetime-local" value={form.ends_at} onChange={(event) => set('ends_at', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
-          </div>
+          <fieldset className="rounded-md border p-3">
+            <legend className="px-1 text-sm text-muted-foreground">When</legend>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="now"
+                  checked={form.mode === 'now'}
+                  onChange={() => set('mode', 'now')}
+                />
+                Send now
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="schedule"
+                  checked={form.mode === 'schedule'}
+                  onChange={() => set('mode', 'schedule')}
+                />
+                Schedule
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {form.mode === 'schedule' && (
+                <Field label="Starts at (IST)"><input aria-label="Starts at (IST)" type="datetime-local" value={form.starts_at} onChange={(event) => set('starts_at', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
+              )}
+              <Field label="Ends at (IST, optional)"><input aria-label="Ends at (IST, optional)" type="datetime-local" value={form.ends_at} onChange={(event) => set('ends_at', event.target.value)} className="w-full rounded-md border px-3 py-2" /></Field>
+            </div>
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              {form.mode === 'now'
+                ? `Goes live the moment you save, and notifies phones then. Leave the end time blank and it clears ${DEFAULT_WINDOW_MINUTES} minutes later.`
+                : `Nothing is sent until the start time — the notice waits, then goes out within a minute of it. Leave the end time blank and it clears ${DEFAULT_WINDOW_MINUTES} minutes after that.`}
+            </p>
+          </fieldset>
 
           <label className="flex items-start gap-3 rounded-md border bg-muted/40 p-3">
             <input aria-label="Published" type="checkbox" checked={form.is_published} onChange={(event) => set('is_published', event.target.checked)} className="mt-1" />

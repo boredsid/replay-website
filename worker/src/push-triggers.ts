@@ -75,6 +75,83 @@ export async function notifyAnnouncement(
   });
 }
 
+/**
+ * Sends a notice and records that it was sent.
+ *
+ * The stamp is what makes a scheduled notice safe to dispatch from cron, which
+ * is at-least-once: without it a retry buzzes everybody a second time. It is
+ * written even when nothing was pushed -- an `info` notice never pushes, and a
+ * row that stays unstamped is a row the cron picks up forever.
+ *
+ * `notified_sent` of 0 is therefore meaningful and different from null: zero
+ * means the fan-out ran and reached nobody, which is the case worth being able
+ * to see from the desk.
+ */
+export async function dispatchAnnouncement(
+  env: Env,
+  sb: SupabaseClient,
+  announcement: AnnouncementRow & { id: string },
+  editionId: string,
+): Promise<FanOutResult | null> {
+  const result = await notifyAnnouncement(env, sb, announcement, editionId);
+  await sb
+    .from('announcements')
+    .update({
+      notified_at: new Date().toISOString(),
+      notified_sent: result?.sent ?? 0,
+      notified_failed: result?.failed ?? 0,
+    })
+    .eq('id', announcement.id);
+  return result;
+}
+
+interface DueAnnouncement extends AnnouncementRow {
+  id: string;
+  edition_id: string;
+  ends_at: string | null;
+}
+
+/**
+ * Delivers notices that have come due since the last tick.
+ *
+ * A notice written ahead of time is published immediately but must not be
+ * announced until it is true, so the request that writes it dispatches nothing
+ * and this does it when `starts_at` arrives.
+ *
+ * A notice whose window closed before the tick reached it is stamped without
+ * being sent. Buzzing a phone about something already over is worse than
+ * silence, and leaving it unstamped would mean trying again forever.
+ */
+export async function sendDueAnnouncements(
+  env: Env,
+  sb: SupabaseClient,
+  now: Date,
+): Promise<{ sent: number; expired: number }> {
+  const { data, error } = await sb
+    .from('announcements')
+    .select('id, edition_id, title, body, severity, audience, ends_at')
+    .eq('is_published', true)
+    .is('notified_at', null)
+    .lte('starts_at', now.toISOString());
+  if (error || !data) return { sent: 0, expired: 0 };
+
+  const tally = { sent: 0, expired: 0 };
+  for (const announcement of data as DueAnnouncement[]) {
+    if (announcement.ends_at && announcement.ends_at <= now.toISOString()) {
+      await sb
+        .from('announcements')
+        .update({ notified_at: now.toISOString(), notified_sent: 0, notified_failed: 0 })
+        .eq('id', announcement.id);
+      console.warn('announcement_expired_before_dispatch', { id: announcement.id, ends_at: announcement.ends_at });
+      tally.expired += 1;
+      continue;
+    }
+    const result = await dispatchAnnouncement(env, sb, announcement, announcement.edition_id);
+    tally.sent += result?.sent ?? 0;
+  }
+  return tally;
+}
+
 interface DueRow {
   id: string;
   attendee_id: string;
