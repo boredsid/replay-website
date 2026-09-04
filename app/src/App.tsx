@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScheduleCard } from './components/ScheduleCard';
 import { Announcements } from './components/Announcements';
 import { VenueMap } from './components/VenueMap';
@@ -464,6 +464,56 @@ export default function App() {
     if (rows) setSignups(rows);
   };
 
+  /**
+   * Everything this device knows, not just the public programme.
+   *
+   * The refresh button used to reload only the bootstrap, so borrowing a game
+   * or handing one back at the desk left the app showing yesterday's answer
+   * until it was killed and reopened. What changes while somebody is standing
+   * at a counter is precisely the half it was not fetching.
+   */
+  const refreshMine = useCallback(async () => {
+    if (!device) return;
+    await Promise.all([
+      fetchLibrary(device).then((next) => { if (next) setLibrary(next); }),
+      fetchSignups(device).then((rows) => { if (rows) setSignups(rows); }),
+    ]);
+  }, [device]);
+
+  const refreshAll = useCallback(() => {
+    refresh();
+    void refreshMine();
+  }, [refresh, refreshMine]);
+
+  /**
+   * Catch up whenever the app comes back to the front.
+   *
+   * This is the actual shape of borrowing: reserve on the phone, pocket it,
+   * walk to the desk, get handed the box, look at the phone again. Nothing in
+   * that sequence is a page load, so without this the only thing that ever
+   * corrected the screen was force-quitting the app.
+   */
+  useEffect(() => {
+    if (!device) return;
+    // Two separate signals, because they mean different things. A window that
+    // has just taken focus is by definition in front, so gating that one on
+    // visibilityState only means missing the case on any browser that reports
+    // the tab as hidden while handing it focus.
+    const onVisibility = () => { if (document.visibilityState === 'visible') void refreshMine(); };
+    const onFocus = () => { void refreshMine(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [device, refreshMine]);
+
+  // Opening the shelf is a question about right now, so ask again.
+  useEffect(() => {
+    if (tab === 'library') void refreshMine();
+  }, [tab, refreshMine]);
+
   const book = async (scheduleItemId: string) => {
     if (!device) return;
     setBookingBusy(scheduleItemId);
@@ -634,17 +684,17 @@ export default function App() {
           >
             <IdIcon size={18} strokeWidth={2.25} aria-hidden="true" />
           </button>
-          <button type="button" className="refresh-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
+          <button type="button" className="refresh-button" onClick={refreshAll} disabled={refreshing} aria-label={refreshing ? 'Refreshing event data' : 'Refresh event data'}>
             <span aria-hidden="true" className={refreshing ? 'refresh-button__icon refresh-button__icon--spinning' : 'refresh-button__icon'}>↻</span>
           </button>
           <span className={`network-dot ${online ? '' : 'network-dot--offline'}`} title={online ? 'Online' : 'Offline'}><i />{online ? 'Live' : 'Offline'}</span>
         </div>
       </header>
       {!online && <div className="offline-banner" role="status">You are offline. Showing the last event data saved on this device.</div>}
-      {online && stale && data && <div className="offline-banner offline-banner--stale" role="status">This event data is more than 10 minutes old. <button type="button" className="text-button" onClick={refresh}>Refresh now</button></div>}
+      {online && stale && data && <div className="offline-banner offline-banner--stale" role="status">This event data is more than 10 minutes old. <button type="button" className="text-button" onClick={refreshAll}>Refresh now</button></div>}
 
       <main id="main-content" className="main-content" ref={mainRef} tabIndex={-1}>
-        {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={refresh}>Try again</button></div> : data ? (
+        {loading && !data ? <div className="loading-state" aria-live="polite"><span /><p>Loading the event…</p></div> : error && !data ? <div className="error-state" role="alert"><span>!</span><h1>We could not load the event.</h1><p>{online ? 'The event service is temporarily unavailable.' : 'Connect once to save the event for offline use.'}</p><button className="button button--dark" type="button" onClick={refreshAll}>Try again</button></div> : data ? (
           <>
             <Announcements announcements={notices} timezone={data.timezone} />
             {device && push && pushAsk && (
