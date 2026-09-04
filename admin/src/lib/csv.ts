@@ -58,3 +58,67 @@ export function rosterToCsv(
     ]),
   );
 }
+
+const LEDGER_HEADERS = [
+  'game', 'copy', 'borrower', 'contact', 'contact_is_purchaser',
+  'checked_out_at', 'due_at', 'overdue', 'returned_at', 'taken_by',
+] as const;
+
+export interface LedgerLoan {
+  title: string;
+  copy_number: number;
+  attendee_name: string;
+  contact_phone: string | null;
+  contact_is_purchaser: boolean;
+  checked_out_at: string;
+  due_at: string;
+  overdue: boolean;
+}
+
+export interface LedgerWithdrawn {
+  title: string | null;
+  copy_number: number;
+  note: string | null;
+  withdrawn_by: string | null;
+  withdrawn_at: string | null;
+}
+
+/**
+ * The reconciliation export: what is out, plus what is off the shelf.
+ *
+ * Unlike the door roster this carries full numbers. The two artefacts have
+ * different jobs — the roster is checked against what somebody standing there
+ * tells you, this one is used to ring people who have walked off with a game,
+ * and a masked number cannot do that. It is downloaded by an authenticated
+ * admin and holds no more than the screen they are already looking at.
+ *
+ * The last two columns are deliberately blank: this is the sheet that gets
+ * filled in by hand when the network is down.
+ */
+export function ledgerToCsv(loans: readonly LedgerLoan[], withdrawn: readonly LedgerWithdrawn[]): string {
+  const rows: unknown[][] = loans.map((loan) => [
+    loan.title,
+    loan.copy_number,
+    loan.attendee_name,
+    loan.contact_phone ?? '',
+    loan.contact_is_purchaser ? 'purchaser' : '',
+    loan.checked_out_at,
+    loan.due_at,
+    loan.overdue ? 'OVERDUE' : '',
+    '',
+    '',
+  ]);
+
+  if (withdrawn.length > 0) {
+    rows.push([]);
+    rows.push(['OFF THE SHELF', '', '', '', '', '', '', '', '', '']);
+    for (const copy of withdrawn) {
+      rows.push([
+        copy.title ?? '', copy.copy_number, '', '', '',
+        copy.withdrawn_at ?? '', '', copy.note ?? '', '', copy.withdrawn_by ?? '',
+      ]);
+    }
+  }
+
+  return toCsv(LEDGER_HEADERS, rows);
+}

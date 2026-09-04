@@ -37,7 +37,7 @@ function scanReply(library: Record<string, unknown>) {
   };
 }
 
-function wire(options: { library?: Record<string, unknown>; loans?: unknown[]; people?: unknown[] } = {}) {
+function wire(options: { library?: Record<string, unknown>; loans?: unknown[]; people?: unknown[]; withdrawn?: unknown[] } = {}) {
   fetchAdmin.mockImplementation(async (path: string) => {
     if (path.startsWith('/api/admin/library/loans')) {
       const loans = options.loans ?? [];
@@ -45,6 +45,7 @@ function wire(options: { library?: Record<string, unknown>; loans?: unknown[]; p
     }
     if (path === '/api/admin/scan') return scanReply(options.library ?? { hold: null, loan: null });
     if (path.startsWith('/api/admin/library/titles')) return { titles: [] };
+    if (path === '/api/admin/library/withdrawn') return { copies: options.withdrawn ?? [] };
     if (path.startsWith('/api/admin/sessions/attendees')) {
       return { attendees: options.people ?? [] };
     }
@@ -225,5 +226,72 @@ describe('lending without the app', () => {
     await waitFor(() => {
       expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/library/attendees/att-1');
     });
+  });
+});
+
+
+describe('copies off the shelf', () => {
+  const WITHDRAWN = [{
+    copy_id: 'copy-7', copy_number: 2, title: 'Catan', title_key: 'bgg-1',
+    withdrawn_at: '2026-09-12T10:00:00Z', withdrawn_by: 'staff@replaycon.in',
+    note: 'two meeples missing',
+  }];
+
+  it('shows what is out of circulation and why', async () => {
+    wire({ withdrawn: WITHDRAWN });
+    renderDesk();
+    expect(await screen.findByText(/Off the shelf \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/two meeples missing/)).toBeInTheDocument();
+  });
+
+  it('puts a copy back, which nothing could do before', async () => {
+    // withdraw and restore both existed; only one had a button.
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    wire({ withdrawn: WITHDRAWN });
+    renderDesk();
+    await userEvent.click(await screen.findByRole('button', { name: /Put back/ }));
+
+    await waitFor(() => {
+      expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/library/restore', expect.objectContaining({
+        body: JSON.stringify({ copy_id: 'copy-7' }),
+      }));
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('does nothing if the confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    wire({ withdrawn: WITHDRAWN });
+    renderDesk();
+    await userEvent.click(await screen.findByRole('button', { name: /Put back/ }));
+    expect(fetchAdmin).not.toHaveBeenCalledWith('/api/admin/library/restore', expect.anything());
+    vi.restoreAllMocks();
+  });
+
+  it('hides the section when the shelf is whole', async () => {
+    wire({ withdrawn: [] });
+    renderDesk();
+    await screen.findByText('Nothing is out right now.');
+    expect(screen.queryByText(/Off the shelf/)).not.toBeInTheDocument();
+  });
+
+  it('survives an endpoint that answers with nonsense', async () => {
+    // A malformed reply used to take the entire desk screen down, because the
+    // header reads this list's length.
+    fetchAdmin.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/library/loans')) return { loans: [], overdue_count: 0 };
+      return {};
+    });
+    renderDesk();
+    expect(await screen.findByText('Game library')).toBeInTheDocument();
+  });
+});
+
+describe('the paper fallback', () => {
+  it('offers both a printable ledger and a CSV', async () => {
+    wire({ loans: [] });
+    renderDesk();
+    expect(await screen.findByRole('button', { name: /Print ledger/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /CSV/ })).toBeInTheDocument();
   });
 });

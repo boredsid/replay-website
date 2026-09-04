@@ -4,8 +4,10 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import QrScanner from '@/components/QrScanner';
-import { AlertTriangle, BookOpen, Clock, Search, UserSearch } from 'lucide-react';
-import type { LibraryAttendeeMatch, LibraryLoan, LibraryScan, LibraryTitle } from '@/lib/types';
+import { AlertTriangle, BookOpen, Clock, Download, Printer, RotateCcw, Search, UserSearch } from 'lucide-react';
+import type { LibraryAttendeeMatch, LibraryLoan, LibraryScan, LibraryTitle, LibraryWithdrawnCopy } from '@/lib/types';
+import { downloadCsv, ledgerToCsv } from '@/lib/csv';
+import { ledgerHtml, openLedger } from '@/lib/ledger';
 
 /**
  * The game-library desk.
@@ -30,6 +32,7 @@ export default function Library() {
   const [searchingTitles, setSearchingTitles] = useState(false);
   const [personQuery, setPersonQuery] = useState('');
   const [people, setPeople] = useState<LibraryAttendeeMatch[]>([]);
+  const [withdrawn, setWithdrawn] = useState<LibraryWithdrawnCopy[]>([]);
 
   const loadLoans = useCallback(async (query = '') => {
     try {
@@ -37,12 +40,22 @@ export default function Library() {
       const data = await fetchAdmin<{ loans: LibraryLoan[]; overdue_count: number }>(
         `/api/admin/library/loans${params}`,
       );
-      setLoans(data.loans);
-      setOverdueCount(data.overdue_count);
+      setLoans(Array.isArray(data?.loans) ? data.loans : []);
+      setOverdueCount(data?.overdue_count ?? 0);
     } catch (error) { showApiError(error); }
   }, []);
 
-  useEffect(() => { void loadLoans(); }, [loadLoans]);
+  const loadWithdrawn = useCallback(async () => {
+    try {
+      const data = await fetchAdmin<{ copies: LibraryWithdrawnCopy[] }>('/api/admin/library/withdrawn');
+      // Guarded: this list is read for its length in the header, so anything
+      // that is not an array takes the entire desk screen down with it -- and
+      // the desk is the one screen that cannot afford to be blank.
+      setWithdrawn(Array.isArray(data?.copies) ? data.copies : []);
+    } catch (error) { showApiError(error); }
+  }, []);
+
+  useEffect(() => { void loadLoans(); void loadWithdrawn(); }, [loadLoans, loadWithdrawn]);
 
   // What is out changes because of other people at the same counter, so the
   // list refreshes on its own rather than waiting for someone to reload.
@@ -112,9 +125,11 @@ export default function Library() {
       // have touched the same copy between the scan and the tap.
       if (lastToken) await lookUp(lastToken);
       else if (lastAttendeeId) await pickPerson(lastAttendeeId);
-      await loadLoans(loansQuery);
+      // Any of these actions can change what is off the shelf, not just what
+      // is out: a damaged return withdraws a copy in the same breath.
+      await Promise.all([loadLoans(loansQuery), loadWithdrawn()]);
     } catch (error) { showApiError(error); } finally { setBusy(false); }
-  }, [lastToken, lastAttendeeId, lookUp, pickPerson, loadLoans, loansQuery]);
+  }, [lastToken, lastAttendeeId, lookUp, pickPerson, loadLoans, loadWithdrawn, loansQuery]);
 
   const searchTitles = useCallback(async (query: string) => {
     setTitleQuery(query);
@@ -142,6 +157,24 @@ export default function Library() {
     void act('/api/admin/library/return', { loan_id: loanId, withdraw_note: note }, damaged ? 'Returned and withdrawn' : 'Returned');
   };
 
+  const putBack = (copyId: string, title: string | null) => {
+    if (!window.confirm(`Put ${title ?? 'this copy'} back on the shelf?`)) return;
+    void act('/api/admin/library/restore', { copy_id: copyId }, 'Back on the shelf');
+  };
+
+  const exportLedger = () => {
+    downloadCsv(
+      `replay-library-ledger-${new Date().toISOString().slice(0, 10)}.csv`,
+      ledgerToCsv(loans, withdrawn),
+    );
+  };
+
+  const printLedger = () => {
+    if (!openLedger(ledgerHtml(loans, withdrawn))) {
+      toast.error('Your browser blocked the ledger window. Allow pop-ups for this site.');
+    }
+  };
+
   const markLost = (loanId: string) => {
     const note = window.prompt('Marking this copy lost takes it out of circulation. Note (optional):') ?? null;
     void act('/api/admin/library/lost', { loan_id: loanId, note }, 'Marked lost');
@@ -155,7 +188,20 @@ export default function Library() {
           <p className="text-sm text-muted-foreground">
             Scan a pass to lend or take back. {loans.length} out
             {overdueCount > 0 && <span className="font-semibold text-destructive"> · {overdueCount} overdue</span>}
+            {withdrawn.length > 0 && <span> · {withdrawn.length} off the shelf</span>}
           </p>
+        </div>
+        {/* The fallback for the network going down mid-afternoon: paper on the
+            counter takes returns, the CSV reconciles afterwards. */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={printLedger}>
+            <Printer className="mr-1 h-4 w-4" aria-hidden="true" />
+            Print ledger
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportLedger}>
+            <Download className="mr-1 h-4 w-4" aria-hidden="true" />
+            CSV
+          </Button>
         </div>
       </header>
 
@@ -333,6 +379,36 @@ export default function Library() {
           )}
         </section>
       </div>
+
+      {withdrawn.length > 0 && (
+        <section className="space-y-2" aria-label="Copies off the shelf">
+          <h2 className="font-heading text-lg font-semibold">
+            Off the shelf ({withdrawn.length})
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Taken out of circulation. Nobody can borrow these until they go back.
+          </p>
+          <ul className="space-y-2">
+            {withdrawn.map((copy) => (
+              <li key={copy.copy_id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {copy.title} <span className="text-muted-foreground">copy {copy.copy_number}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {copy.note}
+                    {copy.withdrawn_by && <span> · {copy.withdrawn_by}</span>}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" disabled={busy} onClick={() => putBack(copy.copy_id, copy.title)}>
+                  <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
+                  Put back
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

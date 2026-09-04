@@ -416,3 +416,43 @@ export async function handleLibraryAttendee(
     library,
   }, 200, origin);
 }
+
+
+/**
+ * Copies off the shelf, and why.
+ *
+ * Without this the withdraw actions were one-way: a box taken out of
+ * circulation on Saturday morning simply vanished, with no screen that could
+ * show it and no way to put it back short of running SQL. The restore endpoint
+ * existed the whole time and had nothing calling it.
+ */
+export async function handleLibraryWithdrawn(
+  sb: SupabaseClient,
+  origin: string,
+): Promise<Response> {
+  const { data, error } = await sb
+    .from('library_copies')
+    .select('id, copy_number, withdrawn_at, withdrawn_by, withdrawn_note, library_titles(key, title)')
+    .eq('status', 'withdrawn')
+    .order('withdrawn_at', { ascending: false })
+    .limit(500);
+  if (error) return adminJson({ error: 'query_failed' }, 500, origin);
+
+  const rows = (data ?? []) as unknown as Array<{
+    id: string; copy_number: number;
+    withdrawn_at: string | null; withdrawn_by: string | null; withdrawn_note: string | null;
+    library_titles: { key: string; title: string } | null;
+  }>;
+
+  return adminJson({
+    copies: rows.map((row) => ({
+      copy_id: row.id,
+      copy_number: row.copy_number,
+      title: row.library_titles?.title ?? null,
+      title_key: row.library_titles?.key ?? null,
+      withdrawn_at: row.withdrawn_at,
+      withdrawn_by: row.withdrawn_by,
+      note: row.withdrawn_note,
+    })),
+  }, 200, origin);
+}

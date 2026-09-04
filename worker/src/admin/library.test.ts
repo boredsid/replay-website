@@ -12,6 +12,7 @@ import {
   handleLibraryLost,
   handleLibraryLoans,
   handleLibraryTitleSearch,
+  handleLibraryWithdrawn,
 } from './library';
 import { writeAudit } from './audit';
 import { getCurrentEdition } from '../editions';
@@ -275,5 +276,49 @@ describe('finding a title at the counter', () => {
       live: [{ copy_id: 'c1', status: 'requested', request_expires_at: new Date(Date.now() - MINUTE).toISOString() }],
     }), ORIGIN)).json() as { titles: Array<{ free_copies: Array<{ id: string }> }> };
     expect(body.titles[0].free_copies.map((c) => c.id)).toEqual(['c1']);
+  });
+});
+
+
+describe('copies off the shelf', () => {
+  function withdrawnClient(rows: unknown[]) {
+    return {
+      from: () => ({
+        select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: rows, error: null }) }) }) }),
+      }),
+    } as never;
+  }
+
+  it('says what is out of circulation and why', async () => {
+    // Withdrawing was one-way until this existed: a box taken off the shelf
+    // vanished, with no screen able to show it.
+    const response = await handleLibraryWithdrawn(withdrawnClient([{
+      id: 'copy-1', copy_number: 2,
+      withdrawn_at: '2026-09-12T10:00:00Z', withdrawn_by: 'staff@replaycon.in',
+      withdrawn_note: 'two meeples missing',
+      library_titles: { key: 'bgg-1', title: 'Catan' },
+    }]), ORIGIN);
+
+    const body = await response.json() as { copies: Array<Record<string, unknown>> };
+    expect(body.copies[0]).toMatchObject({
+      copy_id: 'copy-1', copy_number: 2, title: 'Catan',
+      note: 'two meeples missing', withdrawn_by: 'staff@replaycon.in',
+    });
+  });
+
+  it('returns an empty list when the shelf is whole', async () => {
+    const response = await handleLibraryWithdrawn(withdrawnClient([]), ORIGIN);
+    expect(await response.json()).toEqual({ copies: [] });
+  });
+
+  it('reports a query failure rather than pretending nothing is withdrawn', async () => {
+    // An empty list here would read as "nothing is damaged", which is the
+    // opposite of what a failed read means.
+    const broken = {
+      from: () => ({
+        select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: null, error: { message: 'boom' } }) }) }) }),
+      }),
+    } as never;
+    expect((await handleLibraryWithdrawn(broken, ORIGIN)).status).toBe(500);
   });
 });

@@ -46,17 +46,28 @@ function toggle<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
+/**
+ * Where the counter is, from the venue map rather than a string typed twice.
+ *
+ * "Show your ID at the library counter" is useless to somebody who has never
+ * been in the building, which on day one is everybody.
+ */
+const COUNTER = 'the Game Library — the bar counter onto the corridor';
+
 interface Props {
   device: Device | null;
   state: LibraryState | null;
   catalogue: CatalogueGame[] | null;
   catalogueError: boolean;
+  /** How the organisers describe borrowing this year, if they have said. */
+  process?: string | null;
   onChanged: () => void;
   onFinishSetup: () => void;
+  onShowMap: () => void;
 }
 
 export default function LibraryView({
-  device, state, catalogue, catalogueError, onChanged, onFinishSetup,
+  device, state, catalogue, catalogueError, process, onChanged, onFinishSetup, onShowMap,
 }: Props) {
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS);
   const [busy, setBusy] = useState(false);
@@ -124,12 +135,15 @@ export default function LibraryView({
           <h1>869 copies on the shelf</h1>
           <p>
             Check in at the desk and finish setup, then you can reserve a game
-            from here and collect it at the library.
+            from here and collect it at {COUNTER}.
           </p>
         </header>
         <section className="screen-section">
           <button type="button" className="button button--dark" onClick={onFinishSetup}>
             Finish setup
+          </button>
+          <button type="button" className="text-button" onClick={onShowMap}>
+            Where is it?
           </button>
         </section>
       </>
@@ -141,8 +155,14 @@ export default function LibraryView({
       <header className="screen-header">
         <span className="eyebrow">Game library</span>
         <h1>Borrow a game</h1>
-        <p>Reserve one here, then show your ID at the library counter.</p>
+        <p>
+          Reserve one here, then show your ID at {COUNTER}.
+          {' '}
+          <button type="button" className="text-button" onClick={onShowMap}>Find it on the map</button>
+        </p>
       </header>
+
+      {process && <p className="library-process">{process}</p>}
 
       {note && (
         <p className="booking-note" role="status">
@@ -159,7 +179,10 @@ export default function LibraryView({
             <Clock size={15} strokeWidth={2.5} aria-hidden="true" />
             {state.loan.overdue ? 'Due back now' : dueLabel(state.loan.due_at, now)}
           </p>
-          <p className="library-card__hint">Bring it back to the library counter to borrow another.</p>
+          <p className="library-card__hint">
+            Bring it back to {COUNTER} to borrow another.
+          </p>
+          <button type="button" className="button button--light" onClick={onShowMap}>Show me where</button>
         </section>
       )}
 
@@ -173,7 +196,7 @@ export default function LibraryView({
               ? `${minutesLeft(state.hold.expires_at, now)} min to collect it`
               : 'Time is up — but if it is still on the shelf, the desk can hand it over'}
           </p>
-          <p className="library-card__hint">Show your ID at the library counter.</p>
+          <p className="library-card__hint">Show your ID at {COUNTER}.</p>
           <button type="button" className="button button--light" onClick={() => void giveUp()} disabled={busy}>
             Change my mind
           </button>

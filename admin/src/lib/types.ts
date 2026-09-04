@@ -384,3 +384,14 @@ export interface LibraryAttendeeMatch {
   name: string;
   phone_masked: string;
 }
+
+/** A copy taken out of circulation, and why. */
+export interface LibraryWithdrawnCopy {
+  copy_id: string;
+  copy_number: number;
+  title: string | null;
+  title_key: string | null;
+  withdrawn_at: string | null;
+  withdrawn_by: string | null;
+  note: string | null;
+}

@@ -39,6 +39,7 @@ import {
   handleLibraryLoans,
   handleLibraryTitleSearch,
   handleLibraryAttendee,
+  handleLibraryWithdrawn,
 } from './admin/library';
 import { handlePartnerPurchase, handlePartnerPurchasePreview } from './partner-purchase';
 import { handlePromoPreview } from './promo-preview';
@@ -152,6 +153,7 @@ export default {
         const libraryAttendeeMatch = path.match(/^\/api\/admin\/library\/attendees\/([^/]+)$/);
         if (libraryAttendeeMatch && req.method === 'GET') return await handleLibraryAttendee(sb, libraryAttendeeMatch[1], origin);
         if (path === '/api/admin/library/loans' && req.method === 'GET') return await handleLibraryLoans(req, sb, origin);
+        if (path === '/api/admin/library/withdrawn' && req.method === 'GET') return await handleLibraryWithdrawn(sb, origin);
         if (path === '/api/admin/library/checkout' && req.method === 'POST') return await handleLibraryCheckout(req, env, sb, email, origin);
         if (path === '/api/admin/library/return' && req.method === 'POST') return await handleLibraryReturn(req, sb, email, origin);
         if (path === '/api/admin/library/withdraw' && req.method === 'POST') return await handleLibraryWithdraw(req, sb, email, origin);

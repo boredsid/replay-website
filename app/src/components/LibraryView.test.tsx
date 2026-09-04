@@ -38,6 +38,7 @@ function state(overrides: Partial<LibraryState> = {}): LibraryState {
 function renderView(overrides: Partial<Parameters<typeof LibraryView>[0]> = {}) {
   const onChanged = vi.fn();
   const onFinishSetup = vi.fn();
+  const onShowMap = vi.fn();
   render(
     <LibraryView
       device={DEVICE}
@@ -46,10 +47,11 @@ function renderView(overrides: Partial<Parameters<typeof LibraryView>[0]> = {}) 
       catalogueError={false}
       onChanged={onChanged}
       onFinishSetup={onFinishSetup}
+      onShowMap={onShowMap}
       {...overrides}
     />,
   );
-  return { onChanged, onFinishSetup };
+  return { onChanged, onFinishSetup, onShowMap };
 }
 
 beforeEach(() => { requestGame.mockReset(); cancelRequest.mockReset(); });
@@ -190,7 +192,7 @@ describe('a held game', () => {
   it('counts down and says where to go', () => {
     renderView({ state: held });
     expect(screen.getByText(/3 min to collect it/)).toBeInTheDocument();
-    expect(screen.getByText(/Show your ID at the library counter/)).toBeInTheDocument();
+    expect(screen.getByText(/Show your ID at the Game Library/)).toBeInTheDocument();
   });
 
   it('still tells them to try when the hold has lapsed', () => {
@@ -265,5 +267,37 @@ describe('before setup', () => {
   it('explains a catalogue that could not load', () => {
     renderView({ catalogue: null, catalogueError: true });
     expect(screen.getByText(/catalogue could not be loaded/i)).toBeInTheDocument();
+  });
+});
+
+
+describe('finding the counter', () => {
+  it('names where to go, not just "the library counter"', () => {
+    // Useless to somebody who has never been in the building, which on day one
+    // is everybody.
+    renderView();
+    expect(screen.getAllByText(/bar counter onto the corridor/).length).toBeGreaterThan(0);
+  });
+
+  it('sends them to the map', async () => {
+    const { onShowMap } = renderView();
+    await userEvent.click(screen.getByRole('button', { name: 'Find it on the map' }));
+    expect(onShowMap).toHaveBeenCalled();
+  });
+
+  it('offers the map to somebody who has not set up yet either', async () => {
+    const { onShowMap } = renderView({ device: null });
+    await userEvent.click(screen.getByRole('button', { name: 'Where is it?' }));
+    expect(onShowMap).toHaveBeenCalled();
+  });
+
+  it('shows the organisers\' own borrowing note when they have written one', () => {
+    renderView({ process: 'Two-hour loans during the tournament block.' });
+    expect(screen.getByText(/Two-hour loans/)).toBeInTheDocument();
+  });
+
+  it('says nothing extra when they have not', () => {
+    renderView({ process: null });
+    expect(document.querySelector('.library-process')).toBeNull();
   });
 });

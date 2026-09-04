@@ -579,9 +579,29 @@ across two cron ticks.
 
 # P4 — Game-library circulation
 
-> **Blocked.** Do not start until the inventory-source decision is made:
-> import the BGC catalogue, or maintain REPLAY-owned copies. It determines the
-> schema and cannot be deferred into implementation.
+> **Shipped 2026-09-04.** The inventory decision was made on 2026-09-02:
+> REPLAY-owned copies, which include the BGC catalogue anyway. It turned out to
+> matter far less than this plan claimed — it shapes where title metadata comes
+> from, not the loan model, which keys on copies either way.
+>
+> All five items below are done. Four things worth knowing:
+>
+> 1. **The four rules that matter are partial unique indexes**, not application
+>    code: one live loan per copy, one live hold per copy, one game at a time,
+>    one hold at a time. An index cannot be raced, and these are precisely what
+>    two people tapping at once would break.
+> 2. **Holds expire lazily.** The RPCs retire stale rows on their way past, so
+>    there is no cron that can stop firing and leave copies locked.
+> 3. **The closing-time rules relax outside the event**, exactly as
+>    `pairingGateDay` does, so the whole flow could be rehearsed rather than
+>    first run at the desk on day one.
+> 4. **`library_titles` carries only key, bgg_id and title.** Rating, weight,
+>    player counts and artwork stay in the committed snapshot; duplicating them
+>    would have created a second source of truth that drifts on every
+>    `sync:library`.
+>
+> Deliberately **not** built: an offline write queue for loans. See the note in
+> `docs/LIVE_EVENT_READINESS.md`.
 
 Once decided:
 

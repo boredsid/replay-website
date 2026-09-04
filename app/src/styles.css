@@ -756,3 +756,11 @@ p { line-height: 1.55; }
   font-size: .8rem;
   font-weight: 800;
 }
+
+.library-process {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--indigo);
+  background: rgba(26, 0, 136, .05);
+  font-size: .85rem;
+}

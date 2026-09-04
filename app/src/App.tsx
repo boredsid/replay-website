@@ -724,8 +724,10 @@ export default function App() {
                 state={library}
                 catalogue={catalogue}
                 catalogueError={catalogueError}
+                process={data.edition?.game_library_process ?? null}
                 onChanged={() => void refreshLibrary()}
                 onFinishSetup={() => setAskedFor('pair')}
+                onShowMap={() => changeTab('map')}
               />
             )}
 
