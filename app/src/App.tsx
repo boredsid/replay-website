@@ -424,6 +424,11 @@ export default function App() {
     // blanking someone's bookings because the venue wifi dipped.
     void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
     void livePushState(device).then(setPush);
+    // Without this the shelf never learns whether borrowing is open, and every
+    // card falls back to "Available" with no button -- which cannot recover on
+    // its own, because the only other thing that sets this state is a
+    // successful reservation.
+    void fetchLibrary(device).then((next) => { if (next) setLibrary(next); });
     // Stars made before pairing -- which is most of them, since people plan
     // before they arrive -- exist only on this phone, and the reminder cron
     // cannot see a phone. Union, so pairing a second device adds rather than

@@ -10,6 +10,16 @@ describe('minutesLeft', () => {
     expect(minutesLeft(at(4.5), NOW)).toBe(5);
   });
 
+  it('does not overshoot the policy on a fresh hold', () => {
+    // A hold minted five minutes out, read a fraction of a second later with
+    // the server's clock slightly ahead, must not say "6 min".
+    expect(minutesLeft(new Date(NOW + 5 * 60_000 + 400).toISOString(), NOW)).toBe(5);
+  });
+
+  it('still says one minute when under a minute remains', () => {
+    expect(minutesLeft(at(0.5), NOW)).toBe(1);
+  });
+
   it('never goes negative', () => {
     // Expiry is lazy, so a lapsed hold can still be on screen. "-3 min to
     // collect it" is not a thing to show anybody.

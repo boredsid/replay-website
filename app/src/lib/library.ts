@@ -102,9 +102,17 @@ export async function cancelRequest(device: Device): Promise<boolean> {
   }
 }
 
-/** Whole minutes left, floored at zero so a lapsed hold never reads negative. */
+/**
+ * Whole minutes left, floored at zero so a lapsed hold never reads negative.
+ *
+ * Rounds up, because "1 min" with thirty seconds left is true and "0" is not.
+ * The second subtracted first absorbs the gap between the server stamping the
+ * deadline and this phone reading it -- without it a five-minute hold renders
+ * as "6 min to collect it" the instant it is made, which reads as a bug to
+ * anyone who knows the rule is five.
+ */
 export function minutesLeft(iso: string, now: number = Date.now()): number {
-  return Math.max(0, Math.ceil((Date.parse(iso) - now) / 60_000));
+  return Math.max(0, Math.ceil((Date.parse(iso) - now - 1_000) / 60_000));
 }
 
 /** "1h 20m left", or "Due now" once the clock has run out. */

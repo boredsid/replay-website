@@ -136,6 +136,16 @@ describe('browsing', () => {
   });
 });
 
+describe('when the shelf state never arrived', () => {
+  it('offers nothing rather than a button the server would refuse', () => {
+    // Null state means the fetch failed or never ran. Offering Reserve here
+    // would produce an error the attendee cannot act on.
+    renderView({ state: null });
+    expect(screen.queryByRole('button', { name: /^Reserve/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Available').length).toBeGreaterThan(0);
+  });
+});
+
 describe('one game at a time', () => {
   it('offers no reservations while something is already held', () => {
     renderView({ state: state({
