@@ -28,7 +28,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect magic pearls as they flow downriver in this kinetic worker placement game."
     },
     {
       "key": "bgg-371947",
@@ -45,7 +46,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hire artists and offer performances to become the most famous circus in the US."
     },
     {
       "key": "bgg-1961",
@@ -62,7 +64,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Play cards to avoid going over the sum 21 and survive for another hand."
     },
     {
       "key": "bgg-357726",
@@ -80,7 +83,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build, deal and raze the ultimate state with the base game and 6 expansions."
     },
     {
       "key": "bgg-68448",
@@ -98,7 +102,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Draft cards to develop your ancient civilization and build its Wonder of the World."
     },
     {
       "key": "bgg-173346",
@@ -115,7 +120,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Science? Military? What will you draft to win this head-to-head version of 7 Wonders?"
     },
     {
       "key": "bgg-346703",
@@ -132,7 +138,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Race against others to assemble your wonder, but speed won't guarantee victory."
     },
     {
       "key": "bgg-135779",
@@ -150,7 +157,8 @@
         6,
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Everyone draws, but one of you doesn't know what they're drawing. Can you spot them?"
     },
     {
       "key": "bgg-103343",
@@ -167,7 +175,8 @@
       "bestWith": [
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Make alliances—and break them!—as you strive to both unite and conquer Westeros."
     },
     {
       "key": "bgg-474042",
@@ -184,7 +193,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Two simple decisions—pick a bulb or battery—will employ all your thinking volts!"
     },
     {
       "key": "bgg-399987",
@@ -201,7 +211,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Work together (or in teams) to decode messages from an alien race."
     },
     {
       "key": "bgg-431481",
@@ -218,7 +229,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Acquire, arrange, and admire your books as you complete rewarding projects!"
     },
     {
       "key": "bgg-172818",
@@ -235,7 +247,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build your newly founded village above while exploring the caves and stories below."
     },
     {
       "key": "bgg-247367",
@@ -252,7 +265,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Submit orders on three fronts to outwit and outmatch your military opponent."
     },
     {
       "key": "bgg-154458",
@@ -269,7 +283,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore the Aegean Sea, connect trade routes, and discover temples by placing tiles."
     },
     {
       "key": "bgg-161970",
@@ -286,7 +301,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Showcase your alchemical know-how by publishing theories in this app-driven game."
     },
     {
       "key": "bgg-311654",
@@ -301,7 +317,8 @@
       "rating": 7.6,
       "weight": 1.96,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "From the kickstarter: Alice is Missing, a silent role-playing game about the disappearance of Alice Briarwood, a high school junior in the small town of Silent Falls. ... The game is played live and without verbal communication."
     },
     {
       "key": "bgg-299960",
@@ -318,7 +335,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Players serve as headmasters of universities seeking to establish themselves."
     },
     {
       "key": "bgg-469367",
@@ -335,7 +353,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rival factions settle their differences in a grand festival."
     },
     {
       "key": "bgg-354568",
@@ -352,7 +371,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "As Pharaoh, participate in auctions to buy land and build pyramids to your greatness!"
     },
     {
       "key": "bgg-185343",
@@ -369,7 +389,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use Exosuits & time travel to ensure your vision for the future after the cataclysm."
     },
     {
       "key": "bgg-358661",
@@ -386,7 +407,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Factions clash on the edge of the galaxy!"
     },
     {
       "key": "bgg-362639",
@@ -403,7 +425,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Your favourite Indian stereotypes fight it out to help you come out the strongest."
     },
     {
       "key": "bgg-140934",
@@ -420,7 +443,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Build the Arboretum of your dreams, and prevent your rival from building theirs."
     },
     {
       "key": "bgg-236457",
@@ -437,7 +461,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Will you be a virtuous or nefarious servant of the king? Build your way to glory."
     },
     {
       "key": "bgg-359871",
@@ -455,7 +480,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Rule the galaxy with your court, fleet, and cities."
     },
     {
       "key": "bgg-342942",
@@ -472,7 +498,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Plan and build a modern, scientifically managed zoo to support conservation projects."
     },
     {
       "key": "bgg-367603",
@@ -487,7 +514,8 @@
       "rating": 7.5,
       "weight": 1.5,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Master artisans compete to lay the most impressive floor for a Chettinad Mansion"
     },
     {
       "key": "bgg-367396",
@@ -505,7 +533,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Big Box edition of the classic social deduction game of hidden loyalty!"
     },
     {
       "key": "bgg-230802",
@@ -522,7 +551,8 @@
       "bestWith": [
         2
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Artfully embellish the walls of your palace by drafting the most beautiful tiles."
     },
     {
       "key": "bgg-363247",
@@ -540,7 +570,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Join the best chocolate makers of the world."
     },
     {
       "key": "bgg-346965",
@@ -557,7 +588,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Create the perfect garden patterns for Queen Maria of Aragon."
     },
     {
       "key": "bgg-287954",
@@ -575,7 +607,8 @@
         2,
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "You're an artisan working on creating striking patterns within a king's palace."
     },
     {
       "key": "bgg-252555",
@@ -592,7 +625,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "X marks the spot as you and other pirate captains piece together scraps of maps, sending minions stumbling around the island - leading some to traps and others to treasure. But beware, other captains&rsquo; instructions may work against you. Yargh!"
     },
     {
       "key": "bgg-380891",
@@ -609,7 +643,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take your business and your rails into the Balkans."
     },
     {
       "key": "bgg-43307",
@@ -626,7 +661,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Half Cube Rails, half 18XX."
     },
     {
       "key": "bgg-219513",
@@ -643,7 +679,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build a bear park on personal boards by carefully placing polyominoes."
     },
     {
       "key": "bgg-251247",
@@ -660,7 +697,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Nations vie for hydroelectric dominance in a dystopia where water is power."
     },
     {
       "key": "bgg-324513",
@@ -677,7 +715,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Frank Miller's The Dark Knight Returns gets adapted for the tabletop."
     },
     {
       "key": "bgg-369880",
@@ -694,7 +733,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Two villages face off in the traditions of brewing beer and baking bread."
     },
     {
       "key": "bgg-10547",
@@ -712,7 +752,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Explore a haunted house as a team ... until one of you turns against the rest."
     },
     {
       "key": "bgg-168435",
@@ -730,7 +771,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build a shared city with each of your neighbours. Can you make both thrive?"
     },
     {
       "key": "bgg-317985",
@@ -747,7 +789,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collectively develop a tech tree to fuel new discoveries and colonize space."
     },
     {
       "key": "bgg-325882",
@@ -764,7 +807,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Expand your kingdom and rule in the ancient Indian subcontinent."
     },
     {
       "key": "bgg-34219",
@@ -781,7 +825,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Amass the greatest library of sacred texts, using your wits and meager gold supply."
     },
     {
       "key": "title-birds-in-the-city",
@@ -813,7 +858,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Become the next great spirit of the forest, exploring it and helping lost souls."
     },
     {
       "key": "bgg-157403",
@@ -830,7 +876,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Lead a fleet of ships, collect doubloons, pay the ransom for the governor's daughter."
     },
     {
       "key": "bgg-243599",
@@ -847,7 +894,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Black Hole Council is a 4-8 player negotiation and deduction game about deciding the fate of 32 different planets. Players take on the role of Councilors on the Black Hole Council. Each Councilor has been paid off by shady organizations, and so has a secret agenda card they're trying to fulfill."
     },
     {
       "key": "bgg-276343",
@@ -864,7 +912,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Go on the hunt for words with a spare letter!"
     },
     {
       "key": "bgg-240980",
@@ -884,7 +933,8 @@
         11,
         12
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Deduce who the Demon is through logic and bluffing. Dead players still play."
     },
     {
       "key": "bgg-170216",
@@ -901,7 +951,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Ragnarök has come! Secure your place in Valhalla in epic Viking battles."
     },
     {
       "key": "bgg-273330",
@@ -919,7 +970,8 @@
         1,
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Fear the Old Blood! Solve mysteries and face monsters in a dark gothic world."
     },
     {
       "key": "bgg-244331",
@@ -936,7 +988,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore an unsettled archipelago and connect your villages by land and sea...twice!"
     },
     {
       "key": "bgg-11",
@@ -954,7 +1007,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Farm beans, harvest crops and trade your way to fortune in this card game classic."
     },
     {
       "key": "bgg-413246",
@@ -971,7 +1025,8 @@
       "bestWith": [
         4
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Players defuse bombs by deducing and cutting unseen wires of different values."
     },
     {
       "key": "bgg-343905",
@@ -988,7 +1043,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build, raise cattle, expand and explore in a fictional Western US region."
     },
     {
       "key": "bgg-355433",
@@ -1005,7 +1061,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "\"boop\" cats off the bed before they boop yours. Adorable & challenging!"
     },
     {
       "key": "bgg-224517",
@@ -1023,7 +1080,8 @@
         3,
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Build networks, grow industries, and navigate the world of the Industrial Revolution."
     },
     {
       "key": "bgg-28720",
@@ -1040,7 +1098,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Test your economic mettle as you build and network in the Industrial Revolution."
     },
     {
       "key": "bgg-112373",
@@ -1057,7 +1116,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Play your 8 rats and beat your opponent's 8 rats. A different rule for each rat."
     },
     {
       "key": "bgg-249277",
@@ -1074,7 +1134,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build your own Brazilian empire in this 4X euro game!"
     },
     {
       "key": "bgg-227466",
@@ -1091,7 +1152,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Logic, math, and clever questioning will help you deduce your opponents' tiles."
     },
     {
       "key": "bgg-354669",
@@ -1108,7 +1170,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Be the first player to break your opponent's cube!"
     },
     {
       "key": "bgg-332386",
@@ -1125,7 +1188,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Bring balance back to the forest with potions and woodland creatures."
     },
     {
       "key": "bgg-308989",
@@ -1143,7 +1207,8 @@
         6,
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Catch a cart out of town while avoiding players secretly infected with plague."
     },
     {
       "key": "bgg-172308",
@@ -1160,7 +1225,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect ingredients and deliver valuable potions by outguessing your opponents."
     },
     {
       "key": "bgg-192735",
@@ -1178,7 +1244,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect ingredients and make valuable potions by outguessing your opponents."
     },
     {
       "key": "bgg-283853",
@@ -1193,7 +1260,8 @@
       "rating": 6.3,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Eliminate your friends and fight your way to the top in this highly-strategic, fast-paced card game! Hit your rivals with hammers, and dance away from incoming Hits. Unlock power cards by collecting 3 of a kind to heal yourself and to go on rampages."
     },
     {
       "key": "bgg-144592",
@@ -1210,7 +1278,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Manage your workers to help usher in a new era of culture and progress in Brussels."
     },
     {
       "key": "bgg-364760",
@@ -1231,7 +1300,8 @@
         11,
         12
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "You will have to prove to other players that you are useful and kick other players."
     },
     {
       "key": "bgg-19237",
@@ -1248,7 +1318,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Do you have the nerves for a Mexican standoff? Walk away rich or end up on the floor."
     },
     {
       "key": "bgg-155362",
@@ -1267,7 +1338,8 @@
         7,
         8
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "A band of gangsters splits its loot — but guns speak louder than money."
     },
     {
       "key": "bgg-260605",
@@ -1285,7 +1357,8 @@
         5,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Place your bets and bend the odds in this crazy camel-stacking race!"
     },
     {
       "key": "bgg-69465",
@@ -1300,7 +1373,8 @@
       "rating": 6.3,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Description from BoardgameNews.com: The Cam&eacute;l&eacute;on deck includes 54 combination cards, each with a number, a color and an object, along with a single wild chameleon card. Each player starts the round by drawing one of these cards and laying it face up on the table."
     },
     {
       "key": "bgg-41",
@@ -1317,7 +1391,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Roll dice to claim three columns. Risk everything earned this turn with each roll."
     },
     {
       "key": "bgg-472700",
@@ -1332,7 +1407,8 @@
       "rating": 6,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Six trades. Nine empires. Two gangs. One table about to get very tense."
     },
     {
       "key": "bgg-290236",
@@ -1350,7 +1426,8 @@
         3,
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Artistically layer your paintings to create a masterpiece and win the Best in Show!"
     },
     {
       "key": "bgg-328565",
@@ -1367,7 +1444,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Three heists. Two rivals. One criminal mastermind will rise to the top."
     },
     {
       "key": "bgg-393325",
@@ -1384,7 +1462,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hoist your flag, recruit a colorful crew, and earn as many gold coins as you can."
     },
     {
       "key": "bgg-171131",
@@ -1401,7 +1480,8 @@
       "bestWith": [
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Torpedoes away! Hunt for your opponent's sub in this exciting, real-time team game."
     },
     {
       "key": "bgg-822",
@@ -1418,7 +1498,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Shape the medieval French landscape, claiming cities, monasteries, roads, and farms."
     },
     {
       "key": "title-career-city",
@@ -1450,7 +1531,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build villas and lands to produce gold, bread and goods in ancient Rome."
     },
     {
       "key": "bgg-295947",
@@ -1468,7 +1550,8 @@
         2,
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Create the most harmonious ecosystem as you puzzle together habitats and wildlife."
     },
     {
       "key": "bgg-416851",
@@ -1485,7 +1568,8 @@
       "bestWith": [
         2
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Combine medieval villagers and castle dwellers to score points."
     },
     {
       "key": "bgg-345972",
@@ -1502,7 +1586,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Win tricks without knowing the colour of your cards until you play them."
     },
     {
       "key": "bgg-13",
@@ -1519,7 +1604,8 @@
       "bestWith": [
         4
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Collect and trade resources to build up the island of Catan in this modern classic."
     },
     {
       "key": "title-cats-from-hell",
@@ -1551,7 +1637,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Entrepreneurs pay workers & bribe an official to build a Château & gain royal favor."
     },
     {
       "key": "bgg-242574",
@@ -1568,7 +1655,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore the high seas to establish new spice trading networks among the islands."
     },
     {
       "key": "bgg-232832",
@@ -1586,7 +1674,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Snatch up costly crystals and synthesize them to create wondrous golems."
     },
     {
       "key": "bgg-283619",
@@ -1603,7 +1692,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore the Carvania mountains and valleys to establish a crystal trading network."
     },
     {
       "key": "bgg-209685",
@@ -1621,7 +1711,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Grow and trade spices and use them to gain estate."
     },
     {
       "key": "bgg-345408",
@@ -1639,7 +1730,8 @@
         3,
         4
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Chai shop owners manage a multitude of customers by serving chai."
     },
     {
       "key": "bgg-390340",
@@ -1658,7 +1750,8 @@
         6,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Capture the flag and hold onto it to win the tournament!"
     },
     {
       "key": "bgg-43111",
@@ -1675,7 +1768,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rival chaos gods send forth their minions to spread corruption and destruction."
     },
     {
       "key": "bgg-105593",
@@ -1692,7 +1786,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Get rid of your cards through cheating! Just don't get caught..."
     },
     {
       "key": "bgg-294175",
@@ -1711,7 +1806,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Dream of tomorrow's cheese, while a cunning thief plots to steal it away."
     },
     {
       "key": "bgg-171",
@@ -1728,7 +1824,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Checkmate your opponent in this timeless abstract."
     },
     {
       "key": "bgg-202265",
@@ -1745,7 +1842,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build and invest in railways across the great plains of America in the late 1800s."
     },
     {
       "key": "bgg-163642",
@@ -1762,7 +1860,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Genetically modify alien workers to use for building & commanding a space station."
     },
     {
       "key": "bgg-240567",
@@ -1779,7 +1878,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Create the most efficient assembly line to produce the most delicious chocolate."
     },
     {
       "key": "bgg-124052",
@@ -1796,7 +1896,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pick and deliver the best produce to a grateful populace."
     },
     {
       "key": "bgg-337",
@@ -1813,7 +1914,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Push your luck to collect the best circus fleas in 10 colours."
     },
     {
       "key": "bgg-205398",
@@ -1830,7 +1932,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Thief? King? Warlord? Draft the best temporary roles in this kingdom building game."
     },
     {
       "key": "bgg-478",
@@ -1847,7 +1950,8 @@
       "bestWith": [
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Bishop, warlord, thief, king: change roles, build your city and hinder your rivals."
     },
     {
       "key": "bgg-263895",
@@ -1865,7 +1969,8 @@
         1,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Solo/Coop/One-vs-Many strategy game set in the Victorian steampunk universe."
     },
     {
       "key": "bgg-233247",
@@ -1882,7 +1987,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build Wonders, expand across the map and develop your Empire."
     },
     {
       "key": "bgg-201808",
@@ -1899,7 +2005,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Claim your treasures but don't attract the dragon in this deck-building dungeon race."
     },
     {
       "key": "bgg-216132",
@@ -1916,7 +2023,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Lead your unique Scottish clan to economic might via production, trade, and export."
     },
     {
       "key": "bgg-299659",
@@ -1934,7 +2042,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Advance your ancient civilization from tiny settlement to mighty empire."
     },
     {
       "key": "bgg-344",
@@ -1951,7 +2060,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Can you predict how much art you and the other players will put on display?"
     },
     {
       "key": "bgg-316858",
@@ -1968,7 +2078,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Travel in airships above dried-up landscapes, visit cities, and battle Cloud militia."
     },
     {
       "key": "bgg-1294",
@@ -1986,7 +2097,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Catch the culprit of a crime by identifying who did it, with what, and where."
     },
     {
       "key": "bgg-391824",
@@ -2003,7 +2115,8 @@
       "bestWith": [
         10
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The team based, hidden role, adult party game version of Clue!"
     },
     {
       "key": "bgg-198328",
@@ -2020,7 +2133,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The game of Clue with a \"Game of Thrones\" TV series theme."
     },
     {
       "key": "bgg-214887",
@@ -2037,7 +2151,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Work together to create green energy sources to reduce the global carbon footprint."
     },
     {
       "key": "bgg-11971",
@@ -2054,7 +2169,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "It's a cockroach. It's a fly. Will you call the bluff or pass on a trick of your own?"
     },
     {
       "key": "bgg-178900",
@@ -2072,7 +2188,8 @@
         6,
         8
       ],
-      "copies": 6
+      "copies": 6,
+      "description": "Give your team clever one-word clues to help them spot their agents in the field."
     },
     {
       "key": "bgg-198773",
@@ -2089,7 +2206,8 @@
       "bestWith": [
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Give your team one-word coded clues, trying to identify specific image cards."
     },
     {
       "key": "bgg-377061",
@@ -2106,7 +2224,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Become the greatest barista by quickly fulfilling coffee and beverage orders."
     },
     {
       "key": "bgg-5782",
@@ -2123,7 +2242,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect colorful chameleons, but be careful! Don't take too many types."
     },
     {
       "key": "bgg-14105",
@@ -2140,7 +2260,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Accessible tactical wargame from the dawn of history to the opening of the Dark Age."
     },
     {
       "key": "bgg-124361",
@@ -2157,7 +2278,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Merchants build and trade throughout the Roman Empire to please the Gods."
     },
     {
       "key": "bgg-465819",
@@ -2175,7 +2297,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Merchants build and trade throughout the Roman Empire to please the Gods."
     },
     {
       "key": "bgg-308933",
@@ -2192,7 +2315,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Strategize and discover the properties and unique abilities of Chakras!!"
     },
     {
       "key": "bgg-453740",
@@ -2209,7 +2333,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Set prices as you produce, sell, and ship containers in a tight economic simulation."
     },
     {
       "key": "bgg-313010",
@@ -2226,7 +2351,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A game of alien politics and deep space warfare."
     },
     {
       "key": "bgg-194100",
@@ -2243,7 +2369,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Decide to lead, follow, or get out of the way in this exotic set collection game."
     },
     {
       "key": "bgg-131357",
@@ -2260,7 +2387,8 @@
       "bestWith": [
         5
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Bluff (and call bluffs!) to victory in this card game with no third chances."
     },
     {
       "key": "bgg-402283",
@@ -2277,7 +2405,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "When the Queen holds her banquet, skullduggery is on the menu!"
     },
     {
       "key": "bgg-304051",
@@ -2294,7 +2423,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Winter is coming – prepare your burrow so you and your family can be comfy cozy!"
     },
     {
       "key": "bgg-300753",
@@ -2311,7 +2441,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Race against time to fill the grid by cluing intersecting words."
     },
     {
       "key": "bgg-192457",
@@ -2328,7 +2459,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Asymmetric factions engage in epic struggle for land and crystal on an alien planet."
     },
     {
       "key": "bgg-246784",
@@ -2345,7 +2477,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Be the first to locate the cryptid through pure deduction and subtle deception."
     },
     {
       "key": "bgg-245476",
@@ -2362,7 +2495,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Group birds into flocks and help them find their way back to their nest."
     },
     {
       "key": "bgg-202977",
@@ -2379,7 +2513,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Refresh your knowledge about cell biology while creating proteins and enzymes."
     },
     {
       "key": "bgg-417505",
@@ -2396,7 +2531,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Join the Dabba Walla on their daily journey through Mumbai to deliver lunch boxes."
     },
     {
       "key": "bgg-444678",
@@ -2415,7 +2551,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "A game of riddles and reflexes!"
     },
     {
       "key": "bgg-334986",
@@ -2432,7 +2569,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Cooperatively decarbonize the planet and create resilient societies."
     },
     {
       "key": "bgg-184522",
@@ -2451,7 +2589,8 @@
         9,
         10
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Ally, betray and murder your opponents to be the last standing player."
     },
     {
       "key": "bgg-443776",
@@ -2466,7 +2605,8 @@
       "rating": 7,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Memory meets strategy in a race to end with lowest score using a unique card scoring."
     },
     {
       "key": "bgg-150376",
@@ -2483,7 +2623,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "As you struggle to keep survivors alive, how will you value group vs. personal needs?"
     },
     {
       "key": "bgg-367379",
@@ -2500,7 +2641,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Four players. Three hidden roles. Two opposing paths. Only one mighty ruler!"
     },
     {
       "key": "bgg-225694",
@@ -2518,7 +2660,8 @@
         4,
         6
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Decipher your opponents' code before they decipher yours. Don't get caught."
     },
     {
       "key": "bgg-397931",
@@ -2535,7 +2678,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A game about fishing progressively more horrifying things out of the ocean."
     },
     {
       "key": "bgg-169654",
@@ -2552,7 +2696,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "2-6 Treasure Hunters share the same submarine. Who will prevail?"
     },
     {
       "key": "bgg-267590",
@@ -2570,7 +2715,8 @@
         3,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rule the world through connections, military might, or revolution."
     },
     {
       "key": "bgg-15512",
@@ -2589,7 +2735,8 @@
         7,
         8
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "How deep into a dangerous temple dare you explore before leaving with your riches?"
     },
     {
       "key": "bgg-381356",
@@ -2606,7 +2753,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A clever cleaver is all you need to whip up delicious recipes."
     },
     {
       "key": "bgg-179723",
@@ -2624,7 +2772,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Sharp your claws and fangs, avoid disasters , meteors and gather the strongest dinosaurs! Dino Twist is a family game of cards , fast and smart, where players will have to fight the Dinos on the island of Twist, then recover them on their islands to score the most points."
     },
     {
       "key": "bgg-256382",
@@ -2641,7 +2790,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rule your realm and rewrite your tale to be the best at being the Worst."
     },
     {
       "key": "bgg-39856",
@@ -2659,7 +2809,8 @@
         5,
         6
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Give the perfect clue so most (not all) players guess the right surreal image card."
     },
     {
       "key": "bgg-62219",
@@ -2676,7 +2827,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "With an ice age approaching, which animals will best propagate, migrate, and adapt?"
     },
     {
       "key": "bgg-36218",
@@ -2693,7 +2845,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Acquire the most valuable lands by building your deck with treasure and power cards."
     },
     {
       "key": "bgg-262547",
@@ -2712,7 +2865,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pull off silly stunts on your friends - but keep your eye out for their own schemes!"
     },
     {
       "key": "bgg-368754",
@@ -2729,7 +2883,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A card game collecting funny traits to get the most points before world's end."
     },
     {
       "key": "title-doors",
@@ -2762,7 +2917,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use your wits and dexterity to configure the molecules into just the right solution."
     },
     {
       "key": "bgg-232980",
@@ -2781,7 +2937,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Let's make a dream together, and retell it after!"
     },
     {
       "key": "bgg-244916",
@@ -2799,7 +2956,8 @@
         2,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Drop geometric shapes in your color to score the most physics-defying points."
     },
     {
       "key": "bgg-316554",
@@ -2817,7 +2975,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Influence, intrigue, and combat in the universe of Dune."
     },
     {
       "key": "bgg-397598",
@@ -2834,7 +2993,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Deploy agents, build your deck, and engage in strategic battles to control Arrakis."
     },
     {
       "key": "bgg-367150",
@@ -2851,7 +3011,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Fight for control of Arrakis and its precious Spice."
     },
     {
       "key": "bgg-260300",
@@ -2868,7 +3029,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Battle as a barbarian, paladin, rogue, or wizard and be the last player standing."
     },
     {
       "key": "bgg-451850",
@@ -2885,7 +3047,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Play as airport security and find the cabin luggage with Durian."
     },
     {
       "key": "bgg-1278",
@@ -2902,7 +3065,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build railroads and make astute investments to be the best trader in the Netherlands."
     },
     {
       "key": "bgg-271055",
@@ -2919,7 +3083,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Battle for control of a new fantasy realm in this worker placement game."
     },
     {
       "key": "bgg-350184",
@@ -2937,7 +3102,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Strategically grow your ecosystem card engine with unique flora, fauna, and terrains."
     },
     {
       "key": "bgg-246900",
@@ -2955,7 +3121,8 @@
         4,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build an interstellar civilization by exploration, research, conquest, and diplomacy."
     },
     {
       "key": "bgg-279254",
@@ -2973,7 +3140,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collaboratively shape a growing continent of flora, fauna, and geological features."
     },
     {
       "key": "bgg-93",
@@ -2990,7 +3158,8 @@
       "bestWith": [
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Use your caballeros to control regions of medieval Spain, keeping clear of the King!"
     },
     {
       "key": "bgg-446825",
@@ -3007,7 +3176,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Navigate an unpredictable spirit storm and command your seafaring nation to victory!"
     },
     {
       "key": "bgg-146021",
@@ -3024,7 +3194,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Investigators trek across the globe to stop the Ancient One apocalypse."
     },
     {
       "key": "bgg-457720",
@@ -3039,7 +3210,8 @@
       "rating": 8,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Party High Command"
     },
     {
       "key": "bgg-452817",
@@ -3056,7 +3228,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rescue and train dragons, rally heroes, and make a stand against the dragon poachers."
     },
     {
       "key": "bgg-426513",
@@ -3073,7 +3246,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rally heroes, reclaim the forest, and restore the Emberlings' sacred homeland."
     },
     {
       "key": "bgg-305096",
@@ -3090,7 +3264,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Settle new lands, grow your population, and build megaliths - in an endless winter."
     },
     {
       "key": "bgg-431479",
@@ -3107,7 +3282,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Be the power behind the power and assure your pawn rises to the throne."
     },
     {
       "key": "bgg-82168",
@@ -3124,7 +3300,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "It's humans vs. aliens in a game of hidden movement and bluffing. Who will survive?"
     },
     {
       "key": "bgg-206718",
@@ -3141,7 +3318,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Call upon unique fantasy tribes to gain control of the land and earn glory."
     },
     {
       "key": "bgg-432527",
@@ -3159,7 +3337,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Call upon unique animal clans to gain control of the land and earn glory."
     },
     {
       "key": "bgg-440640",
@@ -3176,7 +3355,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "An unfortunate expansion for an unfortunate fishing game."
     },
     {
       "key": "bgg-199792",
@@ -3193,7 +3373,8 @@
       "bestWith": [
         3
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Gather resources to develop a harmonious village of woodland critters and structures."
     },
     {
       "key": "bgg-155703",
@@ -3210,7 +3391,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Adapt in an ever-changing ecosystem where food is scarce and predators lurk."
     },
     {
       "key": "bgg-434172",
@@ -3228,7 +3410,8 @@
         5,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Compete, connive, and outwit your rivals to claim Excalibur as your own."
     },
     {
       "key": "bgg-379078",
@@ -3245,7 +3428,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Venture to the dangerous north in this tile-exploration sequel to Scythe."
     },
     {
       "key": "bgg-172225",
@@ -3263,7 +3447,8 @@
         4,
         5
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Ask for favors, attack friends, see the future- whatever it takes to avoid exploding!"
     },
     {
       "key": "bgg-256804",
@@ -3282,7 +3467,8 @@
         6,
         7
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Survive by having the others eliminated by drawing Exploding Kitten cards."
     },
     {
       "key": "bgg-232918",
@@ -3299,7 +3485,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Gather allies, equipment and influence in the aftermath of the apocalypse."
     },
     {
       "key": "bgg-385761",
@@ -3316,7 +3503,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Explore a mysterious land and fulfill quests on your way back."
     },
     {
       "key": "bgg-271601",
@@ -3336,7 +3524,8 @@
         10,
         11
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Social deduction - Loyal sailors, ruthless pirates, crazy cultists and... The Kraken!"
     },
     {
       "key": "bgg-160784",
@@ -3353,7 +3542,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "In Fidelitas, players take on the role of faithful citizens in a medieval city who are exerting influence in order to gain the credibility needed to lead the charge against the corrupt crown."
     },
     {
       "key": "bgg-436126",
@@ -3371,7 +3561,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Dive into the watery depths to find and observe a vast array of aquatic life."
     },
     {
       "key": "bgg-336986",
@@ -3388,7 +3579,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Gather goods, place dragons and enchant shops to enhance the town."
     },
     {
       "key": "bgg-420087",
@@ -3406,7 +3598,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Score the cards in front of you, or take another card, risking everything you hold?"
     },
     {
       "key": "bgg-449185",
@@ -3423,7 +3616,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Flip your way to fame in this animated deck-building game."
     },
     {
       "key": "bgg-175914",
@@ -3441,7 +3635,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Strategically hire and manage your workforce to outcompete rival fast food chains."
     },
     {
       "key": "bgg-434027",
@@ -3459,7 +3654,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Strategically hire and manage your workforce to outcompete rival fast food chains."
     },
     {
       "key": "bgg-172",
@@ -3476,7 +3672,8 @@
       "bestWith": [
         5
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "What's your bid? Bid on promising property bundles, then sell properties for checks."
     },
     {
       "key": "bgg-65244",
@@ -3493,7 +3690,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "You and your fellow adventurers try to make it out alive before the island sinks."
     },
     {
       "key": "bgg-391163",
@@ -3510,7 +3708,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Curate a diverse ecology with strategic flora and fauna, winter is coming!"
     },
     {
       "key": "bgg-430533",
@@ -3527,7 +3726,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Craft artisanal cheeses in 1900s Italy."
     },
     {
       "key": "bgg-296912",
@@ -3544,7 +3744,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Build the most awesome fort while making friends, collecting toys, and eating pizza."
     },
     {
       "key": "bgg-147623",
@@ -3561,7 +3762,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Cause trouble and be crowned as the most successful landlord in town!"
     },
     {
       "key": "bgg-315881",
@@ -3578,7 +3780,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Theme park designers compete to build attractions for the best family day out!"
     },
     {
       "key": "bgg-318084",
@@ -3596,7 +3799,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "19th century capitalists manipulate the market and manage their industrial empires."
     },
     {
       "key": "bgg-465212",
@@ -3611,7 +3815,8 @@
       "rating": 8.2,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Survive the chaos of a bustling vet clinic and outsmart rival assistant vets."
     },
     {
       "key": "bgg-171273",
@@ -3628,7 +3833,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hurry up! Disarm the bomb by collectively assembling the correct dice combinations."
     },
     {
       "key": "bgg-396375",
@@ -3645,7 +3851,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Mine and collect gems to restore relics and reclaim the throne of an abandoned world."
     },
     {
       "key": "bgg-474059",
@@ -3660,7 +3867,8 @@
       "rating": 8,
       "weight": 5,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Complete recipes, sabotage other players, and try not to Get Cooked!"
     },
     {
       "key": "bgg-83195",
@@ -3678,7 +3886,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Quickly identify and grab hold of the correct item in a cluttered, spooky basement."
     },
     {
       "key": "bgg-246192",
@@ -3695,7 +3904,8 @@
       "bestWith": [
         3
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Gather energy marbles to build gizmos parts and trigger chain reactions and combos."
     },
     {
       "key": "bgg-379297",
@@ -3713,7 +3923,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "One card's good. The other card's bad."
     },
     {
       "key": "bgg-182874",
@@ -3730,7 +3941,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Serve guests and prepare rooms to be the best hotelier in the Viennese modern age."
     },
     {
       "key": "bgg-340834",
@@ -3747,7 +3959,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use gravity—and your opponent’s ships—to escape a black hole before time runs out."
     },
     {
       "key": "bgg-193738",
@@ -3764,7 +3977,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use strategic outposts and navigate danger as you herd your cattle to Kansas City."
     },
     {
       "key": "bgg-372373",
@@ -3779,7 +3993,8 @@
       "rating": 8.1,
       "weight": 2.33,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Players work together in teams to communicate their coordinates across a Grid."
     },
     {
       "key": "bgg-229235",
@@ -3796,7 +4011,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "There is danger in the West... Ferocious orcs are raiding and pillaging, and behind them comes the mighty dragon, Golianth. You are a Guardian, one of the five rival heroes sworn to defend the realm."
     },
     {
       "key": "bgg-339958",
@@ -3813,7 +4029,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Become a pioneer of printing and establish the most renowned workshop of your era."
     },
     {
       "key": "bgg-304783",
@@ -3830,7 +4047,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Compete as one of six Roman Generals in charge of a milecastle along Hadrian's Wall."
     },
     {
       "key": "bgg-329754",
@@ -3845,7 +4063,8 @@
       "rating": 6.2,
       "weight": 2,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Build the legendary town of Hampi and win the Sun Jewel"
     },
     {
       "key": "bgg-98778",
@@ -3862,7 +4081,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Give hints to create sets of fireworks and try to avoid a pyrotechnical disaster."
     },
     {
       "key": "bgg-286749",
@@ -3879,7 +4099,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build networks of merchants along the roads and market towns of the Hanseatic League."
     },
     {
       "key": "bgg-319793",
@@ -3897,7 +4118,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build your own cute city with one goal: happiness."
     },
     {
       "key": "bgg-194626",
@@ -3915,7 +4137,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "High five, fist bump, switch places and have fun together. Be the fastest to win."
     },
     {
       "key": "bgg-414317",
@@ -3933,7 +4156,8 @@
         2,
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Create your own landscape and habitats to welcome animals."
     },
     {
       "key": "bgg-300329",
@@ -3951,7 +4175,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Cast spells as young wizard and witches and see who will claim all dice."
     },
     {
       "key": "bgg-366013",
@@ -3969,7 +4194,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Push your car to the limit in the pursuit of victory, but don’t overheat!"
     },
     {
       "key": "bgg-321608",
@@ -3986,7 +4212,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Simulate a whole contemporary nation in this asymmetric, politico-economic euro-game."
     },
     {
       "key": "bgg-311322",
@@ -4004,7 +4231,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Think like the majority, not for yourself."
     },
     {
       "key": "bgg-299252",
@@ -4022,7 +4250,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Powerful heroes band together to slay monsters for their abilities."
     },
     {
       "key": "bgg-198830",
@@ -4039,7 +4268,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "An epic battle for dominance across the mythical land of Aughmoore."
     },
     {
       "key": "bgg-320718",
@@ -4056,7 +4286,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Gather heroes to secretly influence the conflict and become the new Emperor."
     },
     {
       "key": "bgg-220",
@@ -4074,7 +4305,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Enhance your status via ostentatious expenditure but avoid scandal and shame."
     },
     {
       "key": "bgg-284742",
@@ -4091,7 +4323,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Bees have discovered economics! Make and sell honey to get money and win!"
     },
     {
       "key": "bgg-377480",
@@ -4109,7 +4342,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Can you figure out which students are playing hooky?"
     },
     {
       "key": "bgg-367498",
@@ -4126,7 +4360,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Island Spirits join forces using elemental powers to defend their home from invaders."
     },
     {
       "key": "bgg-446497",
@@ -4144,7 +4379,8 @@
         5,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Which mascot will cross the finish line first? Who will be DQ'd?"
     },
     {
       "key": "bgg-302520",
@@ -4162,7 +4398,8 @@
         6,
         8
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "How well can you describe a color hue without using a primary color's name?!"
     },
     {
       "key": "bgg-228371",
@@ -4179,7 +4416,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take loans, connect urban areas, and build your income to escape crushing debt."
     },
     {
       "key": "bgg-177524",
@@ -4196,7 +4434,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Flick high school penguins to catch fish without getting caught by the hall monitor."
     },
     {
       "key": "bgg-244995",
@@ -4213,7 +4452,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Put your color perception to the test and call the group's bluff at the right moment."
     },
     {
       "key": "bgg-54138",
@@ -4230,7 +4470,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use money to manipulate countries into warring with each other for your own profit."
     },
     {
       "key": "bgg-278751",
@@ -4247,7 +4488,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Sneakily slide past pedestrians to squeeze your family into the next elevator."
     },
     {
       "key": "bgg-367476",
@@ -4264,7 +4506,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "\"The King is Dead!\" Influence the five realms and claim your place on the throne."
     },
     {
       "key": "bgg-155821",
@@ -4281,7 +4524,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Claim the crown through merit and wisdom in this Celtic island struggle."
     },
     {
       "key": "bgg-447305",
@@ -4298,7 +4542,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Claim the crown through merit and wisdom in this Celtic island struggle."
     },
     {
       "key": "bgg-63888",
@@ -4315,7 +4560,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Guide your civilization with inventions from the stone age through to the modern era."
     },
     {
       "key": "bgg-206051",
@@ -4333,7 +4579,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "20 questions with a twist... a time limit and a sneaky insider who knows the answer!"
     },
     {
       "key": "bgg-447363",
@@ -4351,7 +4598,8 @@
         1,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Spellcasting witches work together to stop the Chaos Vortex from consuming Zinan!"
     },
     {
       "key": "bgg-378387",
@@ -4368,7 +4616,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Invent, build, test, and publish your ingenious devices."
     },
     {
       "key": "bgg-148949",
@@ -4385,7 +4634,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Send your assistants through the shops of Istanbul as you race to acquire rubies."
     },
     {
       "key": "bgg-251219",
@@ -4402,7 +4652,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Visit different locations, gathering resources and money to buy precious gems!"
     },
     {
       "key": "bgg-327711",
@@ -4419,7 +4670,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build up your kingdom by getting your hands on the best cards."
     },
     {
       "key": "bgg-271324",
@@ -4436,7 +4688,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Draft yourself the ‘perfect’ dystopia, complete projects and churn out resources."
     },
     {
       "key": "bgg-54043",
@@ -4453,7 +4706,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Trade and sell goods to become the most wealthy merchant in this short game for two."
     },
     {
       "key": "bgg-2452",
@@ -4470,7 +4724,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "How high can you go before your tower comes crashing down!?"
     },
     {
       "key": "bgg-295439",
@@ -4487,7 +4742,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pocket sized version of a classic block game."
     },
     {
       "key": "bgg-429845",
@@ -4504,7 +4760,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Manage your own anime studio."
     },
     {
       "key": "bgg-193621",
@@ -4521,7 +4778,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Now YOU can create a hilarious dirty three-panel comic with your friends!"
     },
     {
       "key": "bgg-254640",
@@ -4539,7 +4797,8 @@
         6,
         7
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Give unique one-word clues so someone can guess one word!"
     },
     {
       "key": "bgg-84732",
@@ -4556,7 +4815,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Animals shoo each other off the watering hole in a lightning fast card game."
     },
     {
       "key": "bgg-345069",
@@ -4573,7 +4833,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Artisans guide workers and elephants to build the wonder, Taj Mahal."
     },
     {
       "key": "bgg-336849",
@@ -4591,7 +4852,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Play as warring Egyptian Gods and build the most powerful army to dominate Egypt."
     },
     {
       "key": "bgg-122515",
@@ -4608,7 +4870,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Compete in a unique auction system to build the most prosperous village."
     },
     {
       "key": "bgg-70323",
@@ -4626,7 +4889,8 @@
         4,
         5
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Prove your dominance by destroying Tokyo or by being the last monster left standing."
     },
     {
       "key": "bgg-107529",
@@ -4643,7 +4907,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build chains across varied terrains to establish the best kingdom and win!"
     },
     {
       "key": "bgg-204583",
@@ -4661,7 +4926,8 @@
         2,
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Build a kingdom with varied terrains on domino-shaped tiles in this fast family game."
     },
     {
       "key": "bgg-240909",
@@ -4678,7 +4944,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Giants arrive in your kingdom; drive them away to your rivals' lands!"
     },
     {
       "key": "bgg-348096",
@@ -4697,7 +4964,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Keep the kites in the air by playing your cards just right."
     },
     {
       "key": "bgg-415507",
@@ -4715,7 +4983,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Improve your skill tracks to build the best Kokeshi."
     },
     {
       "key": "bgg-391124",
@@ -4732,7 +5001,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Develop the automotive industry in the early 1900s in the USA."
     },
     {
       "key": "bgg-412695",
@@ -4749,7 +5019,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Political parties strategize to secure votes across five swing seats - or, Kursis."
     },
     {
       "key": "bgg-341945",
@@ -4766,7 +5037,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Develop your farm and compete to deliver goods to the market at the right time."
     },
     {
       "key": "bgg-348450",
@@ -4783,7 +5055,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Participate in the completion of Wolfgang Amadeus Mozart's last piece: the Requiem."
     },
     {
       "key": "bgg-373877",
@@ -4800,7 +5073,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build the exotic islands of Lakshadweep!"
     },
     {
       "key": "bgg-421374",
@@ -4818,7 +5092,8 @@
         4,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "You have the map but your party is lost! Lead them to treasure with one-word clues."
     },
     {
       "key": "bgg-97842",
@@ -4835,7 +5110,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Spend all your money the fastest to inherit loads more in this rich card game."
     },
     {
       "key": "bgg-129437",
@@ -4852,7 +5128,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Assemble Marvel's finest Heroes to combat Masterminds and thwart their Schemes!"
     },
     {
       "key": "bgg-368173",
@@ -4869,7 +5146,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Create a travel itinerary and go on your dream vacation to Japan."
     },
     {
       "key": "bgg-415513",
@@ -4887,7 +5165,8 @@
         2,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Build a community, find relics, and populate it with buildings and inhabitants."
     },
     {
       "key": "bgg-295374",
@@ -4905,7 +5184,8 @@
         4,
         5
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Bet, buy horses, and influence jockeys for cash in an exciting 1930's era horse race."
     },
     {
       "key": "bgg-770",
@@ -4922,7 +5202,8 @@
       "bestWith": [
         4
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Pirate captains plunder merchant ships for gold and glory."
     },
     {
       "key": "bgg-359915",
@@ -4937,7 +5218,8 @@
       "rating": 6.9,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Compete with other trash lords to collect, segregate and dispose of your garbage."
     },
     {
       "key": "bgg-110327",
@@ -4955,7 +5237,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Deploy agents and hire adventurers to expand your control over the city of Waterdeep."
     },
     {
       "key": "bgg-156566",
@@ -4973,7 +5256,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Planning 6 moves ahead, recruit locals to help you defeat the invading monsters."
     },
     {
       "key": "bgg-203993",
@@ -4991,7 +5275,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Avoid excommunication and lead your family to power during the Italian Renaissance."
     },
     {
       "key": "bgg-312484",
@@ -5008,7 +5293,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Explore an island to find resources and discover the lost ruins of Arnak."
     },
     {
       "key": "bgg-129622",
@@ -5025,7 +5311,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Can you get a letter to the princess or remove all your rivals? You win either way!"
     },
     {
       "key": "bgg-277085",
@@ -5042,7 +5329,8 @@
       "bestWith": [
         4
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Help sneakily maneuver your love letter to the Princess—or to those closest to her."
     },
     {
       "key": "bgg-118247",
@@ -5059,7 +5347,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Fill your grid with numbers first, and be careful to avoid giving up crucial tiles."
     },
     {
       "key": "bgg-323613",
@@ -5076,7 +5365,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build the best settlement on the moon to become the moon's capital city."
     },
     {
       "key": "bgg-143884",
@@ -5093,7 +5383,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "As a newly elected mayor, develop a city and populate it with impressive landmarks."
     },
     {
       "key": "bgg-131232",
@@ -5110,7 +5401,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Bloody hands strangle the city. Beneath the illusion of sophistication there is ever a savage fight for power. As always, the law serves the greedy, corrupt politicians favor the most persuasive, and the local police and feds alike share the profits like so much sweet cake."
     },
     {
       "key": "bgg-454103",
@@ -5128,7 +5420,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Pit a cast of crazy characters against each other in a madcap race to the finish."
     },
     {
       "key": "bgg-429401",
@@ -5145,7 +5438,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build power plants, not bombs."
     },
     {
       "key": "bgg-276025",
@@ -5162,7 +5456,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Seafarers journey to obtain wealth and fame in the 17th century Caribbean."
     },
     {
       "key": "bgg-29223",
@@ -5179,7 +5474,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "When Assam lands on your carpet, the player who moved him must pay you."
     },
     {
       "key": "bgg-400573",
@@ -5196,7 +5492,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Prep & Serve Indian food while you fight your own hunger."
     },
     {
       "key": "bgg-139030",
@@ -5215,7 +5512,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Get rich...or die trying in this fast-paced game of deduction and deception."
     },
     {
       "key": "bgg-159581",
@@ -5232,7 +5530,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Shed your cards as quickly as you can as new wrestlers join the fight."
     },
     {
       "key": "bgg-361279",
@@ -5249,7 +5548,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Place towels in pleasing patterns on the beach."
     },
     {
       "key": "bgg-314491",
@@ -5266,7 +5566,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Start your journey into nature and collect cards to become a true nature observer."
     },
     {
       "key": "bgg-322556",
@@ -5283,7 +5584,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Three-dimensional game of constructing multi-level gates into Hindu Temple"
     },
     {
       "key": "bgg-251293",
@@ -5300,7 +5602,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Press your luck in this video game where you fight monsters for coins."
     },
     {
       "key": "bgg-414685",
@@ -5317,7 +5620,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take the role of a Mesolithic leader and guide your tribe to victory."
     },
     {
       "key": "bgg-318977",
@@ -5334,7 +5638,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Find the small traces to solve the big cases."
     },
     {
       "key": "bgg-364766",
@@ -5351,7 +5656,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Once more you solve murder cases in crime city."
     },
     {
       "key": "bgg-161276",
@@ -5366,7 +5672,8 @@
       "rating": 6.9,
       "weight": 2,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "About the Game M.I.N.D is a tactical strategy board game set in a sci-fi setting in which players are in control of a colony and have to manage and expand it while facing different crisis and invaders."
     },
     {
       "key": "bgg-118",
@@ -5384,7 +5691,8 @@
         4,
         5
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Four types of auctions challenge players in this classic game of art speculation."
     },
     {
       "key": "bgg-40381",
@@ -5401,7 +5709,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Assemble the most valuable art collection."
     },
     {
       "key": "bgg-125",
@@ -5419,7 +5728,8 @@
         4,
         5
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Outsmart the market to maximize your portfolio."
     },
     {
       "key": "bgg-156546",
@@ -5438,7 +5748,8 @@
         8,
         10
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Get your friends to guess the name on the card with different rule each round."
     },
     {
       "key": "bgg-283152",
@@ -5457,7 +5768,8 @@
         9,
         10
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hilarious team game with increasingly fun ways to communicate a set of cards."
     },
     {
       "key": "bgg-164840",
@@ -5474,7 +5786,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A lighter version of \"Monopoly Deal\" with half as many cards."
     },
     {
       "key": "bgg-7098",
@@ -5491,7 +5804,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Wooden houses and hotels and equipment trays spiff up this time-honored classic."
     },
     {
       "key": "bgg-283212",
@@ -5508,7 +5822,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Paranormal sketch artists draw the monsters a witness says they saw."
     },
     {
       "key": "bgg-425549",
@@ -5525,7 +5840,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Whatever can go wrong will go wrong. Players compete to keep their colonists alive."
     },
     {
       "key": "bgg-468181",
@@ -5540,7 +5856,8 @@
       "rating": 7.9,
       "weight": 2.85,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "More Containers to heighten negotiations and add depth to the base game!"
     },
     {
       "key": "bgg-63975",
@@ -5557,7 +5874,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Work to move your goats to the top of 6 different mountains."
     },
     {
       "key": "bgg-295486",
@@ -5574,7 +5892,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Develop your city through the ages in this family-friendly legacy experience."
     },
     {
       "key": "bgg-301767",
@@ -5591,7 +5910,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "It's cotton candy, circus, dark secrets - a psychic investigation at Mysterium Park!"
     },
     {
       "key": "bgg-425636",
@@ -5609,7 +5929,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "As Nasi Lemak stall owners, players compete to make the most packs of Nasi Lemak."
     },
     {
       "key": "bgg-447281",
@@ -5626,7 +5947,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Compete for resources and ultimate power as the next great ruler in medieval India."
     },
     {
       "key": "bgg-167355",
@@ -5644,7 +5966,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Survive an alien-infested spaceship, but beware of other players and their agendas!"
     },
     {
       "key": "bgg-174660",
@@ -5661,7 +5984,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect cards to build iconic New York City skyscrapers in the early 20th century."
     },
     {
       "key": "bgg-293014",
@@ -5678,7 +6002,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Assemble and prepare a formidable crew of dwarves to fight the mighty Fafnir!"
     },
     {
       "key": "bgg-457412",
@@ -5695,7 +6020,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Help animals sneak back to their homes before anyone notices!"
     },
     {
       "key": "bgg-306321",
@@ -5714,7 +6040,8 @@
         7,
         8
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Send your ninja out to secure victory for your house - but will you know your allies?"
     },
     {
       "key": "bgg-434367",
@@ -5731,7 +6058,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Control conglomerates of companies driving Japan’s economy."
     },
     {
       "key": "bgg-12942",
@@ -5749,7 +6077,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Take a card, pay to say no thanks or take what you must to score the least."
     },
     {
       "key": "bgg-25554",
@@ -5767,7 +6096,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Improve the area around Notre Dame Cathedral to earn prestige for your family."
     },
     {
       "key": "bgg-396790",
@@ -5784,7 +6114,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Become the leader of the industrial revolution in an alternate timeline."
     },
     {
       "key": "bgg-65515",
@@ -5802,7 +6133,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Naughty nuns awake at night, avoid the Abbess or get a fright!"
     },
     {
       "key": "bgg-231733",
@@ -5819,7 +6151,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Renovate an estate, manage servants, and pursue romance in Victorian England."
     },
     {
       "key": "bgg-406854",
@@ -5836,7 +6169,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect the right cards to rule Valhalla."
     },
     {
       "key": "bgg-261342",
@@ -5854,7 +6188,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build and manage an old west town in an effort to attract the most new residents."
     },
     {
       "key": "bgg-270445",
@@ -5871,7 +6206,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The year is 1932, the city is Chicago. You head a criminal gang smuggling alcohol in the city. Your informant in the police force just called: the Untouchables are preparing to raid you tonight! To avoid jail, be the fastest to get rid of your stock of alcohol and call \"Omerta\"."
     },
     {
       "key": "bgg-184267",
@@ -5888,7 +6224,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Be a part of the first Martian colony, striving to be the best contributor."
     },
     {
       "key": "bgg-180956",
@@ -5906,7 +6243,8 @@
         6,
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Vampires join your village and add additional chaos and danger. Bring your stakes."
     },
     {
       "key": "bgg-147949",
@@ -5925,7 +6263,8 @@
         7,
         8
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "An app-optional Werewolf that lasts but a single night. Wolves and villagers beware!"
     },
     {
       "key": "bgg-160477",
@@ -5942,7 +6281,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Assert your martial prowess by harnessing the power of various animal spirits."
     },
     {
       "key": "bgg-201406",
@@ -5961,7 +6301,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Remove your opponent's body parts before they get yours!"
     },
     {
       "key": "bgg-454909",
@@ -5978,7 +6319,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Craft a superhero origin story by trick taking and tableau building."
     },
     {
       "key": "bgg-164928",
@@ -5995,7 +6337,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Craftsmen, scholars & monks can help you reign supreme—but who will turn up to help?"
     },
     {
       "key": "bgg-266810",
@@ -6012,7 +6355,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Invaders are coming from everywhere. Keep the faith and defend your homeland."
     },
     {
       "key": "bgg-239464",
@@ -6029,7 +6373,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Develop and gather resources to grow an island that fits in the palm of your hand."
     },
     {
       "key": "bgg-303057",
@@ -6047,7 +6392,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Triumph in the golden age of air travel."
     },
     {
       "key": "bgg-376029",
@@ -6062,7 +6408,8 @@
       "rating": 8,
       "weight": 1.75,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "A light strategy tile placement game to build the best village in India."
     },
     {
       "key": "bgg-30549",
@@ -6079,7 +6426,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Your team of experts must prevent the world from succumbing to a viral pandemic."
     },
     {
       "key": "bgg-314040",
@@ -6096,7 +6444,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Work together during the Cold War to prevent a Soviet bio-threat."
     },
     {
       "key": "bgg-355704",
@@ -6114,7 +6463,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Solo travelers hike across breathtaking myriad landscapes, in pursuit of Parikrama."
     },
     {
       "key": "bgg-266524",
@@ -6131,7 +6481,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Hike through National Parks tiles, collecting memories and admiring gorgeous scenery."
     },
     {
       "key": "bgg-437306",
@@ -6148,7 +6499,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore the wonders of all 63 U.S. National Parks in this all-new updated edition."
     },
     {
       "key": "bgg-163412",
@@ -6165,7 +6517,8 @@
       "bestWith": [
         2
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Piece together a quilt and leave no holes to become the button master."
     },
     {
       "key": "bgg-155255",
@@ -6182,7 +6535,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Afghan Tribes play \"the Great Game\", riding timely events and agents to power."
     },
     {
       "key": "bgg-1258",
@@ -6199,7 +6553,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect sets and runs before your opponents to advance through ten phases of play."
     },
     {
       "key": "bgg-98229",
@@ -6217,7 +6572,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pictionary chaos. Everyone draws and guesses at the same time."
     },
     {
       "key": "bgg-252526",
@@ -6235,7 +6591,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Draw as fast as you can—but make it obvious enough for people to guess correctly."
     },
     {
       "key": "bgg-312786",
@@ -6253,7 +6610,8 @@
         6,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A single-syllable word game in which you must speak good or get hit with stick!"
     },
     {
       "key": "bgg-274960",
@@ -6270,7 +6628,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Collect groupings of fruits and vegetables with loads of ways to score points!"
     },
     {
       "key": "bgg-1115",
@@ -6288,7 +6647,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "You've got to know when to hold 'em; know when to fold 'em."
     },
     {
       "key": "bgg-156009",
@@ -6306,7 +6666,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Trade with ships, hire crew, and gain influence in the pirate haven of Port Royal."
     },
     {
       "key": "bgg-331265",
@@ -6324,7 +6685,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hire ships and crew, complete missions, and conquer the dreaded Ares pirates."
     },
     {
       "key": "bgg-180974",
@@ -6341,7 +6703,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect and combine ingredients to mix potions and try to become Student of The Year."
     },
     {
       "key": "bgg-2651",
@@ -6359,7 +6722,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Bid, network, and manage resources in a race to supply the most cities with power."
     },
     {
       "key": "bgg-341974",
@@ -6376,7 +6740,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Grow a magical garden full of unique and powerful plants."
     },
     {
       "key": "bgg-345",
@@ -6391,7 +6756,8 @@
       "rating": 7,
       "weight": 3,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Investors and railroad presidents aim to profit from the expanding Great Plains."
     },
     {
       "key": "bgg-260180",
@@ -6409,7 +6775,8 @@
         2,
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Fast-paced, tile-matching, engine building game."
     },
     {
       "key": "bgg-319031",
@@ -6427,7 +6794,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Match tiles to complete puzzles more efficiently than your opponents!"
     },
     {
       "key": "bgg-431994",
@@ -6444,7 +6812,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Deploy worker bees, explore the realm, and build the most glorious hive."
     },
     {
       "key": "bgg-3076",
@@ -6461,7 +6830,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Ship goods, construct buildings, and choose roles that benefit you more than others."
     },
     {
       "key": "bgg-415843",
@@ -6478,7 +6848,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Manage a local farm, construct buildings, and trade goods in Puerto Rico."
     },
     {
       "key": "bgg-247008",
@@ -6495,7 +6866,8 @@
       "bestWith": [
         8
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Pun Intended is for pun-loving people everywhere! Teams have 1 minute to solve 6 puns that all start with the same letter and score points for each correct pun. The first team to 30 points wins!"
     },
     {
       "key": "bgg-266830",
@@ -6512,7 +6884,8 @@
       "bestWith": [
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Bid ANYTHING to bail out companies, but just don’t bid the MOST!"
     },
     {
       "key": "bgg-244521",
@@ -6529,7 +6902,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Pull ingredients from your stock to make your pot bubble, but hopefully not explode!"
     },
     {
       "key": "bgg-241536",
@@ -6544,7 +6918,8 @@
       "rating": 10,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "QUARDO is an exciting strategy game that challenges your planning, analytical, and pattern recognition abilities. In the &ldquo;Touch of Quardo&rdquo; advance game, the sense of touch, spatial coordination, and memorization skills are added to test players' spatial intelligence."
     },
     {
       "key": "bgg-386198",
@@ -6561,7 +6936,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Six Princesses battle for the right of the Midnight Court."
     },
     {
       "key": "bgg-429851",
@@ -6579,7 +6955,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Combine cards and expand your influence across the Roman Empire."
     },
     {
       "key": "bgg-12",
@@ -6597,7 +6974,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Fancy an auction to acquire ancient monuments, pharaohs, and relics? Invoke Ra!"
     },
     {
       "key": "bgg-28143",
@@ -6614,7 +6992,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Worlds await! Colonize, develop and conquer, taking advantage of others' choices."
     },
     {
       "key": "bgg-301880",
@@ -6631,7 +7010,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Raid and plunder your way through ancient empires on horseback."
     },
     {
       "key": "bgg-170042",
@@ -6648,7 +7028,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Gather your Viking crew in order to plunder seas and lands for glory!"
     },
     {
       "key": "bgg-418062",
@@ -6665,7 +7046,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build a transportation network and populate it with cars, trains, and travelers."
     },
     {
       "key": "bgg-177639",
@@ -6682,7 +7064,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Elude or chomp humans as the mama raptor; neutralize her offspring as the scientists."
     },
     {
       "key": "bgg-378367",
@@ -6700,7 +7083,8 @@
         4,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A fast-paced two-team wordplay party game."
     },
     {
       "key": "bgg-417197",
@@ -6717,7 +7101,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rebuild old lands in a lush, hopeful future."
     },
     {
       "key": "bgg-329465",
@@ -6734,7 +7119,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Craft a hand of powerful characters from the dystopian world of Red Rising."
     },
     {
       "key": "bgg-244228",
@@ -6751,7 +7137,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Grow your reef, and arrange it beautifully on your seafloor to score more points."
     },
     {
       "key": "bgg-352697",
@@ -6768,7 +7155,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Lead a band of resistance fighters as they try to take back their homeland!"
     },
     {
       "key": "bgg-91514",
@@ -6785,7 +7173,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build a giant tower and try to make your opponent be the one to let it collapse."
     },
     {
       "key": "bgg-51",
@@ -6805,7 +7194,8 @@
         5,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Be the first to solve a spatial puzzle using hard-controlled robots to win!"
     },
     {
       "key": "bgg-205896",
@@ -6823,7 +7213,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Lead your clan to victory through negotiation, combat, monsters and favors from Kami."
     },
     {
       "key": "bgg-399941",
@@ -6840,7 +7231,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A game of rivals and riches set on the legendary river of Rokugan."
     },
     {
       "key": "title-road-trip-a-card-game",
@@ -6873,7 +7265,8 @@
         1,
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Work together — with friends or with Friday — to survive on a deserted island."
     },
     {
       "key": "bgg-132531",
@@ -6891,7 +7284,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Utilize your dice populace to develop technologies, settle worlds, and ship goods."
     },
     {
       "key": "bgg-280041",
@@ -6908,7 +7302,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Stake your claim, build a mining empire, and keep one step ahead of the competition!"
     },
     {
       "key": "bgg-237182",
@@ -6925,7 +7320,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Decide the fate of the woodland as asymmetric factions fight for contrasting goals."
     },
     {
       "key": "bgg-9220",
@@ -6943,7 +7339,8 @@
         7,
         8
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "You are dwarves laying tunnel cards to get gold: but which one of you is the traitor?"
     },
     {
       "key": "bgg-406322",
@@ -6960,7 +7357,8 @@
       "bestWith": [
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "You are dwarves laying tunnel cards to get gold: but which one of you is the traitor?"
     },
     {
       "key": "bgg-199561",
@@ -6977,7 +7375,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Craft the best stained-glass windows by carefully placing colorful translucent dice."
     },
     {
       "key": "bgg-377470",
@@ -6994,7 +7393,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Navigate your pirate ship together through tricky waters and avoid the Kraken!"
     },
     {
       "key": "bgg-156943",
@@ -7011,7 +7411,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Hire workers and influence aristocrats to build prestigious buildings!"
     },
     {
       "key": "bgg-380914",
@@ -7026,7 +7427,8 @@
       "rating": 6.8,
       "weight": null,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Compete to be the best newspaper publishing company in India."
     },
     {
       "key": "bgg-3",
@@ -7043,7 +7445,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Dispute the favor of three different castes in order to unite Japan under your rule."
     },
     {
       "key": "bgg-194655",
@@ -7060,7 +7463,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use different divine powers to build and climb the towers!"
     },
     {
       "key": "bgg-315043",
@@ -7078,7 +7482,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "You're part of a billy goat criminal masterminds group!"
     },
     {
       "key": "bgg-367041",
@@ -7095,7 +7500,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Gather scrolls and bring them back to the House of Wisdom to be translated."
     },
     {
       "key": "bgg-300930",
@@ -7112,7 +7518,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Panic in Scotland: play the attacker or the defender in this fast asymmetrical game!"
     },
     {
       "key": "bgg-438",
@@ -7130,7 +7537,8 @@
         2,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Mr. X is on the run in London, will the detectives find him in time?"
     },
     {
       "key": "bgg-291453",
@@ -7147,7 +7555,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Poach your opponents' artists and outdo each other's circus shows."
     },
     {
       "key": "bgg-145659",
@@ -7164,7 +7573,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Plant, cross-breed, harvest, and sell or cook your peppers to win the Chili Festival!"
     },
     {
       "key": "bgg-169786",
@@ -7181,7 +7591,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Five factions vie for dominance in a war-torn, mech-filled, dieselpunk 1920s Europe."
     },
     {
       "key": "bgg-199727",
@@ -7199,7 +7610,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Clan Albion and the Togawa Shogunate join the fray and increase the playercount to 7."
     },
     {
       "key": "bgg-223555",
@@ -7217,7 +7629,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The race for controlling Europa takes to the skies - you decide when & how it ends!"
     },
     {
       "key": "bgg-367220",
@@ -7234,7 +7647,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "A few delicate Origami-style illustrations and a whole marine universe comes to life!"
     },
     {
       "key": "bgg-188834",
@@ -7252,7 +7666,8 @@
         8,
         10
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "In pre-WW2 Germany, Liberals and Fascists square off in an intrigue-filled parliament"
     },
     {
       "key": "bgg-200847",
@@ -7269,7 +7684,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Offer cards to others to score-but are they CIA? KGB? Or hippies? Who's on your side?"
     },
     {
       "key": "bgg-2375",
@@ -7287,7 +7703,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Choose wisely to get 5 chips in a row. Play defense to slow your opponents down."
     },
     {
       "key": "bgg-418059",
@@ -7304,7 +7721,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Search for signs of alien life by launching probes and analyzing distant signals."
     },
     {
       "key": "bgg-445048",
@@ -7321,7 +7739,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take charge of unique organizations in your quest for alien contact."
     },
     {
       "key": "bgg-257305",
@@ -7338,7 +7757,8 @@
       "bestWith": [
         4
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Nasty tactics meet ideological questions in this political area-control game."
     },
     {
       "key": "bgg-341139",
@@ -7355,7 +7775,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Ignite the Revolution. Topple the Imperials. Emerge as the leader of your nation."
     },
     {
       "key": "bgg-157969",
@@ -7372,7 +7793,8 @@
       "bestWith": [
         5
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Sell goods for profit, or risk losing it all by slipping contrabands in...."
     },
     {
       "key": "bgg-298638",
@@ -7389,7 +7811,8 @@
       "bestWith": [
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Sell goods for profit, or risk losing it all by slipping contrabands in..."
     },
     {
       "key": "bgg-374867",
@@ -7407,7 +7830,8 @@
         8,
         9
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A semi-coop party game with never-seen-before mechanics!"
     },
     {
       "key": "bgg-429765",
@@ -7424,7 +7848,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Brainwash humans, abduct cows, and control the town in this 1980s Earth invasion."
     },
     {
       "key": "bgg-278553",
@@ -7442,7 +7867,8 @@
         2,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use your village residents abilities to try and have the fewest werewolves in town."
     },
     {
       "key": "bgg-270673",
@@ -7460,7 +7886,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Flip cards, complete islands and score points in this Flip 'n' Write."
     },
     {
       "key": "bgg-92415",
@@ -7478,7 +7905,8 @@
         5,
         6
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Does the token hide a flower or skull? Bid, bluff and laugh with striking components."
     },
     {
       "key": "bgg-150145",
@@ -7497,7 +7925,8 @@
         5,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Trick-taking on the high seas. Meet your bid to please the Skull King."
     },
     {
       "key": "bgg-373106",
@@ -7514,7 +7943,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Work together silently to land a plane under increasingly challenging circumstances."
     },
     {
       "key": "bgg-298231",
@@ -7531,7 +7961,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Architects build skyscrapers, each bigger than the last, in a city in the sky!"
     },
     {
       "key": "bgg-40692",
@@ -7548,7 +7979,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Control one fantasy race after another to expand quickly throughout the land."
     },
     {
       "key": "bgg-309630",
@@ -7565,7 +7997,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take charge of the fantasy races of Azeroth to eliminate foes and occupy lands."
     },
     {
       "key": "bgg-27389",
@@ -7583,7 +8016,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Guess what the clues describe as soon as you'd like, but you only have one shot!"
     },
     {
       "key": "bgg-246684",
@@ -7600,7 +8034,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Success is measured in money as you build your global smartphone empire."
     },
     {
       "key": "bgg-75358",
@@ -7617,7 +8052,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Extend tracks and buy stock as players stretch railroads across France."
     },
     {
       "key": "bgg-253319",
@@ -7634,7 +8070,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Robber Barons drive post-Civil War railroad expansion in the Southwest."
     },
     {
       "key": "bgg-180202",
@@ -7651,7 +8088,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Expand your railroads' networks to gain majorities in various categories."
     },
     {
       "key": "bgg-38453",
@@ -7669,7 +8107,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "This ship runs itself! Wait, why are our shields down and where did you go? Help us!"
     },
     {
       "key": "bgg-242302",
@@ -7687,7 +8126,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Amass spaceships for your fleet as you roll your way to domination."
     },
     {
       "key": "bgg-375459",
@@ -7704,7 +8144,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Earn money running a Manhattan speakeasy business during Prohibition."
     },
     {
       "key": "bgg-299169",
@@ -7722,7 +8163,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Lie about your cards and call out your friends when they do."
     },
     {
       "key": "bgg-162886",
@@ -7739,7 +8181,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Island Spirits join forces using elemental powers to defend their home from invaders."
     },
     {
       "key": "bgg-148228",
@@ -7756,7 +8199,8 @@
       "bestWith": [
         3
       ],
-      "copies": 6
+      "copies": 6,
+      "description": "Renaissance merchants race to grab gems, acquire property, and please nobility."
     },
     {
       "key": "bgg-364073",
@@ -7773,7 +8217,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Renaissance merchants go head to head to please nobility by collecting jewels."
     },
     {
       "key": "bgg-293296",
@@ -7790,7 +8235,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Race to be the first to collect all infinity stones and get the Infinity Gauntlet."
     },
     {
       "key": "bgg-63268",
@@ -7808,7 +8254,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Quick! Which symbol is on both cards? Race others to gather or dump your cards."
     },
     {
       "key": "bgg-372559",
@@ -7825,7 +8272,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Roll and place dice to complete adorable dog cards."
     },
     {
       "key": "bgg-147020",
@@ -7842,7 +8290,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Compete head-to-head to create the most powerful deck of spaceships and bases."
     },
     {
       "key": "bgg-421616",
@@ -7857,7 +8306,8 @@
       "rating": 9,
       "weight": 1,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Become a startup founder and take relevant actions to make your startup successful!"
     },
     {
       "key": "bgg-223770",
@@ -7874,7 +8324,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Invest in startups but beware - you only make money by controlling popular companies!"
     },
     {
       "key": "bgg-267475",
@@ -7891,7 +8342,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Spell simple trivia answers while answering different questions as time ticks down."
     },
     {
       "key": "bgg-27833",
@@ -7908,7 +8360,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rival railways compete to build networks and maximise profits by transporting goods."
     },
     {
       "key": "bgg-367771",
@@ -7925,7 +8378,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Elephant pirates push their luck to try not to fall off their plank before the others"
     },
     {
       "key": "bgg-34635",
@@ -7942,7 +8396,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Prehistoric tribes struggle to survive and adapt. Which one will rise to the top?"
     },
     {
       "key": "bgg-1917",
@@ -7959,7 +8414,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Opposing forces march to capture the flag! Outrank opponent in piece by piece combat."
     },
     {
       "key": "bgg-123260",
@@ -7976,7 +8432,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Expand your meager neighborhood into a sprawling suburb to attract the most citizens."
     },
     {
       "key": "bgg-456331",
@@ -7991,7 +8448,8 @@
       "rating": 6,
       "weight": 1,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Help Suppandi find the keywords, but watch out for distractors giving false clues."
     },
     {
       "key": "bgg-425428",
@@ -8008,7 +8466,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Avoid sharks, kaijus, and erupting volcanoes on your way to escape!"
     },
     {
       "key": "bgg-192291",
@@ -8026,7 +8485,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Pass sushi around a bigger table and take the best dishes. Save room for dessert!"
     },
     {
       "key": "bgg-133473",
@@ -8043,7 +8503,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pass the sushi around, but keep the best for yourself. Save room for dessert!"
     },
     {
       "key": "bgg-466823",
@@ -8058,7 +8519,8 @@
       "rating": 6,
       "weight": 1.1,
       "bestWith": [],
-      "copies": 1
+      "copies": 1,
+      "description": "Partner based party game where you must stay in sync."
     },
     {
       "key": "bgg-1111",
@@ -8076,7 +8538,8 @@
         6,
         8
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Get your team to guess the target but you can't use the most obvious clues."
     },
     {
       "key": "bgg-253664",
@@ -8095,7 +8558,8 @@
         5,
         6
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Act fast when the flipped card actually is that taco, cat, goat, cheese, or pizza..."
     },
     {
       "key": "bgg-401636",
@@ -8112,7 +8576,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Connect, Cover, Conquer. Twist, flip, and place your cards to show the most dots."
     },
     {
       "key": "bgg-475",
@@ -8129,7 +8594,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Appeal to members of the Indian court in order to build your palaces and claim goods."
     },
     {
       "key": "bgg-440540",
@@ -8147,7 +8613,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Time beckons you to discover a multitude of challenging universes."
     },
     {
       "key": "bgg-70919",
@@ -8164,7 +8631,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Carefully cultivate a bamboo garden with the help of a gardener and a hungry panda."
     },
     {
       "key": "bgg-30645",
@@ -8181,7 +8649,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Fight for political power in New York during the era of Boss Tweed."
     },
     {
       "key": "bgg-426912",
@@ -8198,7 +8667,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Serve witches during The Tequinox Faire and see if your tea reigns supreme."
     },
     {
       "key": "bgg-407233",
@@ -8216,7 +8686,8 @@
         2,
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Build the best Welsh seaside town!"
     },
     {
       "key": "bgg-229853",
@@ -8233,7 +8704,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use your worker dice to raise the legendary and breathtaking Pyramid of the Sun."
     },
     {
       "key": "bgg-167791",
@@ -8250,7 +8722,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Compete with rival CEOs to make Mars habitable and build your corporate empire."
     },
     {
       "key": "bgg-358752",
@@ -8267,7 +8740,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "2 players try to balance pieces in turns on a moving platform until one piece falls!"
     },
     {
       "key": "bgg-75360",
@@ -8284,7 +8758,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Invest in railways and ranches in Texas, with a kicker to \"Go West!\""
     },
     {
       "key": "bgg-375651",
@@ -8301,7 +8776,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Pass around gifts that may (or may not) be what you say they are."
     },
     {
       "key": "bgg-271320",
@@ -8318,7 +8794,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build your princedom into a bustling metropolis of commerce."
     },
     {
       "key": "bgg-363622",
@@ -8335,7 +8812,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Plan, trade, and build your Burgundian estate to prosperity and prominence."
     },
     {
       "key": "bgg-227072",
@@ -8353,7 +8831,8 @@
         6,
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Decipher the 1-word clues and bluff your way through as the chameleon."
     },
     {
       "key": "bgg-284083",
@@ -8370,7 +8849,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Cooperate with your fellow astronauts as you explore the outer solar system."
     },
     {
       "key": "bgg-411567",
@@ -8387,7 +8867,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Bet together the order of your hands in Texas Hold'em Poker to win together."
     },
     {
       "key": "bgg-195539",
@@ -8404,7 +8885,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Reach the top of the cut-throat mob world...all others sleep with the fishes."
     },
     {
       "key": "bgg-445552",
@@ -8421,7 +8903,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Create harmonious seating arrangements at the new state guest house."
     },
     {
       "key": "bgg-350933",
@@ -8438,7 +8921,8 @@
       "bestWith": [
         2
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Explore strange lands, establish trade routes, and search for treasure."
     },
     {
       "key": "bgg-281259",
@@ -8455,7 +8939,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rescue as many cats as you can before Lord Vesh comes to destroy their home."
     },
     {
       "key": "bgg-319966",
@@ -8472,7 +8957,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A subtle game of shifting power and control over medieval Britain."
     },
     {
       "key": "bgg-218025",
@@ -8489,7 +8975,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Villagers compete to make the most beautiful display of flowers in the shop window."
     },
     {
       "key": "bgg-421006",
@@ -8506,7 +8993,8 @@
       "bestWith": [
         2
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Play as the Fellowship or Sauron and attempt to determine the fate of Middle-earth."
     },
     {
       "key": "bgg-283863",
@@ -8523,7 +9011,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Recruit magnificent performers to put on the most magnificent circus act ever seen!"
     },
     {
       "key": "bgg-244992",
@@ -8540,7 +9029,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Play your cards in ascending order without communicating. Timing is key!"
     },
     {
       "key": "bgg-181796",
@@ -8557,7 +9047,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Lose votes, your friends and your possessions in this game of reverse expectations!"
     },
     {
       "key": "bgg-217372",
@@ -8575,7 +9066,8 @@
         2,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Race through a dense South American jungle in pursuit of the legendary city of gold."
     },
     {
       "key": "bgg-227224",
@@ -8592,7 +9084,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Lead a construction team to build Saint Basil's Cathedral under the Tsar's reign."
     },
     {
       "key": "bgg-41114",
@@ -8609,7 +9102,8 @@
       "bestWith": [
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Assign operatives to missions while avoiding enemy spies."
     },
     {
       "key": "bgg-128882",
@@ -8627,7 +9121,8 @@
         7,
         8
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Who can you trust? A game of social deduction set in King Arthur’s legendary realm."
     },
     {
       "key": "bgg-279537",
@@ -8645,7 +9140,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Plan, scan, and theorize to find a new planet at the edge of our solar system."
     },
     {
       "key": "bgg-237860",
@@ -8662,7 +9158,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A card-driven historical wargame on the First Barbary War."
     },
     {
       "key": "bgg-171623",
@@ -8679,7 +9176,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Using unique abilities, fulfill contracts and reach your goals along the Silk Road."
     },
     {
       "key": "bgg-371942",
@@ -8696,7 +9194,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Become the most influential clan in Japan's Himeji stronghold."
     },
     {
       "key": "bgg-448112",
@@ -8711,7 +9210,8 @@
       "rating": 7.5,
       "weight": 1,
       "bestWith": [],
-      "copies": 3
+      "copies": 3,
+      "description": "One of those games where touching your face might just make you lose."
     },
     {
       "key": "bgg-472017",
@@ -8728,7 +9228,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Outstitch your siblings in grandma’s quilt-off."
     },
     {
       "key": "bgg-503",
@@ -8745,7 +9246,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Extend your caravan in this fun and addictive fight for water, food and space!"
     },
     {
       "key": "bgg-9209",
@@ -8762,7 +9264,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "All aboard! Collect trains, choo-choo-choose your routes, fulfill your destination!"
     },
     {
       "key": "bgg-14996",
@@ -8779,7 +9282,8 @@
       "bestWith": [
         4
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Build train routes across Europe in this sequel to the hit family board game."
     },
     {
       "key": "bgg-202670",
@@ -8796,7 +9300,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "By land and by sea, connect valuable cities across the Great Lakes or even the world."
     },
     {
       "key": "bgg-42",
@@ -8813,7 +9318,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Keep your Mesopotamian civilization in perfect balance through revolutions and wars."
     },
     {
       "key": "bgg-351913",
@@ -8831,7 +9337,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Use dice for resources and actions to gain riches in the Renaissance."
     },
     {
       "key": "bgg-231748",
@@ -8848,7 +9355,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Time is not your friend! Figure out who you can trust - and do it quickly!"
     },
     {
       "key": "bgg-128664",
@@ -8865,7 +9373,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "What came first: the airplane or radio? Order all your Event cards correctly to win!"
     },
     {
       "key": "bgg-295192",
@@ -8883,7 +9392,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Carefully add to the group's campfire without knocking it over!"
     },
     {
       "key": "bgg-317105",
@@ -8900,7 +9410,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Blast off and compete to colonize the greatest planets in the universe."
     },
     {
       "key": "bgg-257283",
@@ -8918,7 +9429,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Program the Mech's movement. Shoot your opponent. Win the crowd."
     },
     {
       "key": "bgg-265736",
@@ -8935,7 +9447,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Plan well as you build your town one building at a time. Will it fit?"
     },
     {
       "key": "bgg-123540",
@@ -8952,7 +9465,8 @@
       "bestWith": [
         4
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Travel the famed Tokaido road, visit hot springs, try new food, and paint landscapes."
     },
     {
       "key": "bgg-218530",
@@ -8970,7 +9484,8 @@
         5,
         7
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Privateers capture Spanish gold for King and country. Maroon the disloyal to Tortuga!"
     },
     {
       "key": "bgg-21804",
@@ -8987,7 +9502,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "An assortment of age-old games, played with a traditional deck of cards."
     },
     {
       "key": "bgg-338628",
@@ -9004,7 +9520,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Take a hike on trails, exploring iconic sites and national parks across the U.S."
     },
     {
       "key": "bgg-102680",
@@ -9021,7 +9538,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Manage and rule all aspects of Ancient Rome with a clever action selection mancala."
     },
     {
       "key": "bgg-257527",
@@ -9038,7 +9556,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Navigate your way in the dungeon by explaining things without mentioning trapwords!"
     },
     {
       "key": "bgg-182189",
@@ -9055,7 +9574,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Draft a team of treasure hunters to find the real loot."
     },
     {
       "key": "bgg-163068",
@@ -9072,7 +9592,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Magicians perform dazzling tricks for money and fame in a Victorian steampunk world."
     },
     {
       "key": "bgg-352515",
@@ -9090,7 +9611,8 @@
         4,
         5
       ],
-      "copies": 5
+      "copies": 5,
+      "description": "Reveal anyone's lowest or highest card and aim to collect three of a kind."
     },
     {
       "key": "bgg-292748",
@@ -9112,7 +9634,8 @@
         9,
         10
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Impress the judge with the speed of your word recall to win trophies."
     },
     {
       "key": "bgg-16992",
@@ -9130,7 +9653,8 @@
         4,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Chose your path by placing tiles, but be careful not to fall off the map!"
     },
     {
       "key": "bgg-16747",
@@ -9148,7 +9672,8 @@
         4,
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Flick and push dice down wooden platforms and knock out the competition to win!"
     },
     {
       "key": "bgg-356123",
@@ -9165,7 +9690,8 @@
       "bestWith": [
         1
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Crack codes using a real analog computer."
     },
     {
       "key": "bgg-233078",
@@ -9182,7 +9708,8 @@
       "bestWith": [
         6
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build an intergalactic empire through trade, research, conquest and grand politics."
     },
     {
       "key": "bgg-429840",
@@ -9200,7 +9727,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Play as Bigfoot, Jackalope, Loveland Frog, Mothman, and more!"
     },
     {
       "key": "bgg-134352",
@@ -9221,7 +9749,8 @@
         18,
         20
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Help the president or hunt him down in this social deduction game for 6-30 players."
     },
     {
       "key": "bgg-372571",
@@ -9238,7 +9767,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Industrialists take part in nation building in a post-colonial India."
     },
     {
       "key": "bgg-126163",
@@ -9255,7 +9785,8 @@
       "bestWith": [
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Lead your people, build monuments and make offerings to earn the favour of the gods."
     },
     {
       "key": "bgg-152241",
@@ -9274,7 +9805,8 @@
         11,
         12
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Social deduction at its best. Don't get eaten, while catching the wolves."
     },
     {
       "key": "bgg-140457",
@@ -9291,7 +9823,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Werewolf fans and One night fans have found a happy medium here."
     },
     {
       "key": "bgg-329500",
@@ -9309,7 +9842,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "As one of Freud's followers, delve into clients’ unconscious minds to bring healing."
     },
     {
       "key": "bgg-247763",
@@ -9326,7 +9860,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Develop future cities on the seafloor through politics, production, and science."
     },
     {
       "key": "bgg-217085",
@@ -9343,7 +9878,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Uncover ruins of lost cities and build Wonders in this dice-placement game."
     },
     {
       "key": "bgg-448958",
@@ -9358,7 +9894,8 @@
       "rating": 7,
       "weight": 1,
       "bestWith": [],
-      "copies": 4
+      "copies": 4,
+      "description": "Wedding crashers hide their tracks and outwit their friends to avoid getting caught."
     },
     {
       "key": "bgg-230305",
@@ -9375,7 +9912,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Can you escape prison and find Smith's treasure before your rival, Johnson, does?"
     },
     {
       "key": "bgg-274637",
@@ -9392,7 +9930,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Heroes and villains of legend (and their sidekicks) fight to the death."
     },
     {
       "key": "bgg-294484",
@@ -9409,7 +9948,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Heroes from Victorian-era literature join a skirmish to the death."
     },
     {
       "key": "bgg-325635",
@@ -9426,7 +9966,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "She survived the Big Bad Wolf. Can Little Red defeat Beowulf?"
     },
     {
       "key": "bgg-415945",
@@ -9444,7 +9985,8 @@
         2,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The play's the thing, with Shakespeare and his creations fighting in the Globe."
     },
     {
       "key": "bgg-411861",
@@ -9461,7 +10003,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Heroes from the Witcher universe join Unmatched."
     },
     {
       "key": "bgg-2223",
@@ -9480,7 +10023,8 @@
         5,
         6
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Get rid of your cards first, but don't forget to say \"UNO\"!"
     },
     {
       "key": "bgg-399088",
@@ -9498,7 +10042,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "This UNO chose the path of violence."
     },
     {
       "key": "bgg-382647",
@@ -9513,7 +10058,8 @@
       "rating": 6.9,
       "weight": 1.33,
       "bestWith": [],
-      "copies": 3
+      "copies": 3,
+      "description": "A boat racing game with bidding, betting, deck building and card drafting mechanisms."
     },
     {
       "key": "bgg-170416",
@@ -9530,7 +10076,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Dungeon crawler where all play as a different RPG trope - even as the dungeon!"
     },
     {
       "key": "bgg-366997",
@@ -9548,7 +10095,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Gather adventurers and ruthlessly outwit your rivals. Are you VENTURESOME enough?"
     },
     {
       "key": "bgg-334065",
@@ -9566,7 +10114,8 @@
         2,
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Collect and care for houseplants as you arrange the coziest home."
     },
     {
       "key": "bgg-189453",
@@ -9583,7 +10132,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Play a Victorian-era evil genius, and cause mayhem in Europe with your agents!"
     },
     {
       "key": "bgg-365056",
@@ -9600,7 +10150,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Send your villagers to work, travel, pray, and...die when it brings the most renown."
     },
     {
       "key": "bgg-241724",
@@ -9617,7 +10168,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Draft cute medieval villagers to complete production chains & earn gold!"
     },
     {
       "key": "bgg-345377",
@@ -9634,7 +10186,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Create a wheel of actions that helps you build a great state in Italy."
     },
     {
       "key": "bgg-128621",
@@ -9652,7 +10205,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Seasons pass as you develop your vineyard, harvest grapes, make wine and fill orders."
     },
     {
       "key": "bgg-183394",
@@ -9670,7 +10224,8 @@
         3,
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Create the most prosperous winery in Italy from the Tuscan vineyard you've inherited."
     },
     {
       "key": "bgg-202174",
@@ -9687,7 +10242,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Expand the world of Viticulture with an extended game board and more!"
     },
     {
       "key": "bgg-31730",
@@ -9704,7 +10260,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Build track and buy stock to get the most money in this railroad race to Chicago."
     },
     {
       "key": "bgg-257769",
@@ -9721,7 +10278,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Balance the wants of locals and tourists alike by creating the best street in Burano."
     },
     {
       "key": "bgg-355483",
@@ -9739,7 +10297,8 @@
         4,
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Trap wizards in towers to get yours to Ravenskeep first."
     },
     {
       "key": "bgg-396618",
@@ -9756,7 +10315,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Trade with others to create a giant amusement park."
     },
     {
       "key": "bgg-262543",
@@ -9774,7 +10334,8 @@
         6,
         8
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Read your teammates’ minds in this pinpoint party game of infinite possibilities."
     },
     {
       "key": "bgg-350316",
@@ -9791,7 +10352,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Explore the waterways, map the land, and chart the stars in medieval Baghdad."
     },
     {
       "key": "bgg-286156",
@@ -9808,7 +10370,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Fly airplanes around, exploring island tiles, gathering resources for a big turn."
     },
     {
       "key": "bgg-233867",
@@ -9826,7 +10389,8 @@
         3,
         4
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Design the most appealing 1950s neighborhood, with fences, parks, and swimming pools."
     },
     {
       "key": "bgg-219215",
@@ -9844,7 +10408,8 @@
         6,
         7
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "20 questions with a twist... a time limit and a sneaky werewolf who knows the answer!"
     },
     {
       "key": "bgg-245422",
@@ -9862,7 +10427,8 @@
         6,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "20 questions with a twist: a time limit, and a sneaky werewolf who knows the answer."
     },
     {
       "key": "bgg-74678",
@@ -9879,7 +10445,8 @@
       "bestWith": [
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Trade basic shares for group stocks for big payouts. May the best rail president win."
     },
     {
       "key": "bgg-388413",
@@ -9896,7 +10463,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Whale watching company seeks where to meet whale and orca."
     },
     {
       "key": "bgg-389198",
@@ -9913,7 +10481,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "A social bluffing dice game featuring handheld dice cups and fierce competition."
     },
     {
       "key": "bgg-241491",
@@ -9931,7 +10500,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "There's poo on a carpet! Quickly blame any other pet but Yours. Or, You clean it up."
     },
     {
       "key": "bgg-328557",
@@ -9948,7 +10518,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Can you hide as a wolf among sheep, or will the sheepdog out you?"
     },
     {
       "key": "bgg-403441",
@@ -9965,7 +10536,8 @@
       "bestWith": [
         3
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Plant tulips, build windmills, and offer the most valuable selection of bouquets."
     },
     {
       "key": "bgg-411033",
@@ -9983,7 +10555,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Rival sommeliers compete in a fierce auction to build the best collection."
     },
     {
       "key": "bgg-266192",
@@ -10000,7 +10573,8 @@
       "bestWith": [
         3
       ],
-      "copies": 4
+      "copies": 4,
+      "description": "Attract a beautiful and diverse collection of birds to your wildlife preserve."
     },
     {
       "key": "bgg-366161",
@@ -10017,7 +10591,8 @@
       "bestWith": [
         2
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Travel to Asia to discover new birds for your wildlife preserve."
     },
     {
       "key": "bgg-227935",
@@ -10034,7 +10609,8 @@
       "bestWith": [
         4
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "The looking glass has shattered and war has come to Wonderland!"
     },
     {
       "key": "bgg-365258",
@@ -10051,7 +10627,8 @@
       "bestWith": [
         3
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Buy tiles, manage resources and place wonder tokens to build your own Ancient City."
     },
     {
       "key": "bgg-410201",
@@ -10068,7 +10645,8 @@
       "bestWith": [
         3
       ],
-      "copies": 3
+      "copies": 3,
+      "description": "Build a cavernous sanctuary for dragons of all shapes and sizes!"
     },
     {
       "key": "bgg-224271",
@@ -10088,7 +10666,8 @@
         7,
         8
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Crazy upper-body contortion. Can you draw your next card in this war of will power?"
     },
     {
       "key": "bgg-62871",
@@ -10106,7 +10685,8 @@
         4,
         5
       ],
-      "copies": 1
+      "copies": 1,
+      "description": "Eat as many tasty brains as you dare, without getting shotgunned."
     },
     {
       "key": "bgg-368061",
@@ -10123,7 +10703,8 @@
       "bestWith": [
         5
       ],
-      "copies": 2
+      "copies": 2,
+      "description": "Merit your way into the zoo’s star exhibit through crafty politicking."
     }
   ]
 }

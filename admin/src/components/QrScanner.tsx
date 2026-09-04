@@ -83,11 +83,21 @@ export default function QrScanner({ onScan, busy = false }: Props) {
     if (!navigator.mediaDevices?.getUserMedia) { setState('unsupported'); setShowManual(true); return; }
     setState('starting');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        // The rear camera, and a resolution high enough that a phone screen's
-        // QR resolves without the operator having to get uncomfortably close.
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      // A resolution high enough that a phone screen's QR resolves without the
+      // operator having to get uncomfortably close.
+      const quality = { width: { ideal: 1280 }, height: { ideal: 720 } };
+      let stream: MediaStream;
+      try {
+        // Prefer the rear camera on a phone at the counter.
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', ...quality },
+        });
+      } catch {
+        // A laptop has no rear camera, and some browsers reject the constraint
+        // outright rather than falling back to the one camera they do have --
+        // which is why this worked on a phone and not on a desktop.
+        stream = await navigator.mediaDevices.getUserMedia({ video: quality });
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;

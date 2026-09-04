@@ -113,6 +113,10 @@ p { line-height: 1.55; }
 @keyframes pulse { 50% { opacity: .35; transform: scale(.75); } }
 
 .screen-section { padding-top: 42px; }
+/* The header already pads its own bottom. A section directly after it was
+   adding a second gap on top, which only showed on screens with nothing
+   between the two -- the library with no loan, the map when not checked in. */
+.screen-header + .screen-section { padding-top: 0; }
 .section-heading-row { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
 .section-heading-row h2 { margin-bottom: 0; }
 .eyebrow { display: block; margin-bottom: var(--space-2); color: var(--indigo); font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .16em; }
@@ -574,6 +578,7 @@ p { line-height: 1.55; }
 .library-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .library-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -583,8 +588,62 @@ p { line-height: 1.55; }
   background: var(--paper);
 }
 .library-item h3 { margin: 0; font-size: .95rem; }
-.library-item__meta { margin: 2px 0 0; color: var(--muted); font-size: .78rem; font-weight: 700; }
-.library-item__body { min-width: 0; }
+.library-item__meta { display: block; margin: 2px 0 0; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.library-item__body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.library-item__chevron { flex: 0 0 auto; transition: transform 160ms ease; }
+.library-item__chevron--open { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .library-item__chevron { transition: none; } }
+.library-item--open { background: #fff; }
+
+.library-detail {
+  flex: 1 0 100%;
+  padding-top: var(--space-3);
+  border-top: 2px solid rgba(26, 26, 26, .12);
+}
+.library-detail__thumb {
+  /* Box art is not a fixed shape -- BGG serves squares and wide boxes alike --
+     so only the width is pinned and the height follows. */
+  width: 96px;
+  height: auto;
+  float: right;
+  margin: 0 0 var(--space-2) var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.library-detail__blurb { margin: 0 0 var(--space-3); font-size: .85rem; }
+.library-detail__facts {
+  display: grid;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-2);
+  clear: both;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.library-detail__facts div { display: flex; justify-content: space-between; gap: var(--space-2); }
+.library-detail__facts dt { color: var(--muted); font-size: .74rem; font-weight: 800; }
+.library-detail__facts dd { margin: 0; font-size: .74rem; font-weight: 900; }
+
+.library-blocked {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  font-size: .85rem;
+  font-weight: 700;
+}
 /* Out is shown, not hidden: knowing a game exists but is taken is worth more
    than the shelf appearing to be missing it. */
 .library-item--out { opacity: .55; }

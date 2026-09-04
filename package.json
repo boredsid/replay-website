@@ -20,7 +20,8 @@
     "normalize:logos": "tsx scripts/normalize-sponsor-logos.ts",
     "seed:sponsor-logos": "tsx scripts/seed-sponsor-logos.ts",
     "sync:library": "tsx scripts/sync-game-library.ts",
-    "seed:library": "tsx scripts/seed-game-library.ts"
+    "seed:library": "tsx scripts/seed-game-library.ts",
+    "sync:descriptions": "tsx scripts/sync-descriptions.ts"
   },
   "repository": {
     "type": "git",

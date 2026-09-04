@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./audit', () => ({ writeAudit: vi.fn() }));
+vi.mock('../editions', () => ({ getCurrentEdition: vi.fn() }));
+vi.mock('../attendee-gate', () => ({ attendeeGateDay: vi.fn() }));
 
 import {
   loansForAttendee,
@@ -12,6 +14,8 @@ import {
   handleLibraryTitleSearch,
 } from './library';
 import { writeAudit } from './audit';
+import { getCurrentEdition } from '../editions';
+import { attendeeGateDay } from '../attendee-gate';
 
 const ATTENDEE = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const COPY = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -21,6 +25,9 @@ const ACTOR = 'staff@replaycon.in';
 const MINUTE = 60_000;
 
 const audit = writeAudit as unknown as ReturnType<typeof vi.fn>;
+const edition = getCurrentEdition as unknown as ReturnType<typeof vi.fn>;
+const gate = attendeeGateDay as unknown as ReturnType<typeof vi.fn>;
+const env = {} as never;
 
 function post(body: unknown) {
   return new Request('https://api/api/admin/library/x', { method: 'POST', body: JSON.stringify(body) });
@@ -30,7 +37,11 @@ function rpcClient(result: { data?: unknown; error?: { message: string } | null 
   return { rpc: vi.fn().mockResolvedValue({ data: result.data ?? null, error: result.error ?? null }) } as never;
 }
 
-beforeEach(() => { audit.mockReset(); });
+beforeEach(() => {
+  audit.mockReset(); edition.mockReset(); gate.mockReset();
+  edition.mockResolvedValue({ id: 'ed-1', start_date: '2026-09-12', end_date: '2026-09-13' });
+  gate.mockResolvedValue('day1');
+});
 
 describe('what the scan shows the desk', () => {
   function loanClient(rows: unknown[]) {
@@ -79,7 +90,7 @@ describe('checking out', () => {
   it('hands over the copy and records who did it', async () => {
     const sb = rpcClient({ data: [{ loan_id: LOAN, due_at: '2026-09-12T18:00:00Z' }] });
     const response = await handleLibraryCheckout(
-      post({ attendee_id: ATTENDEE, copy_id: COPY }), sb, ACTOR, ORIGIN,
+      post({ attendee_id: ATTENDEE, copy_id: COPY }), env, sb, ACTOR, ORIGIN,
     );
     expect(response.status).toBe(200);
     expect(audit).toHaveBeenCalledWith(sb, expect.objectContaining({
@@ -89,26 +100,40 @@ describe('checking out', () => {
 
   it('reports a copy somebody else holds as a conflict, not a failure', async () => {
     const sb = rpcClient({ error: { message: 'copy_taken' } });
-    const response = await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), sb, ACTOR, ORIGIN);
+    const response = await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), env, sb, ACTOR, ORIGIN);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'copy_taken' });
   });
 
   it('reports a second game as already_borrowing', async () => {
     const sb = rpcClient({ error: { message: 'already_borrowing' } });
-    expect((await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), sb, ACTOR, ORIGIN)).status).toBe(409);
+    expect((await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), env, sb, ACTOR, ORIGIN)).status).toBe(409);
   });
 
   it('refuses ids that are not ids before calling the database', async () => {
     const sb = rpcClient({});
-    const response = await handleLibraryCheckout(post({ attendee_id: 'nope', copy_id: COPY }), sb, ACTOR, ORIGIN);
+    const response = await handleLibraryCheckout(post({ attendee_id: 'nope', copy_id: COPY }), env, sb, ACTOR, ORIGIN);
     expect(response.status).toBe(400);
+    expect((sb as unknown as { rpc: ReturnType<typeof vi.fn> }).rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses to lend to somebody who has not checked in', async () => {
+    // The desk screen warns about this, and a warning staff can click past is
+    // not a rule. Same gate as the app, from the same function.
+    gate.mockResolvedValue(null);
+    const sb = rpcClient({});
+    const response = await handleLibraryCheckout(
+      post({ attendee_id: ATTENDEE, copy_id: COPY }), env, sb, ACTOR, ORIGIN,
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'not_checked_in' });
+    // And it never reaches the database.
     expect((sb as unknown as { rpc: ReturnType<typeof vi.fn> }).rpc).not.toHaveBeenCalled();
   });
 
   it('does not write an audit row when the checkout failed', async () => {
     const sb = rpcClient({ error: { message: 'copy_withdrawn' } });
-    await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), sb, ACTOR, ORIGIN);
+    await handleLibraryCheckout(post({ attendee_id: ATTENDEE, copy_id: COPY }), env, sb, ACTOR, ORIGIN);
     expect(audit).not.toHaveBeenCalled();
   });
 });

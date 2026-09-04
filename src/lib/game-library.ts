@@ -18,6 +18,15 @@ export interface LibraryGame {
   year: number | null;
   /** BGG's small box shot. Null for BGC rows with no BGG match. */
   thumb: string | null;
+  /**
+   * A trimmed blurb, ~300 characters, added by `npm run sync:descriptions`.
+   *
+   * Deliberately not the whole BGG text: at ~1,600 characters a game the full
+   * set is roughly 900KB, which would take the app's catalogue chunk from 48KB
+   * gzipped to about 300KB — paid on first open, on venue wifi, by everyone.
+   * Optional, so a snapshot predating the script still typechecks.
+   */
+  description?: string | null;
   minPlayers: number | null;
   maxPlayers: number | null;
   /** Minutes. */

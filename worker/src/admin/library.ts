@@ -14,6 +14,8 @@ import { adminJson } from './auth';
 import { writeAudit } from './audit';
 import { seatLabel } from './check-in';
 import { hasArrivedOn, type CheckInEvent, type EventDay } from './check-in-state';
+import { getCurrentEdition } from '../editions';
+import { attendeeGateDay } from '../attendee-gate';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,6 +30,7 @@ const DESK_ERRORS: Record<string, number> = {
   already_borrowing: 409,
   loan_not_open: 409,
   library_last_call: 409,
+  not_checked_in: 409,
   note_required: 400,
 };
 
@@ -86,6 +89,7 @@ export async function loansForAttendee(sb: SupabaseClient, attendeeId: string) {
 
 export async function handleLibraryCheckout(
   req: Request,
+  env: Env,
   sb: SupabaseClient,
   actorEmail: string,
   origin: string,
@@ -96,6 +100,15 @@ export async function handleLibraryCheckout(
   const copyId = typeof body.copy_id === 'string' ? body.copy_id : '';
   if (!UUID.test(attendeeId) || !UUID.test(copyId)) {
     return adminJson({ error: 'invalid_body' }, 400, origin);
+  }
+
+  // Checked in, or nothing gets lent -- the same rule the app enforces, from
+  // the same function, so the desk cannot quietly become the way around it.
+  // The screen already warns; a warning staff can click past is not a rule.
+  const edition = await getCurrentEdition(env);
+  if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
+  if ((await attendeeGateDay(sb, attendeeId, edition)) === null) {
+    return adminJson({ error: 'not_checked_in' }, 409, origin);
   }
 
   const { data, error } = await sb.rpc('check_out_library_copy', {

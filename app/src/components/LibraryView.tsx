@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Clock, Search } from 'lucide-react';
+import { BookOpen, ChevronDown, Clock, Search } from 'lucide-react';
 // The same pure helpers the public /library page uses, so the two cannot drift
 // into disagreeing about what "light" or "under 30 min" means.
 import {
@@ -11,6 +11,7 @@ import {
   formatPlayers,
   formatTime,
   isFiltered,
+  weightBand,
   type DurationBand,
   type LibraryFilters,
   type LibraryGame,
@@ -54,6 +55,7 @@ export default function LibraryView({
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   // Ticks the countdown without re-fetching. A hold is five minutes long and
   // watching a number that does not move is worse than no number.
   const [now, setNow] = useState(() => Date.now());
@@ -164,6 +166,19 @@ export default function LibraryView({
       )}
 
       <section className="screen-section" aria-label="Browse the shelf">
+        {/* Without this the whole shelf reads "Available" with no button and no
+            reason, which looks like the app is broken rather than like a rule. */}
+        {state?.loan && (
+          <p className="library-blocked" role="status">
+            Bring {state.loan.title} back before borrowing another.
+          </p>
+        )}
+        {state?.hold && !state.loan && (
+          <p className="library-blocked" role="status">
+            {state.hold.title} is held for you — collect it, or change your mind above.
+          </p>
+        )}
+
         <div className="library-filters">
           <label className="library-filters__search">
             <span className="eyebrow">Search</span>
@@ -253,14 +268,27 @@ export default function LibraryView({
               // asking for something else, and the card should say so rather
               // than offering a button that will be refused.
               const blocked = Boolean(state?.hold || state?.loan) || !state?.can_borrow;
+              const open = openKey === game.key;
               return (
-                <li key={game.key} className={`library-item ${out ? 'library-item--out' : ''}`}>
-                  <div className="library-item__body">
-                    <h3>{game.title}</h3>
-                    <p className="library-item__meta">
-                      {[formatPlayers(game), formatTime(game)].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
+                <li key={game.key} className={`library-item ${out ? 'library-item--out' : ''} ${open ? 'library-item--open' : ''}`}>
+                  <button
+                    type="button"
+                    className="library-item__body"
+                    aria-expanded={open}
+                    onClick={() => setOpenKey(open ? null : game.key)}
+                  >
+                    <span>
+                      <h3>{game.title}</h3>
+                      <span className="library-item__meta">
+                        {[formatPlayers(game), formatTime(game)].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`library-item__chevron ${open ? 'library-item__chevron--open' : ''}`}
+                      size={16}
+                      aria-hidden="true"
+                    />
+                  </button>
                   {out ? (
                     <span className="library-item__status">All out</span>
                   ) : blocked ? (
@@ -276,6 +304,7 @@ export default function LibraryView({
                       Reserve
                     </button>
                   )}
+                  {open && <GameDetail game={game} />}
                 </li>
               );
             })}
@@ -289,5 +318,55 @@ export default function LibraryView({
         )}
       </section>
     </>
+  );
+}
+
+
+/** What a game is, once somebody taps to ask. */
+function GameDetail({ game }: { game: LibraryGame }) {
+  const facts: Array<[string, string]> = [];
+  if (game.year) facts.push(['Published', String(game.year)]);
+  if (game.rating) facts.push(['BGG rating', game.rating.toFixed(1)]);
+  const heaviness = weightBand(game.weight);
+  if (heaviness) {
+    facts.push(['Weight', `${heaviness[0].toUpperCase()}${heaviness.slice(1)}${game.weight ? ` (${game.weight.toFixed(1)}/5)` : ''}`]);
+  }
+  if (game.bestWith?.length) facts.push(['Best with', `${game.bestWith.join(', ')} players`]);
+  facts.push(['On the shelf', `${game.copies} cop${game.copies === 1 ? 'y' : 'ies'}`]);
+
+  return (
+    <div className="library-detail">
+      {game.thumb && (
+        <img
+          className="library-detail__thumb"
+          src={game.thumb}
+          alt=""
+          /* Lazy, because the shelf renders sixty rows and almost none of them
+             get opened. The venue network should not pay for the other 59. */
+          loading="lazy"
+          decoding="async"
+          width={120}
+        />
+      )}
+      {game.description && <p className="library-detail__blurb">{game.description}</p>}
+      <dl className="library-detail__facts">
+        {facts.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {game.bggId && (
+        <a
+          className="text-button"
+          href={`https://boardgamegeek.com/boardgame/${game.bggId}`}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          Read more on BoardGameGeek
+        </a>
+      )}
+    </div>
   );
 }
