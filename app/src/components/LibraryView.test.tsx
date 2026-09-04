@@ -127,6 +127,26 @@ describe('browsing', () => {
     expect(onChanged).toHaveBeenCalled();
   });
 
+  it('goes back to the top, where the card telling you what to do is', async () => {
+    // A reservation made from row forty is otherwise made into the void.
+    const scrollTo = vi.fn();
+    Object.defineProperty(window, 'scrollTo', { configurable: true, value: scrollTo });
+    requestGame.mockResolvedValue({ ok: true, expires_at: '', copy_number: 1 });
+    renderView();
+    await userEvent.click(screen.getByRole('button', { name: 'Reserve Catan' }));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+  });
+
+  it('stays put when the reservation failed', async () => {
+    // Nothing appeared at the top, so there is nothing up there to look at.
+    const scrollTo = vi.fn();
+    Object.defineProperty(window, 'scrollTo', { configurable: true, value: scrollTo });
+    requestGame.mockResolvedValue({ ok: false, error: 'no_copy_available' });
+    renderView();
+    await userEvent.click(screen.getByRole('button', { name: 'Reserve Catan' }));
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
   it('says what to do when the last copy just went', async () => {
     requestGame.mockResolvedValue({ ok: false, error: 'no_copy_available' });
     const { onChanged } = renderView();
@@ -188,6 +208,26 @@ describe('a held game', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change my mind' }));
     expect(cancelRequest).toHaveBeenCalledWith(DEVICE);
     expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('drops the card immediately rather than after two round trips', async () => {
+    // The prop still says a hold exists -- the refetch has not happened yet.
+    // Waiting for it reads as the tap not having registered.
+    cancelRequest.mockResolvedValue(true);
+    renderView({ state: held });
+    await userEvent.click(screen.getByRole('button', { name: 'Change my mind' }));
+    expect(screen.queryByLabelText('Game you have reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText(/held for you/)).not.toBeInTheDocument();
+  });
+
+  it('puts the card back when the cancel did not go through', async () => {
+    // Optimism has to be reversible, or a failed request quietly loses a hold
+    // the attendee still has.
+    cancelRequest.mockResolvedValue(false);
+    renderView({ state: held });
+    await userEvent.click(screen.getByRole('button', { name: 'Change my mind' }));
+    expect(await screen.findByText(/still held/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Game you have reserved')).toBeInTheDocument();
   });
 });
 

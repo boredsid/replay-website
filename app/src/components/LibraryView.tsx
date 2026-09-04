@@ -35,6 +35,12 @@ export type CatalogueGame = LibraryGame;
  */
 const MAX_ROWS = 60;
 
+/** Honours a reduced-motion preference, which a jump to the top otherwise ignores. */
+function scrollToTop(): void {
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+}
+
 /** Add or remove a value — chips toggle, they do not cycle. */
 function toggle<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -56,6 +62,9 @@ export default function LibraryView({
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // Hides the hold card the moment it is given up, rather than after two
+  // network round trips. The prop stays the truth; this only runs ahead of it.
+  const [cancelling, setCancelling] = useState(false);
   // Ticks the countdown without re-fetching. A hold is five minutes long and
   // watching a number that does not move is worse than no number.
   const [now, setNow] = useState(() => Date.now());
@@ -65,6 +74,8 @@ export default function LibraryView({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [state?.hold]);
+
+  useEffect(() => { if (!state?.hold) setCancelling(false); }, [state?.hold]);
 
   const unavailable = useMemo(() => new Set(state?.unavailable ?? []), [state?.unavailable]);
 
@@ -85,13 +96,23 @@ export default function LibraryView({
     setBusy(false);
     if (!result.ok) { setNote(requestErrorMessage(result.error)); return; }
     onChanged();
+    // The card that says where to go and how long you have appears at the top,
+    // and a reservation made from row forty is otherwise made into the void.
+    scrollToTop();
   };
 
   const giveUp = async () => {
     if (!device) return;
-    setBusy(true);
-    await cancelRequest(device);
-    setBusy(false);
+    // Optimistic: the card goes now. Waiting for the cancel and then a refetch
+    // means watching a card you have already dismissed sit there for two round
+    // trips, which reads as the tap not having registered.
+    setCancelling(true);
+    const ok = await cancelRequest(device);
+    if (!ok) {
+      setCancelling(false);
+      setNote('That did not go through. Your game is still held.');
+      return;
+    }
     onChanged();
   };
 
@@ -142,7 +163,7 @@ export default function LibraryView({
         </section>
       )}
 
-      {state?.hold && !state.loan && (
+      {state?.hold && !state.loan && !cancelling && (
         <section className="library-card library-card--hold" aria-label="Game you have reserved">
           <span className="eyebrow">Held for you</span>
           <h2>{state.hold.title}</h2>
@@ -173,7 +194,7 @@ export default function LibraryView({
             Bring {state.loan.title} back before borrowing another.
           </p>
         )}
-        {state?.hold && !state.loan && (
+        {state?.hold && !state.loan && !cancelling && (
           <p className="library-blocked" role="status">
             {state.hold.title} is held for you — collect it, or change your mind above.
           </p>
