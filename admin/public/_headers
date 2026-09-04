@@ -4,7 +4,13 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  # `camera=(self)` rather than `camera=()`: the empty list disables the camera
+  # for every origin including this one, which is what stopped the library
+  # desk's QR scanner working. Chrome enforces this strictly; iOS Safari does
+  # not apply it to getUserMedia, which is why it worked on a phone and not on
+  # a laptop. Microphone, location and payment stay off -- nothing here uses
+  # them, and the scanner asks for video only.
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=()
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
