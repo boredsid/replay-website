@@ -24,6 +24,41 @@ interface Props {
 
 type CameraState = 'idle' | 'starting' | 'running' | 'denied' | 'unsupported';
 
+/** Crockford base32, which is what a pass token is sixteen of. */
+const CROCKFORD = /^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{16}$/;
+
+/**
+ * Whether this could be a pass code at all.
+ *
+ * Typing a person's name in here posts it as a token and gets back "unknown
+ * pass", which reads as though the pass is broken rather than as though the box
+ * was the wrong one. Worth catching before it leaves the device: staff reach
+ * for this box precisely when something else has already gone wrong.
+ */
+export function looksLikePassCode(input: string): boolean {
+  const normalised = input.toUpperCase().replace(/[\s-]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
+  return CROCKFORD.test(normalised);
+}
+
+/**
+ * Which camera to ask for.
+ *
+ * A phone or tablet held over a pass wants the rear camera; a laptop only has a
+ * front one, and asking it for a rear camera is what made this work on mobile
+ * and not on desktop.
+ *
+ * Decided by how the device is pointed at, not by sniffing the user agent. A
+ * coarse primary pointer means a finger, which means something handheld — and
+ * it correctly catches an iPad, which reports a desktop user agent in Safari
+ * but is very much a thing you hold over a counter. A touchscreen laptop still
+ * reports a fine pointer, so it gets the front camera it actually has.
+ */
+export function preferredCamera(): 'environment' | 'user' {
+  const touchFirst = typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
+  return touchFirst && navigator.maxTouchPoints > 0 ? 'environment' : 'user';
+}
+
 export default function QrScanner({ onScan, busy = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +67,7 @@ export default function QrScanner({ onScan, busy = false }: Props) {
   const [state, setState] = useState<CameraState>('idle');
   const [manual, setManual] = useState('');
   const [showManual, setShowManual] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
 
   // Held in a ref so the scan loop never captures a stale callback, and so a
   // successful read can stop the loop before the next frame fires.
@@ -88,14 +124,12 @@ export default function QrScanner({ onScan, busy = false }: Props) {
       const quality = { width: { ideal: 1280 }, height: { ideal: 720 } };
       let stream: MediaStream;
       try {
-        // Prefer the rear camera on a phone at the counter.
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', ...quality },
+          video: { facingMode: preferredCamera(), ...quality },
         });
       } catch {
-        // A laptop has no rear camera, and some browsers reject the constraint
-        // outright rather than falling back to the one camera they do have --
-        // which is why this worked on a phone and not on a desktop.
+        // Some browsers reject a facingMode they cannot satisfy rather than
+        // falling back to the one camera they do have.
         stream = await navigator.mediaDevices.getUserMedia({ video: quality });
       }
       streamRef.current = stream;
@@ -115,6 +149,11 @@ export default function QrScanner({ onScan, busy = false }: Props) {
     event.preventDefault();
     const value = manual.trim();
     if (value.length === 0) return;
+    if (!looksLikePassCode(value)) {
+      setManualError('That is not a pass code. To find someone by name or phone, use the search below.');
+      return;
+    }
+    setManualError(null);
     onScan(value);
     setManual('');
   };
@@ -175,18 +214,22 @@ export default function QrScanner({ onScan, busy = false }: Props) {
       </div>
 
       {showManual && (
-        <form onSubmit={submitManual} className="flex gap-2">
-          <Input
-            value={manual}
-            onChange={(event) => setManual(event.target.value)}
-            placeholder="Pass code from the attendee's ID screen"
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            aria-label="Pass code"
-          />
-          <Button type="submit" disabled={busy || manual.trim().length === 0}>Look up</Button>
-        </form>
+        <div className="space-y-2">
+          <form onSubmit={submitManual} className="flex gap-2">
+            <Input
+              value={manual}
+              onChange={(event) => { setManual(event.target.value); setManualError(null); }}
+              placeholder="16-character pass code"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-label="Pass code"
+              aria-invalid={manualError !== null}
+            />
+            <Button type="submit" disabled={busy || manual.trim().length === 0}>Look up</Button>
+          </form>
+          {manualError && <p className="text-sm text-destructive" role="alert">{manualError}</p>}
+        </div>
       )}
     </div>
   );
