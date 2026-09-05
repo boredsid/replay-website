@@ -762,8 +762,17 @@ one. The current allowlist is safe; it is simply coarse.
   earlier one with the same tag arrives silently, which for a republished
   incident notice is probably wrong.
 - **One admin Pages CI build failed unexplained** on 2026-09-01 (`db4ec7a`) and
-  was not reproducible locally. It has not recurred since. The log is in the
-  Cloudflare dashboard.
+  was not reproducible locally. It has not recurred across many deploys since,
+  so it is most likely a one-off. The log is in the Cloudflare dashboard.
+- **The library desk screen has never been driven by a human.** It sits behind
+  Cloudflare Access and will not render locally without a JWT, so every button
+  on it — hand over, take back, back-but-damaged, mark lost, put back, print
+  ledger — is covered by tests and by nothing else. This is the largest
+  untested surface going into the event and costs ten minutes to clear.
+- **Last call and the closing-time cap are unexercised**, because both rules
+  relax outside the event and today is outside it.
+- **Nobody is named to reconcile the game library** at close on Sunday. See
+  `docs/LIVE_EVENT_READINESS.md`.
 
 ---
 

@@ -772,13 +772,15 @@ that changes a contract deploys the Worker before the app and admin builds.
 
 ## Open decisions
 
-1. **Library inventory source** — BGC import or REPLAY-owned copies. Blocks P4
-   entirely, and is the only thing blocking it. Still open.
+1. ~~**Library inventory source**~~ — settled 2026-09-02: REPLAY-owned copies,
+   which include the BGC catalogue anyway. It shaped far less than this document
+   claimed: it decides where title metadata comes from, not the loan model,
+   which keys on copies either way. P4 shipped 2026-09-04.
 2. **Who owns capacity numbers** and turns on `signup_mode = 'app'` per session.
    Still open. Four sessions on day one are currently bookable.
 3. **What happens to sign-ups and loans if a registration is cancelled** after
    the fact. Partly answered for the purchaser identity by
-   `20260902103000_release_purchaser_claim.sql`; sign-ups and loans are still
+   `20260901184903_release_purchaser_claim.sql`; sign-ups and loans are still
    open.
 4. ~~**Reminder lead time**~~ — settled at 15 minutes with a 10-minute catch-up
    window, in `REMINDER_LEAD_MINUTES`.
@@ -786,6 +788,7 @@ that changes a contract deploys the Worker before the app and admin builds.
    sharing turns out to happen in practice. Still open; re-pairing already
    rotates it, so the question is only about unprompted rotation.
 6. **Whether a cancelled *session* should notify the people booked into it.**
+   The one open decision with code behind it rather than a name or a policy.
    Opened 2026-09-01. Today it does not: setting a schedule item to `cancelled`
    sends nothing, and the only way to reach that roster is an urgent
    announcement, which goes to everybody. See the push trigger list in P2D.
