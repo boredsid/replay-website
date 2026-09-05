@@ -5,6 +5,7 @@ import type { RegistrationRow, PaymentStatus, EditionRow } from '@/lib/types';
 import { onRevalidate } from '@/lib/revalidate';
 import { Loading } from '@/components/Loading';
 import { StatusBadge } from '@/components/StatusBadge';
+import { discountMarker } from '@/lib/discount-source';
 
 const STATUSES: (PaymentStatus | 'all')[] = ['all', 'confirmed', 'pending', 'cancelled'];
 const inr = (n: number) => '₹' + Number(n).toLocaleString('en-IN');
@@ -131,7 +132,10 @@ export default function RegistrationsList() {
                     <td className="p-2">
                       <StatusBadge status={r.payment_status} />
                     </td>
-                    <td className="p-2">{inr(r.amount_paid)}</td>
+                    <td className="p-2">
+                      <span className="whitespace-nowrap">{inr(r.amount_paid)}</span>
+                      <Marker reg={r} />
+                    </td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
@@ -160,7 +164,7 @@ export default function RegistrationsList() {
                 <div className="mt-1 text-sm text-muted-foreground">{r.user_phone}</div>
                 <div className="mt-1 flex items-start justify-between gap-3 text-sm">
                   <span className="min-w-0">{r.seats} ticket{r.seats === 1 ? '' : 's'} · {r.pass_type} · {r.days.join(', ')}</span>
-                  <span className="shrink-0">{inr(r.amount_paid)}</span>
+                  <span className="shrink-0">{inr(r.amount_paid)}<Marker reg={r} /></span>
                 </div>
               </button>
             ))}
@@ -173,5 +177,22 @@ export default function RegistrationsList() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Why this row costs what it does, in one word.
+ *
+ * Only rendered when there is something to say — a full-price pass carries no
+ * marker, so the column stays quiet for the common case and the ₹0 rows that
+ * need explaining are the ones that stand out.
+ */
+function Marker({ reg }: { reg: RegistrationRow }) {
+  const marker = discountMarker(reg);
+  if (!marker) return null;
+  return (
+    <span className="ml-1.5 whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+      {marker}
+    </span>
   );
 }

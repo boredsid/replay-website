@@ -1,5 +1,7 @@
 export type PaymentStatus = 'confirmed' | 'pending' | 'cancelled';
 export type PassType = 'oneshot' | 'campaign';
+/** Guild Path membership level, as it stood when the pass was bought. */
+export type GuildTier = 'initiate' | 'adventurer' | 'guildmaster';
 export type Day = 'day1' | 'day2';
 export type PartnerKind = 'booth' | 'community_engagement' | 'sponsorship';
 export type PartnerPackageKey = 'standard_booth' | 'community_booth' | 'standard_engagement' | 'patron_engagement';
@@ -23,6 +25,12 @@ export interface RegistrationRow {
   amount_paid: number;
   payment_status: PaymentStatus;
   created_at: string;
+  /** Discount attribution, for the list marker. See `lib/discount-source`. */
+  discount_applied?: number | null;
+  guild_tier_at_purchase?: GuildTier | null;
+  promo_code?: string | null;
+  promo_discount?: number | null;
+  source?: Record<string, unknown> | null;
   users?: { name: string | null } | null;
 }
 

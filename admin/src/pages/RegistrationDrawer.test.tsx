@@ -113,3 +113,52 @@ it('explains a rejected seat reduction rather than the raw error code', async ()
 
   await waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringMatching(/already checked in/i)));
 });
+
+it('names the Guild Path tier that paid for the pass', async () => {
+  (fetchAdmin as any).mockImplementation(async (path: string) =>
+    path === '/api/admin/editions'
+      ? { editions: [] }
+      : { registration: { ...REG, amount_paid: 0, discount_applied: 1600, guild_tier_at_purchase: 'guildmaster' } },
+  );
+  renderDrawer();
+  await waitFor(() => expect(screen.getByText('Guild Path — Guildmaster')).toBeInTheDocument());
+  expect(screen.getByText(/₹1,600 off at the Guildmaster tier, which covered the pass in full/)).toBeInTheDocument();
+});
+
+it('names the promo code when a code beat any guild benefit', async () => {
+  (fetchAdmin as any).mockImplementation(async (path: string) =>
+    path === '/api/admin/editions'
+      ? { editions: [] }
+      : { registration: { ...REG, amount_paid: 1200, discount_applied: 400, guild_tier_at_purchase: null, promo_code: 'EARLYBIRD', promo_discount: 400 } },
+  );
+  renderDrawer();
+  await waitFor(() => expect(screen.getByText('Promo code — EARLYBIRD')).toBeInTheDocument());
+  expect(screen.getByText(/₹400 off\. No Guild Path benefit applied/)).toBeInTheDocument();
+});
+
+it('says a full-price pass carries no discount', async () => {
+  mockApi();
+  renderDrawer();
+  await waitFor(() => expect(screen.getByText('None — full price')).toBeInTheDocument());
+});
+
+it('does not pass off an unattributed discount as a guild or promo one', async () => {
+  (fetchAdmin as any).mockImplementation(async (path: string) =>
+    path === '/api/admin/editions'
+      ? { editions: [] }
+      : { registration: { ...REG, amount_paid: 600, discount_applied: 1000, guild_tier_at_purchase: null } },
+  );
+  renderDrawer();
+  await waitFor(() => expect(screen.getByText('Not attributed')).toBeInTheDocument());
+});
+
+it('flags a free pass that no discount explains, and who entered it', async () => {
+  (fetchAdmin as any).mockImplementation(async (path: string) =>
+    path === '/api/admin/editions'
+      ? { editions: [] }
+      : { registration: { ...REG, amount_paid: 0, discount_applied: 0, source: { manual: true, by: 'desk@replaycon.in' } } },
+  );
+  renderDrawer();
+  await waitFor(() => expect(screen.getByText('None recorded')).toBeInTheDocument());
+  expect(screen.getByText('By hand at the desk — desk@replaycon.in')).toBeInTheDocument();
+});

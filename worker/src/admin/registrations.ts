@@ -31,7 +31,9 @@ export async function handleRegList(req: Request, env: Env, sb: SupabaseClient, 
 
   let query = sb
     .from('registrations')
-    .select('id, user_phone, pass_type, days, seats, amount_paid, promo_code, payment_status, created_at, users(name)')
+    // The discount columns ride along so the list can mark why a row costs
+    // what it does — a ₹0 guild pass and a ₹0 comp are otherwise identical.
+    .select('id, user_phone, pass_type, days, seats, amount_paid, discount_applied, guild_tier_at_purchase, promo_code, promo_discount, source, payment_status, created_at, users(name)')
     .eq('edition_id', edition.id)
     .order('created_at', { ascending: false });
   if (status) query = query.eq('payment_status', status);

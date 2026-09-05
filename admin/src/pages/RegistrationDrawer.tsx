@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { fetchAdmin, showApiError, ApiError } from '@/lib/api';
-import { oneDayPrice, type Day, type EditionRow, type PassType, type PaymentStatus } from '@/lib/types';
+import { oneDayPrice, type Day, type EditionRow, type GuildTier, type PassType, type PaymentStatus } from '@/lib/types';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { describeDiscount, describeEntry } from '@/lib/discount-source';
 
 interface Detail {
   id: string;
@@ -14,6 +15,14 @@ interface Detail {
   seats: number;
   amount_paid: number;
   payment_status: PaymentStatus;
+  /** What came off the base price, whatever the reason. */
+  discount_applied?: number | null;
+  /** Set only when a Guild Path benefit is what actually won the discount. */
+  guild_tier_at_purchase?: GuildTier | null;
+  promo_code?: string | null;
+  promo_discount?: number | null;
+  /** UTM data for a public sign-up; `{ manual, by }` for a desk entry. */
+  source?: Record<string, unknown> | null;
   users?: { name: string | null; email: string | null } | null;
 }
 
@@ -93,6 +102,11 @@ export default function RegistrationDrawer() {
       : oneDayPrice(edition.pricing)
     : null;
 
+  // Read-only history: these columns record what happened at purchase and are
+  // never recomputed, so editing the amount above does not restate them.
+  const discount = reg ? describeDiscount(reg) : null;
+  const enteredBy = describeEntry(reg?.source);
+
   function fail(e: unknown) {
     if (e instanceof ApiError && EDIT_ERROR_COPY[e.message]) toast.error(EDIT_ERROR_COPY[e.message]);
     else if (e instanceof ApiError && e.message === 'sold_out') toast.error('That day is full, so the pass cannot move to it.');
@@ -160,6 +174,11 @@ export default function RegistrationDrawer() {
             <Field k="Phone" v={reg.user_phone} />
             <Field k="Email" v={reg.users?.email || '—'} />
             <Field k="Status" v={reg.payment_status} />
+            {discount && <Field k="Discount" v={discount.label} />}
+            {discount?.detail && (
+              <p className="-mt-2 text-xs text-muted-foreground">{discount.detail}</p>
+            )}
+            {enteredBy && <Field k="Entered" v={enteredBy} />}
             <p className="text-xs text-muted-foreground">
               Name, email, and phone belong to the person, not the pass —{' '}
               <Link to={`/users/${reg.user_phone}`} className="underline">edit them on their record</Link>.
@@ -250,9 +269,9 @@ export default function RegistrationDrawer() {
 
 function Field({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex justify-between border-b py-1 text-sm">
-      <span className="text-muted-foreground">{k}</span>
-      <span>{v}</span>
+    <div className="flex justify-between gap-3 border-b py-1 text-sm">
+      <span className="shrink-0 text-muted-foreground">{k}</span>
+      <span className="break-words text-right">{v}</span>
     </div>
   );
 }
