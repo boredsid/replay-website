@@ -42,21 +42,41 @@ export async function syncAccessGroup(env: Env, emails: readonly string[]): Prom
   };
 
   try {
-    // The API requires a name on update, and inventing one would silently
-    // rename whatever the group is called in the dashboard.
+    // Read before write, and keep everything this function did not put there.
+    //
+    // An Access group is not only a list of addresses: it can include a domain,
+    // an identity-provider group, a service token, and it carries `exclude` and
+    // `require` rules alongside. Sending a bare `include` would delete all of
+    // it. That matters most for an existing group somebody points this at,
+    // which is exactly the sensible thing to do rather than making a new one.
     const current = await fetch(url, { headers });
     if (!current.ok) {
       return { synced: false, reason: 'failed', detail: `read ${current.status}` };
     }
-    const body = await current.json() as { result?: { name?: string } };
-    const name = body.result?.name ?? 'REPLAY admin staff';
+    const body = await current.json() as {
+      result?: {
+        name?: string;
+        include?: Array<Record<string, unknown>>;
+        exclude?: Array<Record<string, unknown>>;
+        require?: Array<Record<string, unknown>>;
+      };
+    };
+    const group = body.result ?? {};
+    // The API requires a name on update, and inventing one would rename
+    // whatever the group is called in the dashboard.
+    const name = group.name ?? 'REPLAY admin staff';
+
+    // Only the plain-email rules are ours to manage. Everything else stays.
+    const kept = (group.include ?? []).filter((rule) => !('email' in rule));
 
     const response = await fetch(url, {
       method: 'PUT',
       headers,
       body: JSON.stringify({
         name,
-        include: emails.map((email) => ({ email: { email } })),
+        include: [...kept, ...emails.map((email) => ({ email: { email } }))],
+        exclude: group.exclude ?? [],
+        require: group.require ?? [],
       }),
     });
     if (!response.ok) {
