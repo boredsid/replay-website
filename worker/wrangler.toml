@@ -11,6 +11,12 @@ BGC_WORKER_URL = "https://api.boardgamecompany.in"
 UPI_ID = "suranjanadatta24-1@okaxis"
 CF_ACCESS_TEAM_DOMAIN = "boardgamecompany.cloudflareaccess.com"
 CF_ACCESS_AUD = "0983cd2ae4c9939c15d1ebecabe9d57a9630e8b09ada408279a9b17d3ecf132f"
+
+# Keeping the Access perimeter in step with the `staff` table. Identifiers, not
+# secrets — the API token that uses them is a Worker secret. Cloudflare renamed
+# Access Groups to "Rule groups" in 2025; the API path is unchanged.
+CF_ACCOUNT_ID = "6e1be7bb3a19948b7f8e97477d09f3bc"
+CF_ACCESS_GROUP_ID = "52328b5d-2d47-4a67-98fe-6a5765481efa"
 ADMIN_ORIGIN = "https://admin.replaycon.in"
 # The VAPID public key is public by definition -- browsers need it to subscribe.
 # Its private half is a Worker secret (VAPID_PRIVATE_KEY) and is never committed.
