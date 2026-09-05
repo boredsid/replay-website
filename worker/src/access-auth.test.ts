@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { verifyAccessJwt, type AccessAuthEnv } from './access-auth';
 
 // Helper: build an Env shape for tests
 const baseEnv = (): AccessAuthEnv => ({
   CF_ACCESS_TEAM_DOMAIN: 'boardgamecompany.cloudflareaccess.com',
   CF_ACCESS_AUD: 'test-aud-tag',
-  ADMIN_EMAILS: 'a@x.com,b@x.com',
   ENVIRONMENT: 'production',
 });
 
@@ -43,11 +42,21 @@ describe('verifyAccessJwt', () => {
   let keyPair: CryptoKeyPair;
   let jwk: JsonWebKey & { kid: string };
 
-  beforeEach(async () => {
+  // Generated once for the whole file, not per test.
+  //
+  // `access-auth` caches the fetched JWKS in a module-level variable keyed by
+  // team domain, and every token here uses the same `kid`, so a fresh keypair
+  // each test meant the cache kept serving the *first* test's public key while
+  // later tests signed with a different private one. Every signature then
+  // failed, and every "rejects when ..." test passed without once exercising
+  // the condition it names.
+  beforeAll(async () => {
     const k = await generateTestKey();
     keyPair = k.keyPair;
     jwk = k.jwk as JsonWebKey & { kid: string };
+  });
 
+  beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       if (url.includes('/cdn-cgi/access/certs')) {
         return new Response(JSON.stringify({ keys: [jwk] }), {
@@ -104,7 +113,11 @@ describe('verifyAccessJwt', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('rejects when email is not in allowlist', async () => {
+  it('authenticates anybody Cloudflare vouched for, allowlist or not', async () => {
+    // This function answers "is this a real Access token, and whose". Whether
+    // that person may do anything is the `staff` table's question now -- it
+    // used to be answered here against ADMIN_EMAILS, which is why adding a
+    // volunteer needed a Worker deploy.
     const token = await signJwt(keyPair.privateKey, {
       iss: 'https://boardgamecompany.cloudflareaccess.com',
       aud: 'test-aud-tag',
@@ -112,7 +125,28 @@ describe('verifyAccessJwt', () => {
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
     const result = await verifyAccessJwt(token, baseEnv());
-    expect(result.ok).toBe(false);
+    expect(result).toEqual({ ok: true, email: 'stranger@x.com' });
+  });
+
+  it('rejects a token carrying no email', async () => {
+    const token = await signJwt(keyPair.privateKey, {
+      iss: 'https://boardgamecompany.cloudflareaccess.com',
+      aud: 'test-aud-tag',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    expect((await verifyAccessJwt(token, baseEnv())).ok).toBe(false);
+  });
+
+  it('rejects a signature from the wrong key', async () => {
+    // The property the whole file rested on and never actually checked.
+    const other = await generateTestKey();
+    const token = await signJwt(other.keyPair.privateKey, {
+      iss: 'https://boardgamecompany.cloudflareaccess.com',
+      aud: 'test-aud-tag',
+      email: 'a@x.com',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    expect((await verifyAccessJwt(token, baseEnv())).ok).toBe(false);
   });
 
   it('rejects malformed tokens', async () => {

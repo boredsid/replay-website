@@ -1,7 +1,8 @@
 import { MoreHorizontal } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { MOBILE_MORE_NAV, MOBILE_PRIMARY_NAV } from './nav';
+import { mobileMoreFor, mobilePrimaryFor } from './nav';
+import { useWhoAmI } from '@/lib/whoami';
 
 interface Props {
   onOpenMore: () => void;
@@ -10,7 +11,10 @@ interface Props {
 
 export default function BottomTabBar({ onOpenMore, moreOpen }: Props) {
   const { pathname } = useLocation();
-  const moreActive = MOBILE_MORE_NAV.some((item) =>
+  const who = useWhoAmI();
+  const roles = who?.roles ?? [];
+  const primary = mobilePrimaryFor(roles);
+  const moreActive = mobileMoreFor(roles).some((item) =>
     item.end ? pathname === item.to : pathname.startsWith(item.to),
   );
 
@@ -19,7 +23,7 @@ export default function BottomTabBar({ onOpenMore, moreOpen }: Props) {
       className="app-bottom-bar fixed inset-x-0 bottom-0 z-40 flex border-t bg-background md:hidden"
       aria-label="Primary"
     >
-      {MOBILE_PRIMARY_NAV.map((item) => (
+      {primary.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}

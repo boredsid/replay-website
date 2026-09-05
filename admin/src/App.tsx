@@ -13,6 +13,7 @@ import EditionDrawer from '@/pages/EditionDrawer';
 import Users from '@/pages/Users';
 import UserDrawer from '@/pages/UserDrawer';
 import CheckIn from '@/pages/CheckIn';
+import Staff from '@/pages/Staff';
 import Library from '@/pages/Library';
 import Programme from '@/pages/Programme';
 import SessionRoster from '@/pages/SessionRoster';
@@ -49,6 +50,7 @@ export function App() {
               <Route path="/editions/:id" element={<><Editions /><EditionDrawer /></>} />
               <Route path="/check-in" element={<CheckIn />} />
               <Route path="/library" element={<Library />} />
+              <Route path="/staff" element={<Staff />} />
               <Route path="/programme" element={<Programme />} />
               <Route path="/programme/new" element={<><Programme /><ProgrammeDrawer /></>} />
               <Route path="/programme/:id/roster" element={<SessionRoster />} />

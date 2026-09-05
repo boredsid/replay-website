@@ -1,9 +1,25 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { fetchAdmin } from './api';
 
-interface WhoAmI { email: string; }
+export type Role = 'admin' | 'check_in' | 'library' | 'programme';
+
+interface WhoAmI { email: string; name?: string | null; roles?: Role[]; }
 const Ctx = createContext<WhoAmI | null>(null);
 export function useWhoAmI() { return useContext(Ctx); }
+
+/**
+ * Whether this person holds a role.
+ *
+ * Used to hide navigation they would only get a 403 from. That is politeness,
+ * not enforcement — every route checks for itself, and a hidden link is not a
+ * closed door.
+ */
+export function useHasRole(...roles: Role[]): boolean {
+  const who = useContext(Ctx);
+  const mine = who?.roles ?? [];
+  if (mine.includes('admin')) return true;
+  return roles.some((role) => mine.includes(role));
+}
 
 export function WhoAmIProvider({ fallback, children }: { fallback: ReactNode; children: (who: WhoAmI) => ReactNode }) {
   const [who, setWho] = useState<WhoAmI | null>(null);

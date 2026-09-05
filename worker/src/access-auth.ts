@@ -1,7 +1,6 @@
 export interface AccessAuthEnv {
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD: string;
-  ADMIN_EMAILS: string;
   ENVIRONMENT: string;
 }
 
@@ -89,9 +88,15 @@ export async function verifyAccessJwt(token: string, env: AccessAuthEnv): Promis
     return { ok: false, reason: 'expired' };
   }
 
+  // Authentication ends here: this proves the token is a real, unexpired
+  // Cloudflare Access token for this application, and whose it is.
+  //
+  // Whether that person may do anything is a separate question, answered by
+  // the `staff` table in `admin/roles.ts`. It used to be answered here against
+  // ADMIN_EMAILS, which made every route equally reachable by everybody and
+  // meant adding a volunteer required a Worker deploy.
   const email = (payload.email || '').toLowerCase();
-  const allowed = env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  if (!allowed.includes(email)) return { ok: false, reason: 'email not allowed' };
+  if (!email) return { ok: false, reason: 'no email in token' };
 
   return { ok: true, email };
 }

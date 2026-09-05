@@ -10,6 +10,8 @@ import { verifyAccessJwt } from './access-auth';
 import { pickAdminOrigin, adminCorsHeaders, adminJson } from './admin/auth';
 import { serviceClient } from './supabase';
 import { handleWhoami } from './admin/whoami';
+import { loadStaff, mayReach } from './admin/roles';
+import { handleStaffList, handleStaffCreate, handleStaffUpdate, handleStaffRemove } from './admin/staff';
 import { handleRebuild } from './admin/rebuild';
 import { handleDashboard } from './admin/dashboard';
 import { handleRegList, handleRegGet, handleRegCreate, handleRegPatch } from './admin/registrations';
@@ -75,7 +77,16 @@ export interface Env {
   UPI_ID: string;
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD: string;
-  ADMIN_EMAILS: string;
+  /**
+   * Retained only so an existing deploy does not break on a missing binding.
+   * Authorisation moved to the `staff` table on 2026-09-05 and nothing reads
+   * this any more; remove the secret once the roles have been through an event.
+   */
+  ADMIN_EMAILS?: string;
+  /** Access-group sync. Absent means the perimeter is managed by hand. */
+  CF_API_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
+  CF_ACCESS_GROUP_ID?: string;
   CLOUDFLARE_PAGES_DEPLOY_HOOK: string;
   ADMIN_ORIGIN: string;
   VAPID_PUBLIC_KEY: string;
@@ -134,7 +145,25 @@ export default {
         const email = auth.email;
         const sb = serviceClient(env);
 
-        if (path === '/api/admin/whoami' && req.method === 'GET') return handleWhoami(email, origin);
+        // Authorisation, once, in front of all fifty-two routes. Deliberately
+        // here rather than inside each handler: a route added later inherits
+        // the check instead of being open until somebody remembers it.
+        //
+        // 403 rather than 401 for both cases — their identity is fine, so
+        // sending them back to sign in again would be a loop that cannot help.
+        const staff = await loadStaff(sb, email);
+        if (!staff) return adminJson({ error: 'forbidden', reason: 'not staff' }, 403, origin);
+        if (!mayReach(staff.roles, path)) {
+          return adminJson({ error: 'forbidden', reason: 'role' }, 403, origin);
+        }
+
+        if (path === '/api/admin/whoami' && req.method === 'GET') return handleWhoami(staff, origin);
+
+        if (path === '/api/admin/staff' && req.method === 'GET') return await handleStaffList(sb, origin);
+        if (path === '/api/admin/staff' && req.method === 'POST') return await handleStaffCreate(req, env, sb, email, origin);
+        const staffMatch = path.match(/^\/api\/admin\/staff\/([^/]+)$/);
+        if (staffMatch && req.method === 'PATCH') return await handleStaffUpdate(req, env, sb, decodeURIComponent(staffMatch[1]), email, origin);
+        if (staffMatch && req.method === 'DELETE') return await handleStaffRemove(env, sb, decodeURIComponent(staffMatch[1]), email, origin);
         if (path === '/api/admin/rebuild' && req.method === 'POST') return await handleRebuild(env, sb, email, origin);
         if (path === '/api/admin/dashboard' && req.method === 'GET') return await handleDashboard(req, env, sb, origin);
         if (path === '/api/admin/leads' && req.method === 'GET') return await handleLeadsList(req, env, sb, origin);

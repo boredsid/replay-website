@@ -2,7 +2,8 @@ import { LogOut, RefreshCw } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import InstallAppButton from './InstallAppButton';
 import RebuildSiteButton from './RebuildSiteButton';
-import { MOBILE_MORE_NAV } from './nav';
+import { mobileMoreFor } from './nav';
+import { useWhoAmI } from '@/lib/whoami';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function MobileMoreMenu({ open, onOpenChange, email }: Props) {
+  const items = mobileMoreFor(useWhoAmI()?.roles ?? []);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -26,7 +28,7 @@ export default function MobileMoreMenu({ open, onOpenChange, email }: Props) {
         </SheetHeader>
 
         <nav className="space-y-1" aria-label="More admin sections">
-          {MOBILE_MORE_NAV.map((item) => (
+          {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

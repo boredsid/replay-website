@@ -1,12 +1,15 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { NAV } from './nav';
+import { navFor } from './nav';
+import { useWhoAmI } from '@/lib/whoami';
 
 interface Props {
   onNavigate?: () => void;
 }
 
 export default function Sidebar({ onNavigate }: Props) {
+  const who = useWhoAmI();
+  const items = navFor(who?.roles ?? []);
   return (
     <aside className="app-sidebar flex h-full w-56 shrink-0 flex-col border-r bg-background">
       <div className="p-4 flex items-center gap-2">
@@ -14,7 +17,7 @@ export default function Sidebar({ onNavigate }: Props) {
         <span className="font-heading font-semibold text-lg">Admin</span>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        {NAV.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
