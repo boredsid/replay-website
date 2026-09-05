@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCanWrite } from '@/lib/whoami';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import type { RegistrationRow, PaymentStatus, EditionRow } from '@/lib/types';
@@ -11,6 +12,8 @@ const STATUSES: (PaymentStatus | 'all')[] = ['all', 'confirmed', 'pending', 'can
 const inr = (n: number) => '₹' + Number(n).toLocaleString('en-IN');
 
 export default function RegistrationsList() {
+  // Bookings are written by admins only; every other role reads them redacted.
+  const canWrite = useCanWrite();
   const [rows, setRows] = useState<RegistrationRow[] | null>(null);
   const [status, setStatus] = useState<PaymentStatus | 'all'>('all');
   const [editions, setEditions] = useState<EditionRow[]>([]);
@@ -55,12 +58,14 @@ export default function RegistrationsList() {
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">Registrations</h1>
+        {canWrite && (
         <Link
           to="/registrations/new"
           className="ml-auto rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
         >
           Add registration
         </Link>
+      )}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">

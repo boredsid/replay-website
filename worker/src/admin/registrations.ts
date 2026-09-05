@@ -1,6 +1,25 @@
 import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
+import { maskPhone } from './check-in';
+
+/**
+ * What a read-only viewer sees.
+ *
+ * Somebody on the door looking a booking up needs to find the right person and
+ * know what they bought. They do not need what anyone paid, and they do not
+ * need a full phone number — the last four are enough to check against what
+ * the person in front of them says, which is the same bargain the door roster
+ * already makes.
+ *
+ * Every money field goes, not only `amount_paid`: leaving the discount behind
+ * would let the price be worked out from it, which makes the redaction
+ * decorative.
+ */
+function redactRegistration<T extends Record<string, unknown>>(row: T): T {
+  const { amount_paid: _a, discount_applied: _d, promo_discount: _p, ...rest } = row;
+  return { ...rest, user_phone: maskPhone(String(row.user_phone ?? '')) } as unknown as T;
+}
 import { writeAudit, diffRows } from './audit';
 import { sanitizePhone, parseDays, parsePassType } from '../validation';
 import { getEditionBySlug, getCurrentEdition, getReservedSeatsByDay, type EditionRow } from '../editions';
@@ -20,7 +39,7 @@ function daysMatchPass(passType: 'oneshot' | 'campaign', days: Array<'day1' | 'd
   return days.length === 2 && days.includes('day1') && days.includes('day2');
 }
 
-export async function handleRegList(req: Request, env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
+export async function handleRegList(req: Request, env: Env, sb: SupabaseClient, origin: string, redact = false): Promise<Response> {
   const params = new URL(req.url).searchParams;
   const slug = params.get('edition');
   const status = params.get('status');
@@ -47,10 +66,14 @@ export async function handleRegList(req: Request, env: Env, sb: SupabaseClient, 
       (r) => r.user_phone.includes(q) || (r.users?.name || '').toLowerCase().includes(needle),
     );
   }
-  return adminJson({ edition: { id: edition.id, slug: edition.slug }, registrations: rows }, 200, origin);
+  return adminJson({
+    edition: { id: edition.id, slug: edition.slug },
+    registrations: redact ? rows.map(redactRegistration) : rows,
+    redacted: redact,
+  }, 200, origin);
 }
 
-export async function handleRegGet(env: Env, sb: SupabaseClient, id: string, origin: string): Promise<Response> {
+export async function handleRegGet(env: Env, sb: SupabaseClient, id: string, origin: string, redact = false): Promise<Response> {
   const { data, error } = await sb
     .from('registrations')
     .select('*, users(name, email)')
@@ -58,7 +81,10 @@ export async function handleRegGet(env: Env, sb: SupabaseClient, id: string, ori
     .maybeSingle();
   if (error) return adminJson({ error: 'query_failed' }, 500, origin);
   if (!data) return adminJson({ error: 'not_found' }, 404, origin);
-  return adminJson({ registration: data }, 200, origin);
+  return adminJson({
+    registration: redact ? redactRegistration(data as Record<string, unknown>) : data,
+    redacted: redact,
+  }, 200, origin);
 }
 
 export async function handleRegCreate(req: Request, env: Env, sb: SupabaseClient, email: string, origin: string): Promise<Response> {

@@ -9,12 +9,14 @@ import { ShieldAlert, Trash2, UserPlus } from 'lucide-react';
 /** Kept in step with `worker/src/admin/roles.ts`; the Worker is the authority. */
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Full admin',
+  basic_admin: 'Basic admin',
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme & notices',
 };
 const ROLE_HINTS: Record<Role, string> = {
   admin: 'Everything, including this page',
+  basic_admin: 'Everything except this page — cannot change who has access',
   check_in: 'Check people in, issue app codes, session rosters',
   library: 'Lend and take back games',
   programme: 'Edit the schedule and send notices',
@@ -117,11 +119,16 @@ export default function Staff() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <header>
+      <header className="space-y-1">
         <h1 className="font-heading text-2xl font-semibold">Staff</h1>
         <p className="text-sm text-muted-foreground">
           {rows.length} {rows.length === 1 ? 'person' : 'people'} can use the admin.
           Adding somebody here also lets them past Cloudflare Access.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Everyone on staff can additionally <strong>read</strong> the programme,
+          notices and bookings, whatever else they do. Bookings shown that way
+          carry no amounts and only the last four digits of a number.
         </p>
       </header>
 

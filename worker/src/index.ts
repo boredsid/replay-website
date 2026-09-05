@@ -10,7 +10,7 @@ import { verifyAccessJwt } from './access-auth';
 import { pickAdminOrigin, adminCorsHeaders, adminJson } from './admin/auth';
 import { serviceClient } from './supabase';
 import { handleWhoami } from './admin/whoami';
-import { loadStaff, mayReach } from './admin/roles';
+import { loadStaff, mayReach, hasFullAccess } from './admin/roles';
 import { handleStaffList, handleStaffCreate, handleStaffUpdate, handleStaffRemove } from './admin/staff';
 import { handleRebuild } from './admin/rebuild';
 import { handleDashboard } from './admin/dashboard';
@@ -153,9 +153,13 @@ export default {
         // sending them back to sign in again would be a loop that cannot help.
         const staff = await loadStaff(sb, email);
         if (!staff) return adminJson({ error: 'forbidden', reason: 'not staff' }, 403, origin);
-        if (!mayReach(staff.roles, path)) {
+        if (!mayReach(staff.roles, path, req.method)) {
           return adminJson({ error: 'forbidden', reason: 'role' }, 403, origin);
         }
+
+        // Read-only viewers of a booking get it without the money or the full
+        // number. Decided here, once, from the same roles the gate just used.
+        const redactRegistrations = !hasFullAccess(staff.roles, '/api/admin/registrations');
 
         if (path === '/api/admin/whoami' && req.method === 'GET') return handleWhoami(staff, origin);
 
@@ -243,10 +247,10 @@ export default {
         if (scheduleMatch && req.method === 'GET') return await handleScheduleGet(sb, scheduleMatch[1], origin);
         if (scheduleMatch && req.method === 'PATCH') return await handleSchedulePatch(req, sb, scheduleMatch[1], email, origin);
 
-        if (path === '/api/admin/registrations' && req.method === 'GET') return await handleRegList(req, env, sb, origin);
+        if (path === '/api/admin/registrations' && req.method === 'GET') return await handleRegList(req, env, sb, origin, redactRegistrations);
         if (path === '/api/admin/registrations' && req.method === 'POST') return await handleRegCreate(req, env, sb, email, origin);
         const regMatch = path.match(/^\/api\/admin\/registrations\/([^/]+)$/);
-        if (regMatch && req.method === 'GET') return await handleRegGet(env, sb, regMatch[1], origin);
+        if (regMatch && req.method === 'GET') return await handleRegGet(env, sb, regMatch[1], origin, redactRegistrations);
         if (regMatch && req.method === 'PATCH') return await handleRegPatch(req, env, sb, regMatch[1], email, origin);
 
         if (path === '/api/admin/editions' && req.method === 'GET') return await handleEdList(env, sb, origin);

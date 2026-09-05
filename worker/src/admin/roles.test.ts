@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mayReach, rolesForPath } from './roles';
+import { mayReach, rolesForPath, hasFullAccess } from './roles';
 
 describe('what a role reaches', () => {
   it('lets admin everywhere, including places with no rule', () => {
@@ -18,9 +18,15 @@ describe('what a role reaches', () => {
   });
 
   it('keeps the check-in desk out of money and people', () => {
-    for (const path of ['/api/admin/promo-codes', '/api/admin/registrations', '/api/admin/users', '/api/admin/editions']) {
+    for (const path of ['/api/admin/promo-codes', '/api/admin/users', '/api/admin/editions']) {
       expect(mayReach(['check_in'], path)).toBe(false);
     }
+    // Bookings are the exception: readable by anyone on staff, and never
+    // writable by them. What is kept from them there is the money, which the
+    // redaction handles rather than the route map.
+    expect(mayReach(['check_in'], '/api/admin/registrations', 'GET')).toBe(true);
+    expect(mayReach(['check_in'], '/api/admin/registrations', 'PATCH')).toBe(false);
+    expect(hasFullAccess(['check_in'], '/api/admin/registrations')).toBe(false);
   });
 
   it('keeps the library desk out of the check-in desk', () => {
@@ -40,10 +46,12 @@ describe('what a role reaches', () => {
     expect(mayReach(['check_in'], '/api/admin/library/checkout')).toBe(false);
   });
 
-  it('gives programme editors the schedule and notices', () => {
-    expect(mayReach(['programme'], '/api/admin/schedule')).toBe(true);
-    expect(mayReach(['programme'], '/api/admin/announcements')).toBe(true);
-    expect(mayReach(['library'], '/api/admin/announcements')).toBe(false);
+  it('gives programme editors the schedule and notices to change', () => {
+    expect(hasFullAccess(['programme'], '/api/admin/schedule')).toBe(true);
+    expect(hasFullAccess(['programme'], '/api/admin/announcements')).toBe(true);
+    // The library desk may read a notice but not write one.
+    expect(hasFullAccess(['library'], '/api/admin/announcements')).toBe(false);
+    expect(mayReach(['library'], '/api/admin/announcements', 'POST')).toBe(false);
   });
 
   it('lets the check-in desk reach a session roster', () => {
@@ -81,5 +89,72 @@ describe('what a role reaches', () => {
   it('takes the longest matching prefix, so a sub-path can differ', () => {
     expect(rolesForPath('/api/admin/library/loans')).toContain('library');
     expect(rolesForPath('/api/admin/check-in/roster')).toContain('check_in');
+  });
+});
+
+
+describe('basic admin', () => {
+  it('reaches everything a full admin does', () => {
+    for (const path of ['/api/admin/users', '/api/admin/promo-codes', '/api/admin/check-in',
+                        '/api/admin/library/checkout', '/api/admin/editions', '/api/admin/audit']) {
+      expect(mayReach(['basic_admin'], path, 'POST')).toBe(true);
+    }
+  });
+
+  it('cannot reach the staff table, which is the whole point', () => {
+    // A role that can edit staff can grant itself every other role, so this is
+    // the only real privilege boundary in the system.
+    for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
+      expect(mayReach(['basic_admin'], '/api/admin/staff', method)).toBe(false);
+      expect(mayReach(['basic_admin'], '/api/admin/staff/someone@example.com', method)).toBe(false);
+    }
+  });
+
+  it('reaches a route nobody classified, unlike a desk role', () => {
+    expect(mayReach(['basic_admin'], '/api/admin/something-new', 'POST')).toBe(true);
+    expect(mayReach(['check_in'], '/api/admin/something-new', 'POST')).toBe(false);
+  });
+});
+
+describe('what every member of staff can read', () => {
+  const desks = ['check_in', 'library', 'programme'];
+
+  it('lets any desk read the programme, notices and bookings', () => {
+    for (const role of desks) {
+      for (const path of ['/api/admin/schedule', '/api/admin/announcements', '/api/admin/registrations']) {
+        expect(mayReach([role], path, 'GET')).toBe(true);
+      }
+    }
+  });
+
+  it('is read-only: the same paths refuse every other method', () => {
+    // Otherwise a page somebody can look at becomes a page they can change by
+    // finding the right button.
+    for (const method of ['POST', 'PATCH', 'DELETE', 'PUT']) {
+      expect(mayReach(['library'], '/api/admin/registrations', method)).toBe(false);
+      expect(mayReach(['check_in'], '/api/admin/announcements', method)).toBe(false);
+    }
+  });
+
+  it('still lets the role that owns a page write to it', () => {
+    expect(mayReach(['programme'], '/api/admin/announcements', 'POST')).toBe(true);
+    expect(mayReach(['programme'], '/api/admin/schedule', 'PATCH')).toBe(true);
+  });
+
+  it('does not extend to anything else', () => {
+    // Reading bookings is not reading everything.
+    for (const path of ['/api/admin/users', '/api/admin/promo-codes', '/api/admin/audit', '/api/admin/leads']) {
+      expect(mayReach(['library'], path, 'GET')).toBe(false);
+    }
+  });
+});
+
+describe('hasFullAccess', () => {
+  it('separates looking from changing', () => {
+    // The redaction hangs off this: a read-only viewer of bookings gets them
+    // without the money or the full number.
+    expect(hasFullAccess(['library'], '/api/admin/registrations')).toBe(false);
+    expect(hasFullAccess(['admin'], '/api/admin/registrations')).toBe(true);
+    expect(hasFullAccess(['basic_admin'], '/api/admin/registrations')).toBe(true);
   });
 });

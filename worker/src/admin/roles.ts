@@ -9,16 +9,27 @@
 // than defaulting to open.
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type Role = 'admin' | 'check_in' | 'library' | 'programme';
+export type Role = 'admin' | 'basic_admin' | 'check_in' | 'library' | 'programme';
 
-export const ROLES: readonly Role[] = ['admin', 'check_in', 'library', 'programme'];
+export const ROLES: readonly Role[] = ['admin', 'basic_admin', 'check_in', 'library', 'programme'];
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Full admin',
+  basic_admin: 'Basic admin',
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme and notices',
 };
+
+/**
+ * The one real privilege boundary.
+ *
+ * Everything else is a question of which desk somebody works. This is the
+ * question of whether they can make themselves anything else — a role that can
+ * edit the staff table can grant itself every other role, so `basic_admin` is
+ * exactly "full admin, minus that".
+ */
+const STAFF_PREFIX = '/api/admin/staff';
 
 /**
  * Longest-prefix wins, so `/check-in/roster` can differ from `/check-in`.
@@ -51,6 +62,24 @@ const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
 ];
 
 /**
+ * What every signed-in member of staff may read, whatever desk they work.
+ *
+ * Read-only, and only on GET. Somebody on the door needs to see the programme
+ * and look a booking up without being able to rewrite either — and a volunteer
+ * who cannot see what is happening is a volunteer who asks somebody else.
+ *
+ * `handleRegList` and `handleRegGet` additionally redact what a read-only
+ * viewer gets: money and full phone numbers are not needed to answer a
+ * question, and a sheet of both is a thing to lose.
+ */
+const READABLE_BY_ALL: readonly string[] = [
+  '/api/admin/schedule',
+  '/api/admin/sessions',
+  '/api/admin/announcements',
+  '/api/admin/registrations',
+];
+
+/**
  * Which roles may call this path. Admin is implicit everywhere.
  *
  * An unmatched path returns an empty list, meaning admin-only — a route added
@@ -65,10 +94,24 @@ export function rolesForPath(path: string): readonly Role[] {
   return best?.roles ?? [];
 }
 
-export function mayReach(roles: readonly string[], path: string): boolean {
+/** Full access: may change this, not merely look at it. */
+export function hasFullAccess(roles: readonly string[], path: string): boolean {
   if (roles.includes('admin')) return true;
-  const allowed = rolesForPath(path);
-  return allowed.some((role) => roles.includes(role));
+  if (roles.includes('basic_admin')) return !path.startsWith(STAFF_PREFIX);
+  return rolesForPath(path).some((role) => roles.includes(role));
+}
+
+/**
+ * Whether these roles may make this request.
+ *
+ * The method matters now: read-only access is exactly "GET and nothing else",
+ * so a page somebody can look at cannot become a page they can change by
+ * finding the right button.
+ */
+export function mayReach(roles: readonly string[], path: string, method = 'GET'): boolean {
+  if (hasFullAccess(roles, path)) return true;
+  if (method !== 'GET') return false;
+  return READABLE_BY_ALL.some((prefix) => path.startsWith(prefix));
 }
 
 export interface StaffMember {

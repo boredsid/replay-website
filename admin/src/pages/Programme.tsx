@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useCanWrite } from '@/lib/whoami';
 import { Link } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
@@ -18,6 +19,7 @@ function itemTime(item: ScheduleItemRow): string {
 }
 
 export default function Programme() {
+  const canWrite = useCanWrite('programme');
   const [editions, setEditions] = useState<EditionRow[]>([]);
   const [editionId, setEditionId] = useState('');
   const [items, setItems] = useState<ScheduleItemRow[]>([]);
@@ -73,12 +75,14 @@ export default function Programme() {
           <h1 className="text-2xl font-bold">Programme</h1>
           <p className="text-sm text-muted-foreground">All-day activities, timed sessions, playtests, showcases and the event floor.</p>
         </div>
+{canWrite && (
         <Link
           to={`/programme/new?edition_id=${encodeURIComponent(editionId)}`}
           className={`rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground ${!editionId ? 'pointer-events-none opacity-50' : ''}`}
         >
           New item
         </Link>
+        )}
       </div>
 
       <label className="mb-5 block max-w-sm">

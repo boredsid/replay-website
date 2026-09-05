@@ -46,15 +46,26 @@ describe('BottomTabBar', () => {
 
 
 describe('what a volunteer sees', () => {
-  it('shows the check-in desk only its own screens', () => {
+  it('shows the check-in desk its own screens, plus what everyone may read', () => {
     // A hidden link is politeness, not enforcement — the Worker refuses these
     // routes regardless — but offering a link that 403s is its own bug.
     roles.current = ['check_in'];
     renderAt();
     expect(screen.getByRole('link', { name: 'Check in' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    // Readable by everyone on staff; the page itself hides its write actions.
+    expect(screen.getByRole('link', { name: 'Announcements' })).toBeInTheDocument();
+    // Somebody else's desk, though.
     expect(screen.queryByRole('link', { name: 'Game library' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Announcements' })).not.toBeInTheDocument();
+    roles.current = ['admin'];
+  });
+
+  it('shows a basic admin everything except the staff page', () => {
+    roles.current = ['basic_admin'];
+    renderAt();
+    expect(screen.getByRole('link', { name: 'Check in' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Game library' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Staff' })).not.toBeInTheDocument();
     roles.current = ['admin'];
   });
 

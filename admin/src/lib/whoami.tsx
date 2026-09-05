@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { fetchAdmin } from './api';
 
-export type Role = 'admin' | 'check_in' | 'library' | 'programme';
+export type Role = 'admin' | 'basic_admin' | 'check_in' | 'library' | 'programme';
 
 interface WhoAmI { email: string; name?: string | null; roles?: Role[]; }
 const Ctx = createContext<WhoAmI | null>(null);
@@ -19,6 +19,21 @@ export function useHasRole(...roles: Role[]): boolean {
   const mine = who?.roles ?? [];
   if (mine.includes('admin')) return true;
   return roles.some((role) => mine.includes(role));
+}
+
+/**
+ * Whether this person may change a page, as opposed to look at it.
+ *
+ * Everyone on staff can read the programme, notices and bookings; only the role
+ * that owns a page can write to it. Hiding the buttons is politeness — the
+ * Worker refuses the request either way — but offering a button that 403s is
+ * its own kind of bug.
+ */
+export function useCanWrite(...owners: Role[]): boolean {
+  const who = useContext(Ctx);
+  const mine = who?.roles ?? [];
+  if (mine.includes('admin') || mine.includes('basic_admin')) return true;
+  return owners.some((role) => mine.includes(role));
 }
 
 export function WhoAmIProvider({ fallback, children }: { fallback: ReactNode; children: (who: WhoAmI) => ReactNode }) {

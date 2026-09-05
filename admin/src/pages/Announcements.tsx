@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useCanWrite } from '@/lib/whoami';
 import { Link } from 'react-router-dom';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
@@ -51,6 +52,7 @@ function formatIst(value: string): string {
 }
 
 export default function Announcements() {
+  const canWrite = useCanWrite('programme');
   const [editions, setEditions] = useState<EditionRow[]>([]);
   const [editionId, setEditionId] = useState('');
   const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
@@ -106,12 +108,14 @@ export default function Announcements() {
           <h1 className="text-2xl font-bold">Announcements</h1>
           <p className="text-sm text-muted-foreground">Schedule attendee updates, urgent changes, and incident notices without rebuilding the site.</p>
         </div>
+{canWrite && (
         <Link
           to={`/announcements/new?edition_id=${encodeURIComponent(editionId)}`}
           className={`rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground ${!editionId ? 'pointer-events-none opacity-50' : ''}`}
         >
           New announcement
         </Link>
+        )}
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">

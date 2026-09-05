@@ -17,6 +17,9 @@ export const NAV = [
   { to: '/audit', label: 'Audit', mobileLabel: 'Audit', icon: ScrollText, end: false, mobile: 'more', mobileOrder: 7 },
 ] as const;
 
+/** Pages every signed-in member of staff may read. Writing is still gated. */
+const READABLE_BY_ALL: readonly string[] = ['/programme', '/announcements', '/registrations'];
+
 export type NavRole = 'admin' | 'check_in' | 'library' | 'programme';
 
 /**
@@ -28,8 +31,12 @@ export type NavRole = 'admin' | 'check_in' | 'library' | 'programme';
  */
 export function navFor(roles: readonly string[]): typeof NAV[number][] {
   if (roles.includes('admin')) return [...NAV];
+  // Everything except the one page that can grant roles.
+  if (roles.includes('basic_admin')) return NAV.filter((item) => item.to !== '/staff');
   return NAV.filter((item) => {
     const allowed = (item as { roles?: readonly string[] }).roles;
+    // Read-only for everyone on staff, so the link is worth showing.
+    if (READABLE_BY_ALL.includes(item.to)) return true;
     return Boolean(allowed?.some((role) => roles.includes(role)));
   });
 }
