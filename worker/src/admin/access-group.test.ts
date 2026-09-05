@@ -8,17 +8,29 @@ const CONFIGURED = {
   CF_ACCESS_GROUP_ID: 'grp',
 } as unknown as Env;
 
-/** Answers the read, captures the write. */
-function cloudflare(group: Record<string, unknown>, writeStatus = 200) {
+/**
+ * Answers the read on one endpoint kind and 404s the other, captures the write.
+ *
+ * An id copied from the dashboard could be a rule group or a reusable policy;
+ * the sync tries both, so the fixture has to be specific about which exists.
+ */
+function cloudflare(
+  group: Record<string, unknown>,
+  options: { writeStatus?: number; kind?: 'groups' | 'policies' } = {},
+) {
+  const { writeStatus = 200, kind = 'groups' } = options;
   const writes: Array<Record<string, unknown>> = [];
-  vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
-    if (!init || init.method !== 'PUT') {
-      return new Response(JSON.stringify({ result: group }), { status: 200 });
+  const urls: string[] = [];
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'PUT') {
+      urls.push(url);
+      writes.push(JSON.parse(String(init.body)));
+      return new Response('{}', { status: writeStatus });
     }
-    writes.push(JSON.parse(String(init.body)));
-    return new Response('{}', { status: writeStatus });
+    if (!url.includes(`/access/${kind}/`)) return new Response('no', { status: 404 });
+    return new Response(JSON.stringify({ result: group }), { status: 200 });
   }));
-  return writes;
+  return { writes, urls };
 }
 
 beforeEach(() => { vi.unstubAllGlobals(); });
@@ -39,7 +51,7 @@ describe('when it is not set up', () => {
 
 describe('writing the group', () => {
   it('sets exactly the emails it was given', async () => {
-    const writes = cloudflare({ name: 'REPLAY Admin', include: [] });
+    const { writes } = cloudflare({ name: 'REPLAY Admin', include: [] });
     const result = await syncAccessGroup(CONFIGURED, ['a@x.com', 'b@x.com']);
 
     expect(result).toEqual({ synced: true, members: 2 });
@@ -51,7 +63,7 @@ describe('writing the group', () => {
 
   it('keeps the name the group already had', async () => {
     // Inventing one would rename it in the dashboard under somebody's feet.
-    const writes = cloudflare({ name: 'REPLAY Admin', include: [] });
+    const { writes } = cloudflare({ name: 'REPLAY Admin', include: [] });
     await syncAccessGroup(CONFIGURED, ['a@x.com']);
     expect(writes[0].name).toBe('REPLAY Admin');
   });
@@ -59,7 +71,7 @@ describe('writing the group', () => {
   it('keeps rules it did not put there', async () => {
     // The reason an existing group is safe to point this at: a domain rule, an
     // IdP group or a service token in the same group must survive the sync.
-    const writes = cloudflare({
+    const { writes } = cloudflare({
       name: 'REPLAY Admin',
       include: [
         { email_domain: { domain: 'replaycon.in' } },
@@ -78,7 +90,7 @@ describe('writing the group', () => {
 
   it('carries exclude and require through untouched', async () => {
     // Omitting them would delete them, which is a quiet way to widen access.
-    const writes = cloudflare({
+    const { writes } = cloudflare({
       name: 'REPLAY Admin',
       include: [],
       exclude: [{ email: { email: 'banned@x.com' } }],
@@ -91,7 +103,7 @@ describe('writing the group', () => {
   });
 
   it('can empty the group when nobody is left', async () => {
-    const writes = cloudflare({ name: 'REPLAY Admin', include: [{ email: { email: 'gone@x.com' } }] });
+    const { writes } = cloudflare({ name: 'REPLAY Admin', include: [{ email: { email: 'gone@x.com' } }] });
     await syncAccessGroup(CONFIGURED, []);
     expect(writes[0].include).toEqual([]);
   });
@@ -110,7 +122,7 @@ describe('when Cloudflare will not play', () => {
   });
 
   it('reports a failed write', async () => {
-    cloudflare({ name: 'REPLAY Admin', include: [] }, 500);
+    cloudflare({ name: 'REPLAY Admin', include: [] }, { writeStatus: 500 });
     expect(await syncAccessGroup(CONFIGURED, ['a@x.com'])).toMatchObject({ synced: false, reason: 'failed' });
   });
 
@@ -118,5 +130,50 @@ describe('when Cloudflare will not play', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('socket hang up'); }));
     const result = await syncAccessGroup(CONFIGURED, ['a@x.com']);
     expect(result).toMatchObject({ synced: false, reason: 'failed' });
+  });
+});
+
+
+describe('whichever object the id turns out to be', () => {
+  it('falls back to a reusable policy when it is not a rule group', async () => {
+    // The dashboard puts rule groups and reusable policies on one screen under
+    // the same /policies/ URL, so an id copied from there could be either and
+    // there is no way to tell by looking.
+    const { writes, urls } = cloudflare(
+      { name: 'REPLAY Admins', decision: 'allow', include: [] },
+      { kind: 'policies' },
+    );
+    const result = await syncAccessGroup(CONFIGURED, ['a@x.com']);
+
+    expect(result).toEqual({ synced: true, members: 1 });
+    expect(urls[0]).toContain('/access/policies/');
+  });
+
+  it("keeps a policy's decision, which would otherwise stop being an allow", async () => {
+    const { writes } = cloudflare(
+      { name: 'REPLAY Admins', decision: 'allow', include: [] },
+      { kind: 'policies' },
+    );
+    await syncAccessGroup(CONFIGURED, ['a@x.com']);
+    expect(writes[0].decision).toBe('allow');
+  });
+
+  it('does not send back fields the server owns', async () => {
+    const { writes } = cloudflare({
+      name: 'REPLAY Admin', include: [],
+      id: 'abc', uid: 'abc', created_at: 'then', updated_at: 'then',
+    });
+    await syncAccessGroup(CONFIGURED, ['a@x.com']);
+    for (const field of ['id', 'uid', 'created_at', 'updated_at']) {
+      expect(writes[0]).not.toHaveProperty(field);
+    }
+  });
+
+  it('says what it tried when the id is neither', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('no', { status: 404 })));
+    const result = await syncAccessGroup(CONFIGURED, ['a@x.com']);
+    expect(result).toMatchObject({ synced: false, reason: 'failed' });
+    expect((result as { detail: string }).detail).toContain('groups 404');
+    expect((result as { detail: string }).detail).toContain('policies 404');
   });
 });

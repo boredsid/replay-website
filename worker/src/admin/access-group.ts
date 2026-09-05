@@ -32,61 +32,88 @@ function configured(env: Env): boolean {
  * succeeded — the database is the authority, and the caller reports the
  * divergence rather than pretending the whole operation failed.
  */
+/**
+ * Where the configured id might live.
+ *
+ * Cloudflare renamed Access Groups to "Rule groups" and put them on the same
+ * dashboard screen as reusable policies, under the same `/policies/` URL. The
+ * two are different API objects and an id copied from that screen could be
+ * either, with no way to tell by looking. So try both and use whichever
+ * answers — the shapes are near enough identical for what this does.
+ */
+const KINDS = ['groups', 'policies'] as const;
+
 export async function syncAccessGroup(env: Env, emails: readonly string[]): Promise<SyncOutcome> {
   if (!configured(env)) return { synced: false, reason: 'not_configured' };
 
-  const url = `${API}/accounts/${env.CF_ACCOUNT_ID}/access/groups/${env.CF_ACCESS_GROUP_ID}`;
   const headers = {
     Authorization: `Bearer ${env.CF_API_TOKEN}`,
     'Content-Type': 'application/json',
   };
 
+  const base = `${API}/accounts/${env.CF_ACCOUNT_ID}/access`;
+  const attempts: string[] = [];
+  let url = '';
+  let found: Record<string, unknown> | null = null;
+
   try {
-    // Read before write, and keep everything this function did not put there.
-    //
-    // An Access group is not only a list of addresses: it can include a domain,
-    // an identity-provider group, a service token, and it carries `exclude` and
-    // `require` rules alongside. Sending a bare `include` would delete all of
-    // it. That matters most for an existing group somebody points this at,
-    // which is exactly the sensible thing to do rather than making a new one.
-    const current = await fetch(url, { headers });
-    if (!current.ok) {
-      return { synced: false, reason: 'failed', detail: `read ${current.status}` };
+    for (const kind of KINDS) {
+      const candidate = `${base}/${kind}/${env.CF_ACCESS_GROUP_ID}`;
+      const probe = await fetch(candidate, { headers });
+      if (probe.ok) {
+        const body = await probe.json() as { result?: Record<string, unknown> };
+        if (body.result) { url = candidate; found = body.result; break; }
+      }
+      attempts.push(`${kind} ${probe.status}`);
     }
-    const body = await current.json() as {
-      result?: {
-        name?: string;
-        include?: Array<Record<string, unknown>>;
-        exclude?: Array<Record<string, unknown>>;
-        require?: Array<Record<string, unknown>>;
-      };
-    };
-    const group = body.result ?? {};
-    // The API requires a name on update, and inventing one would rename
-    // whatever the group is called in the dashboard.
-    const name = group.name ?? 'REPLAY admin staff';
 
-    // Only the plain-email rules are ours to manage. Everything else stays.
-    const kept = (group.include ?? []).filter((rule) => !('email' in rule));
-
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        name,
-        include: [...kept, ...emails.map((email) => ({ email: { email } }))],
-        exclude: group.exclude ?? [],
-        require: group.require ?? [],
-      }),
-    });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      return { synced: false, reason: 'failed', detail: `write ${response.status} ${detail.slice(0, 120)}` };
+    if (!found) {
+      // Never write an object whose current contents could not be read: that
+      // is how rules get deleted by accident.
+      return { synced: false, reason: 'failed', detail: `not found as ${attempts.join(', ')}` };
     }
-    return { synced: true, members: emails.length };
+
+    return await writeMembers(url, headers, found, emails);
   } catch (error) {
     return { synced: false, reason: 'failed', detail: (error as Error).message.slice(0, 120) };
   }
+}
+
+/**
+ * Replaces only the email rules, leaving everything else exactly as it was.
+ *
+ * A rule group or a policy can also include a domain, an identity-provider
+ * group or a service token, and carries `exclude` and `require` alongside. A
+ * policy additionally has a `decision` that decides whether it allows or
+ * denies — dropping that would turn an allow rule into something else
+ * entirely. Everything read is written back untouched but the addresses.
+ */
+async function writeMembers(
+  url: string,
+  headers: Record<string, string>,
+  current: Record<string, unknown>,
+  emails: readonly string[],
+): Promise<SyncOutcome> {
+  const include = (current.include ?? []) as Array<Record<string, unknown>>;
+  const kept = include.filter((rule) => !('email' in rule));
+
+  const body: Record<string, unknown> = {
+    ...current,
+    include: [...kept, ...emails.map((email) => ({ email: { email } }))],
+  };
+  // Server-owned fields; sending them back is at best noise and at worst a
+  // rejected request.
+  delete body.id;
+  delete body.created_at;
+  delete body.updated_at;
+  delete body.uid;
+
+  const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    return { synced: false, reason: 'failed', detail: `write ${response.status} ${detail.slice(0, 140)}` };
+  }
+  return { synced: true, members: emails.length };
 }
 
 /** Reads the staff list and pushes it to Access. Used after every change. */
