@@ -5,23 +5,9 @@ import { useWhoAmI, type Role } from '@/lib/whoami';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShieldAlert, Trash2, UserPlus } from 'lucide-react';
-
-/** Kept in step with `worker/src/admin/roles.ts`; the Worker is the authority. */
-const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Full admin',
-  basic_admin: 'Basic admin',
-  check_in: 'Check-in desk',
-  library: 'Game library',
-  programme: 'Programme & notices',
-};
-const ROLE_HINTS: Record<Role, string> = {
-  admin: 'Everything, including this page',
-  basic_admin: 'Everything except this page — cannot change who has access',
-  check_in: 'Check people in, issue app codes, session rosters',
-  library: 'Lend and take back games',
-  programme: 'Edit the schedule and send notices',
-};
-const ALL_ROLES = Object.keys(ROLE_LABELS) as Role[];
+import {
+  ALL_ROLES, ROLE_HINTS, ROLE_LABELS, orderRoles, reconcileRoles, sameRoles,
+} from '@/lib/staff-roles';
 
 interface StaffRow {
   email: string;
@@ -51,6 +37,10 @@ export default function Staff() {
   const [name, setName] = useState('');
   const [roles, setRoles] = useState<Role[]>(['check_in']);
   const [sync, setSync] = useState<AccessSync | null>(null);
+  // Edits in progress, per person. Checkboxes change these; nothing is sent
+  // until Update, so changing somebody from admin to two desks is one request
+  // and one audit row rather than three of each.
+  const [drafts, setDrafts] = useState<Record<string, Role[]>>({});
 
   const load = useCallback(async () => {
     try {
@@ -89,13 +79,29 @@ export default function Staff() {
     } catch (error) { showApiError(error); } finally { setBusy(false); }
   };
 
-  const setRolesFor = async (row: StaffRow, next: Role[]) => {
+  /** What the checkboxes for this person currently show. */
+  const draftFor = (row: StaffRow): Role[] => drafts[row.email] ?? orderRoles(row.roles);
+
+  const toggleDraft = (row: StaffRow, role: Role) => {
+    setDrafts((current) => ({
+      ...current,
+      [row.email]: orderRoles(reconcileRoles(draftFor(row), role)),
+    }));
+  };
+
+  const saveRoles = async (row: StaffRow) => {
+    const next = draftFor(row);
     if (next.length === 0) { toast.error('Everyone needs at least one role. Remove them instead.'); return; }
     setBusy(true);
     try {
       await fetchAdmin(`/api/admin/staff/${encodeURIComponent(row.email)}`, {
         method: 'PATCH',
         body: JSON.stringify({ roles: next }),
+      });
+      toast.success(`${row.name || row.email} updated`);
+      setDrafts((current) => {
+        const { [row.email]: _done, ...rest } = current;
+        return rest;
       });
       await load();
     } catch (error) { showApiError(error); } finally { setBusy(false); }
@@ -113,9 +119,6 @@ export default function Staff() {
       await load();
     } catch (error) { showApiError(error); } finally { setBusy(false); }
   };
-
-  const toggle = (list: Role[], role: Role) =>
-    list.includes(role) ? list.filter((r) => r !== role) : [...list, role];
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -171,7 +174,7 @@ export default function Staff() {
                 type="checkbox"
                 className="mt-1"
                 checked={roles.includes(role)}
-                onChange={() => setRoles((current) => toggle(current, role))}
+                onChange={() => setRoles((current) => orderRoles(reconcileRoles(current, role)))}
               />
               <span>
                 <span className="font-medium">{ROLE_LABELS[role]}</span>
@@ -186,6 +189,8 @@ export default function Staff() {
       <ul className="space-y-2">
         {rows.map((row) => {
           const isMe = who?.email?.toLowerCase() === row.email.toLowerCase();
+          const draft = draftFor(row);
+          const changed = !sameRoles(draft, row.roles);
           return (
             <li key={row.email} className="space-y-3 rounded-lg border p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -207,18 +212,41 @@ export default function Staff() {
                   </Button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {ALL_ROLES.map((role) => (
                   <label key={role} className="flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
-                      checked={row.roles.includes(role)}
+                      checked={draft.includes(role)}
                       disabled={busy || (isMe && role === 'admin')}
-                      onChange={() => void setRolesFor(row, toggle(row.roles, role))}
+                      onChange={() => toggleDraft(row, role)}
                     />
                     {ROLE_LABELS[role]}
                   </label>
                 ))}
+                {/* Disabled until something actually changed, so the button is
+                    a statement about this row rather than decoration. */}
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  disabled={busy || !changed || draft.length === 0}
+                  onClick={() => void saveRoles(row)}
+                >
+                  Update
+                </Button>
+                {changed && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => setDrafts((current) => {
+                      const { [row.email]: _discard, ...rest } = current;
+                      return rest;
+                    })}
+                  >
+                    Cancel
+                  </Button>
+                )}
               </div>
             </li>
           );
