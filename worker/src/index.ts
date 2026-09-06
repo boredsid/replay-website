@@ -14,6 +14,7 @@ import { loadStaff, mayReach, hasFullAccess } from './admin/roles';
 import { handleStaffList, handleStaffCreate, handleStaffUpdate, handleStaffRemove } from './admin/staff';
 import { handleRebuild } from './admin/rebuild';
 import { handleDashboard } from './admin/dashboard';
+import { handleFinance, handleFinanceSave } from './admin/finance';
 import { handleRegList, handleRegGet, handleRegCreate, handleRegPatch } from './admin/registrations';
 import { handleEdList, handleEdCreate, handleEdPatch } from './admin/editions';
 import { handleUserList, handleUserGet, handleUserPatch, handleUserChangePhone } from './admin/users';
@@ -222,6 +223,11 @@ export default {
         if (promoMatch && req.method === 'GET') return await handlePromoGet(sb, promoMatch[1], origin);
         if (promoMatch && req.method === 'PATCH') return await handlePromoPatch(req, sb, promoMatch[1], email, origin);
         if (promoMatch && req.method === 'DELETE') return await handlePromoDelete(sb, promoMatch[1], email, origin);
+
+        if (path === '/api/admin/finance' && req.method === 'GET') return await handleFinance(req, sb, origin);
+        if (path === '/api/admin/finance/entries' && req.method === 'POST') return await handleFinanceSave(req, sb, email, origin);
+        const financeEntryMatch = path.match(/^\/api\/admin\/finance\/entries\/([^/]+)$/);
+        if (financeEntryMatch && req.method === 'PATCH') return await handleFinanceSave(req, sb, email, origin, financeEntryMatch[1]);
 
         if (path === '/api/admin/partners' && req.method === 'GET') return await handlePartnerList(req, env, sb, origin);
         if (path === '/api/admin/partners' && req.method === 'POST') return await handlePartnerCreate(req, env, sb, email, origin);

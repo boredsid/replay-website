@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import { WhoAmIProvider } from '@/lib/whoami';
 import { Toaster } from '@/components/ui/sonner';
 import Dashboard from '@/pages/Dashboard';
+import Finance from '@/pages/Finance';
 import RegistrationsList from '@/pages/RegistrationsList';
 import RegistrationDrawer from '@/pages/RegistrationDrawer';
 import ManualRegistrationDrawer from '@/pages/ManualRegistrationDrawer';
@@ -36,6 +37,7 @@ export function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/finance" element={<Finance />} />
               <Route path="/registrations" element={<RegistrationsList />} />
               <Route
                 path="/registrations/new"
