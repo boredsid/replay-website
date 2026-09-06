@@ -56,7 +56,7 @@ it('creates a published urgent notice using explicit IST timestamps', async () =
   expect(await screen.findByText('Announcement list')).toBeInTheDocument();
 });
 
-it('sends now with a start of this moment and a two-minute default window', async () => {
+it('sends now with a start of this moment and a five-minute default window', async () => {
   const user = userEvent.setup();
   render(
     <MemoryRouter initialEntries={['/announcements/new?edition_id=e3']}>
@@ -87,7 +87,7 @@ it('sends now with a start of this moment and a two-minute default window', asyn
   expect(startsAt).toBeGreaterThanOrEqual(before);
   expect(startsAt).toBeLessThanOrEqual(after);
   // Blank end means the default window, not forever.
-  expect(new Date(payload.ends_at).getTime() - startsAt).toBe(2 * 60_000);
+  expect(new Date(payload.ends_at).getTime() - startsAt).toBe(5 * 60_000);
 });
 
 it('warns that an information notice reaches no phone', async () => {

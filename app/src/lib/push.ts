@@ -78,6 +78,30 @@ function urlBase64ToUint8Array(value: string): Uint8Array {
   return out;
 }
 
+/** How long to wait for the service worker before giving up on it. */
+const SERVICE_WORKER_TIMEOUT_MS = 5000;
+
+/**
+ * `navigator.serviceWorker.ready` with a deadline.
+ *
+ * That promise resolves when a service worker takes control and otherwise waits
+ * forever -- it has no timeout and never rejects, so a registration that never
+ * completes is indistinguishable from one still in progress. Awaiting it bare
+ * means the caller hangs, and the callers here decide whether the notification
+ * switch is drawn at all: the switch would simply never appear, with nothing
+ * logged and nothing to see.
+ *
+ * Null is returned instead, which every caller already treats as "no
+ * subscription". Being told "off" wrongly is recoverable -- the switch is
+ * there, and turning it on re-subscribes. Hanging is not.
+ */
+function serviceWorkerReady(): Promise<ServiceWorkerRegistration | null> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), SERVICE_WORKER_TIMEOUT_MS)),
+  ]);
+}
+
 /** Hands one browser's subscription to the server. Upserts on the endpoint. */
 async function registerSubscription(device: Device, subscription: PushSubscription): Promise<boolean> {
   const raw = subscription.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
@@ -116,7 +140,8 @@ export async function reconcilePush(device: Device, state: PushState): Promise<P
   if (Notification.permission !== 'granted') return { ...state, subscribed: false };
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await serviceWorkerReady();
+    if (!registration) return { ...state, subscribed: false };
     const subscription = await registration.pushManager.getSubscription()
       ?? await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -142,7 +167,10 @@ export async function enablePush(device: Device, vapidPublicKey: string): Promis
   if (permission !== 'granted') return { ok: false, reason: 'denied' };
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    // A stuck registration here would leave the button on "Just a moment…"
+    // forever. Failing is recoverable; the copy invites trying again.
+    const registration = await serviceWorkerReady();
+    if (!registration) return { ok: false, reason: 'failed' };
     const subscription = await registration.pushManager.subscribe({
       // Required by every browser: a push without a payload the user can see is
       // not allowed, which suits us since every notification here has content.
@@ -169,8 +197,12 @@ export async function enablePush(device: Device, vapidPublicKey: string): Promis
 export async function disablePush(device: Device): Promise<boolean> {
   try {
     if (pushSupported()) {
-      const registration = await navigator.serviceWorker.ready;
-      const existing = await registration.pushManager.getSubscription();
+      // If the worker never becomes ready there is nothing to unsubscribe from
+      // here, but the server row must still be revoked -- so this falls through
+      // to the DELETE rather than failing. Someone turning notifications off
+      // has to end up off.
+      const registration = await serviceWorkerReady();
+      const existing = await registration?.pushManager.getSubscription();
       if (existing) await existing.unsubscribe();
     }
     const response = await fetch(`${API_BASE}/api/app/push/subscribe`, {

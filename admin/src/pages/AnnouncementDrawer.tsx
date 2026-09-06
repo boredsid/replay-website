@@ -16,11 +16,14 @@ import type { AnnouncementAudience, AnnouncementRow, AnnouncementSeverity, Editi
 /**
  * How long a notice stays up when no end time is given.
  *
- * Change this in one place. It is deliberately short: a notice is a thing that
- * is true for a moment, and one still on screen after it stops being true is
- * how a live board loses its authority.
+ * Change this in one place. Short, because a notice is a thing that is true for
+ * a moment, and one still on screen after it stops being true is how a live
+ * board loses its authority -- but not so short that it is gone before anyone
+ * looks. Two minutes was the first try and missed that: the push had landed,
+ * so people with notifications on were fine, while anyone opening the app a
+ * few minutes later found nothing at all.
  */
-const DEFAULT_WINDOW_MINUTES = 2;
+const DEFAULT_WINDOW_MINUTES = 5;
 
 /** The severities that reach a phone. The other one only updates the app. */
 const PUSHES: AnnouncementSeverity[] = ['urgent', 'incident'];

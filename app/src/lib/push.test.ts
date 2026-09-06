@@ -130,4 +130,30 @@ describe('reconcilePush', () => {
     expect(state.subscribed).toBe(false);
     expect(posted.calls).toBe(0);
   });
+
+  it('gives up rather than hanging when the service worker never becomes ready', async () => {
+    // `serviceWorker.ready` has no timeout and never rejects. Awaited bare, a
+    // registration that never completes leaves this promise pending forever --
+    // and because the whole push state waits on it, the notifications switch
+    // would never be drawn at all, silently. Answering "off" is recoverable;
+    // never answering is not.
+    vi.useFakeTimers();
+    try {
+      const posted = capturePost();
+      vi.stubGlobal('navigator', { serviceWorker: { ready: new Promise(() => {}) } });
+      vi.stubGlobal('PushManager', function PushManager() {});
+      vi.stubGlobal('Notification', Object.assign(function Notification() {}, { permission: 'granted' }));
+
+      const pending = reconcilePush(DEVICE, SERVER_SAYS_SUBSCRIBED);
+      await vi.advanceTimersByTimeAsync(5000);
+      const state = await pending;
+
+      expect(state.subscribed).toBe(false);
+      expect(posted.calls).toBe(0);
+      // The rest of the state survives, so the UI can still offer the switch.
+      expect(state.vapidPublicKey).toBe(SERVER_SAYS_SUBSCRIBED.vapidPublicKey);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
