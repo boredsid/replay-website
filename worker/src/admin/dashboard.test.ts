@@ -56,6 +56,22 @@ describe('dashboard totals', () => {
     data.entries = [expense(6000)];
     expect(dashboardFinances(data)).toMatchObject({ average_ticket_income: 1200, registrations_to_break_even: 2 });
   });
+  it('leaves desk entries out of the average, so comps do not inflate the count', () => {
+    const data = snapshot();
+    data.registrations = [reg({ amount_paid: 700 }), reg({ id: 'desk', amount_paid: 0, source: { manual: true, by: 'desk@replaycon.in' } })];
+    data.entries = [expense(2100)];
+    // Counting the comp would average ₹350 a ticket and ask for 4 registrations.
+    expect(dashboardFinances(data)).toMatchObject({ average_ticket_income: 700, registrations_to_break_even: 2 });
+    expect(summarizeFinance(data).summary).toMatchObject({ average_ticket_income: 350, desk_tickets: 1, desk_ticket_income: 0 });
+  });
+  it('subtracts what a desk entry did take, and gives no estimate when every ticket is one', () => {
+    const data = snapshot();
+    data.registrations = [reg({ amount_paid: 700 }), reg({ id: 'desk-cash', amount_paid: 300, seats: 2, source: { manual: true } })];
+    data.entries = [expense(2000)];
+    expect(dashboardFinances(data)).toMatchObject({ average_ticket_income: 700, registrations_to_break_even: 2 });
+    data.registrations = [reg({ id: 'desk-only', amount_paid: 500, source: { manual: true } })];
+    expect(dashboardFinances(data)).toMatchObject({ average_ticket_income: null, registrations_to_break_even: null });
+  });
   it('does not round the average before calculating break-even', () => {
     const data = snapshot(); data.registrations = [reg({ amount_paid: 1000, seats: 3 })]; data.entries = [expense(2000)];
     expect(dashboardFinances(data).registrations_to_break_even).toBe(3);

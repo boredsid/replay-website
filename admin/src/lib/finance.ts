@@ -14,7 +14,7 @@ export interface FinanceReport {
   summary: {
     ticket_income: number; bgc_income: number; partner_income: number; partner_gst: number; manual_income: number;
     income: number; net_revenue: number; expenses: number; profit: number; shortfall: number; pending_income: number;
-    confirmed_tickets: number; average_ticket_income: number | null; remaining_day_tickets: number;
+    confirmed_tickets: number; average_ticket_income: number | null; desk_tickets: number; desk_ticket_income: number; remaining_day_tickets: number;
   };
 }
 export function breakEven(shortfall: number, ticketIncome: number, variableCost: number): number | null {

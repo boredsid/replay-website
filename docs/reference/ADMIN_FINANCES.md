@@ -37,9 +37,13 @@ and confirmed reservations across days and is expressed as one-day tickets.
 The main dashboard reuses this same finance summary for net revenue, expenses
 and profit. Its break-even estimate uses the actual average income per confirmed
 ticket (attendee payments plus membership contributions), without rounding the
-average before dividing. It assumes one ticket per additional registration and
-no further costs. With a shortfall but no positive ticket income, it shows no
-estimate. Dashboard confirmed/pending counts are ticket-days: `seats × days.length`.
+average before dividing. Registrations entered by hand at the desk (`source.manual`)
+are left out of both the income and the ticket count behind that average, since
+comps and hand-typed rows are not sales at the going rate and would understate
+what the next registration is worth; their income still counts everywhere else.
+It assumes one ticket per additional registration and no further costs. With a
+shortfall but no positive income from tickets other than desk entries, it shows
+no estimate. Dashboard confirmed/pending counts are ticket-days: `seats × days.length`.
 Financial cards and values are restricted to full/basic admins; desk staff still
 receive the operational counts and recent activity.
 
