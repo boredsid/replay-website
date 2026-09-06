@@ -6,13 +6,11 @@ import { summarizeFinance, type FinanceSnapshot } from './finance';
 
 export function dashboardFinances(snapshot: FinanceSnapshot) {
   const summary = summarizeFinance(snapshot).summary;
-  // Desk entries are left out of the average: they are comps and hand-typed rows,
-  // mostly at ₹0, and counting them says the next registration through the site
-  // is worth far less than it is — which inflates the number still needed.
+  // The summary's average already leaves desk entries out; break-even works from
+  // the same totals rather than the rounded average, which can push an exact
+  // boundary up by one ticket.
   const ticketIncomePaise = Math.round(summary.ticket_income * 100) + Math.round(summary.bgc_income * 100) - Math.round(summary.desk_ticket_income * 100);
   const tickets = summary.confirmed_tickets - summary.desk_tickets;
-  // Use the exact total and ticket count, not a rounded average (which can
-  // push an exact break-even boundary up by one ticket).
   const registrationsToBreakEven = summary.shortfall <= 0 ? 0
     : ticketIncomePaise > 0 && tickets > 0
       ? Math.ceil(Math.round(summary.shortfall * 100) * tickets / ticketIncomePaise)
@@ -21,7 +19,7 @@ export function dashboardFinances(snapshot: FinanceSnapshot) {
     net_revenue: summary.net_revenue,
     expenses: summary.expenses,
     profit: summary.profit,
-    average_ticket_income: tickets > 0 ? ticketIncomePaise / 100 / tickets : null,
+    average_ticket_income: summary.average_ticket_income,
     registrations_to_break_even: registrationsToBreakEven,
   };
 }

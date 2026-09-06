@@ -62,7 +62,8 @@ describe('dashboard totals', () => {
     data.entries = [expense(2100)];
     // Counting the comp would average ₹350 a ticket and ask for 4 registrations.
     expect(dashboardFinances(data)).toMatchObject({ average_ticket_income: 700, registrations_to_break_even: 2 });
-    expect(summarizeFinance(data).summary).toMatchObject({ average_ticket_income: 350, desk_tickets: 1, desk_ticket_income: 0 });
+    // Finances reports the same average, not one diluted by the comp.
+    expect(summarizeFinance(data).summary).toMatchObject({ average_ticket_income: 700, desk_tickets: 1, desk_ticket_income: 0 });
   });
   it('subtracts what a desk entry did take, and gives no estimate when every ticket is one', () => {
     const data = snapshot();

@@ -35,17 +35,20 @@ The break-even calculator rounds the shortfall up by each ticket's expected
 income less additional cost. It defaults to the edition's scalar one-day price
 (or historical average revenue per ticket for legacy pricing). It assumes one
 ticket per registration and no further fixed costs. The average includes BGC
-contributions and uses `seats`, not seat-days. Remaining capacity counts pending
-and confirmed reservations across days and is expressed as one-day tickets.
+contributions, leaves desk entries out (see below) and uses `seats`, not
+seat-days. Remaining capacity counts pending and confirmed reservations across
+days and is expressed as one-day tickets.
+
+Registrations entered by hand at the desk (`source.manual`) are left out of both
+the income and the ticket count behind `average_ticket_income`, since comps and
+hand-typed rows are not sales at the going rate and would understate what the
+next registration is worth; their income still counts everywhere else. Finances
+and the dashboard read the one average, so they never disagree.
 
 The main dashboard reuses this same finance summary for net revenue, expenses
-and profit. Its break-even estimate uses the actual average income per confirmed
-ticket (attendee payments plus membership contributions), without rounding the
-average before dividing. Registrations entered by hand at the desk (`source.manual`)
-are left out of both the income and the ticket count behind that average, since
-comps and hand-typed rows are not sales at the going rate and would understate
-what the next registration is worth; their income still counts everywhere else.
-It assumes one ticket per additional registration and no further costs. With a
+and profit. Its break-even estimate works from the same desk-excluded totals
+rather than the rounded average, which can push an exact boundary up by one
+ticket. It assumes one ticket per additional registration and no further costs. With a
 shortfall but no positive income from tickets other than desk entries, it shows
 no estimate. Dashboard confirmed/pending counts are ticket-days: `seats × days.length`.
 Financial cards and values are restricted to full/basic admins; desk staff still

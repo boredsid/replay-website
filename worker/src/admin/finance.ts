@@ -66,6 +66,11 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
   }
   const income = totals.tickets + totals.bgc + totals.partners + totals.manual;
   const profit = income - totals.gst - totals.expenses;
+  // The average is what a sale is worth, so desk entries are left out of both
+  // sides of it: they are comps and hand-typed rows, mostly at zero, and
+  // counting them says the next registration is worth far less than it is.
+  const soldTickets = confirmedTickets - deskTickets;
+  const soldIncome = totals.tickets + totals.bgc - totals.desk;
   return {
     edition: snapshot.edition, entries: snapshot.entries, automatic, categories: snapshot.categories ?? [],
     accounts: accounts.map((a) => ({ ...a, income: rupees(a.income), expenses: rupees(a.expenses), bgc: rupees(a.bgc), balance: rupees(a.income - a.expenses) })),
@@ -74,7 +79,7 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
       manual_income: rupees(totals.manual), income: rupees(income), expenses: rupees(totals.expenses), expense_gst_credit: rupees(totals.credit),
       net_revenue: rupees(income - totals.gst), profit: rupees(profit), shortfall: rupees(Math.max(0, -profit)), pending_income: rupees(totals.pending),
       confirmed_tickets: confirmedTickets,
-      average_ticket_income: confirmedTickets ? rupees(totals.tickets + totals.bgc) / confirmedTickets : null,
+      average_ticket_income: soldTickets > 0 ? rupees(soldIncome) / soldTickets : null,
       desk_tickets: deskTickets, desk_ticket_income: rupees(totals.desk),
       remaining_day_tickets: Object.entries(snapshot.edition?.capacity_per_day ?? {}).reduce((sum, [day, cap]) => sum + Math.max(0, cap - (reserved[day] ?? 0)), 0),
     },

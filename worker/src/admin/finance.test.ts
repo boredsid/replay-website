@@ -37,6 +37,11 @@ describe('edition finances', () => {
     expect(result.accounts[0]).toMatchObject({ income: 2695, bgc: 840, balance: 2695 });
     expect(result.automatic.filter((e) => e.source === 'bgc')).toHaveLength(2);
   });
+  it('averages what a sale is worth, leaving desk entries out of both sides', () => {
+    const data = snapshot();
+    data.registrations = [reg({ amount_paid: 700 }), reg({ id: 'comp', amount_paid: 0, source: { manual: true } })];
+    expect(summarizeFinance(data).summary).toMatchObject({ ticket_income: 700, confirmed_tickets: 2, average_ticket_income: 700, desk_tickets: 1 });
+  });
   it('includes partner GST in the account but reserves it out of profit; ignores voided entries', () => {
     const data = snapshot();
     data.partners = [{ id: 'p1', created_at: '', organization_name: 'Partner', payment_status: 'confirmed', total_amount: 9440, gst_amount: 1440 }];
