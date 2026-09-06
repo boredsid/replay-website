@@ -22,6 +22,7 @@ type PromoInput = {
   ends_at: string | null;
   max_redemptions: number | null;
   max_per_phone: number;
+  min_quantity: number;
   is_active: boolean;
 };
 
@@ -106,6 +107,7 @@ function parsePromo(input: any, previous?: any): PromoInput {
     ends_at: endsAt,
     max_redemptions: positiveInt(merged.max_redemptions, 'max_redemptions', true),
     max_per_phone: positiveInt(merged.max_per_phone, 'max_per_phone', false) as number,
+    min_quantity: positiveInt(merged.min_quantity, 'min_quantity', false) as number,
     is_active: merged.is_active,
   };
 }
@@ -183,6 +185,7 @@ export async function handlePromoCreate(
       ends_at: null,
       max_redemptions: null,
       max_per_phone: 1,
+      min_quantity: 1,
       is_active: true,
       ...body,
     });
@@ -316,7 +319,13 @@ export async function handlePromoValidate(req: Request, sb: SupabaseClient, orig
     passType,
     redemptions: context.redemptions,
   });
-  if (!result.ok) return adminJson({ error: result.reason }, 404, origin);
+  if (!result.ok) {
+    return adminJson(
+      { error: result.reason, min_quantity: context.promo?.min_quantity ?? null },
+      404,
+      origin,
+    );
+  }
 
   return adminJson({
     promo: { id: result.id, code: result.code, message: result.message, discount: result.discount },

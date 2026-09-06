@@ -32,7 +32,10 @@ export function discountLabel(promo: PromoCodeRow): string {
   const value = promo.discount_type === 'percent' ? `${promo.discount_value}% off` : `₹${promo.discount_value} off`;
   const cap = promo.max_discount !== null ? ` (max ₹${promo.max_discount})` : '';
   const scope = promo.scope === 'first_ticket' ? ' first ticket' : ' the booking';
-  return `${value}${cap} —${scope}`;
+  // The floor only earns a mention when there is one; every code has a
+  // min_quantity of 1 and saying so on all of them would be noise.
+  const bulk = promo.min_quantity > 1 ? ` · ${promo.min_quantity}+ tickets` : '';
+  return `${value}${cap} —${scope}${bulk}`;
 }
 
 function formatIst(value: string): string {

@@ -65,7 +65,11 @@ export async function handlePromoPreview(req: Request, env: Env): Promise<Respon
     redemptions: context.redemptions,
   });
 
-  if (!result.ok) return jsonResponse({ error: result.reason }, 404);
+  // The floor travels with a min-quantity refusal so the form can say how many
+  // tickets the code actually needs rather than "that didn't work".
+  if (!result.ok) {
+    return jsonResponse({ error: result.reason, min_quantity: context.promo?.min_quantity ?? null }, 404);
+  }
 
   // The rule travels with the acceptance so the form can re-price locally when
   // the attendee changes pass, day, or quantity, the same way it already
@@ -81,6 +85,7 @@ export async function handlePromoPreview(req: Request, env: Env): Promise<Respon
       max_discount: promo.max_discount,
       scope: promo.scope,
       pass_type: promo.pass_type,
+      min_quantity: promo.min_quantity,
     },
   });
 }

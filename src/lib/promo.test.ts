@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { promoDiscountFor, promoAppliesToPass, winningDiscount, promoErrorMessage } from './promo';
+import { promoDiscountFor, promoAppliesToPass, promoAppliesToQuantity, winningDiscount, promoErrorMessage } from './promo';
 import type { ApiPromoRule } from './types';
 
 function rule(overrides: Partial<ApiPromoRule> = {}): ApiPromoRule {
@@ -9,6 +9,7 @@ function rule(overrides: Partial<ApiPromoRule> = {}): ApiPromoRule {
     max_discount: null,
     scope: 'booking',
     pass_type: null,
+    min_quantity: 1,
     ...overrides,
   };
 }
@@ -48,6 +49,22 @@ describe('promoAppliesToPass', () => {
   });
 });
 
+describe('promoAppliesToQuantity', () => {
+  it('an ordinary code applies to a single ticket', () => {
+    expect(promoAppliesToQuantity(rule(), 1)).toBe(true);
+  });
+  it('a bulk code applies only from its floor up', () => {
+    const bulk = rule({ min_quantity: 5 });
+    expect(promoAppliesToQuantity(bulk, 4)).toBe(false);
+    expect(promoAppliesToQuantity(bulk, 5)).toBe(true);
+    expect(promoAppliesToQuantity(bulk, 9)).toBe(true);
+  });
+  it('reads a response from before bulk codes existed as having no floor', () => {
+    const legacy = { ...rule(), min_quantity: undefined } as unknown as ApiPromoRule;
+    expect(promoAppliesToQuantity(legacy, 1)).toBe(true);
+  });
+});
+
 describe('winningDiscount', () => {
   it('takes the promo when it is larger', () => {
     expect(winningDiscount({ guildDiscount: 160, promoDiscount: 400 })).toEqual({ amount: 400, source: 'promo' });
@@ -66,6 +83,11 @@ describe('promoErrorMessage', () => {
     expect(promoErrorMessage('promo_expired')).toBe('That code has expired.');
     expect(promoErrorMessage('promo_already_used')).toBe("You've already used that code.");
     expect(promoErrorMessage('promo_exhausted')).toBe('That code has been fully claimed.');
+  });
+  it('spells out the floor when the Worker sends one back', () => {
+    expect(promoErrorMessage('promo_min_quantity', { min_quantity: 5 }))
+      .toBe('That code needs at least 5 tickets.');
+    expect(promoErrorMessage('promo_min_quantity')).toBe('That code needs a larger booking.');
   });
   it('falls back for an unknown or missing reason', () => {
     expect(promoErrorMessage('something_else')).toBe("We couldn't check that code. Please retry.");

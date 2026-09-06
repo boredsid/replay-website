@@ -11,6 +11,9 @@ const PROMO_ERROR_COPY: Record<string, string> = {
   promo_not_started: "That code isn't active yet.",
   promo_expired: 'That code has expired.',
   promo_pass_type: "That code doesn't apply to this pass type.",
+  // Manual registrations are one seat at a time, so a bulk code never clears
+  // its floor here — say so rather than leaving the admin guessing.
+  promo_min_quantity: 'That code needs a multi-ticket booking, so it cannot be applied here.',
   promo_exhausted: 'That code has been fully claimed.',
   promo_already_used: 'This phone has already used that code.',
 };

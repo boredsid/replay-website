@@ -159,6 +159,8 @@ export interface ApiPromoRule {
   scope: PromoScope;
   /** Null when the code works on either pass. */
   pass_type: PassType | null;
+  /** Tickets the booking must carry before the code applies. 1 means no floor. */
+  min_quantity: number;
 }
 
 export interface ApiPromoPreviewResponse {

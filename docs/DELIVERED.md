@@ -80,6 +80,33 @@ Five roles: `admin`, `basic_admin`, `check_in`, `library`, `programme`.
 > and Groups` are different token permissions.** A token with only the second
 > gets 403 on a policy.
 
+### Promo codes
+
+Per-edition discount codes with the copy an attendee sees on acceptance,
+editable without a site build. A code is a percentage or a flat amount, over
+the whole booking or the first ticket only, optionally restricted to one pass,
+to a validity window, to a total number of redemptions, and to a number of uses
+per phone.
+
+- **`min_quantity` makes a code a bulk discount** — the floor is on the ticket
+  count, so "GROUP5, 20% off, five tickets or more" is one code rather than a
+  private arrangement. It defaults to 1, which is what every code did before it
+  existed.
+- **A code below its floor is refused, not applied at zero.** The refusal
+  carries the number, so the form says how many tickets are needed instead of
+  showing a code that quietly saves nothing. The public form drops an applied
+  bulk code the moment the order falls under the floor — including when
+  dwindling capacity clamps the quantity down on its own.
+- **Redemptions are derived from uncancelled registrations**, never a counter
+  column, so a cancellation returns the use to the pool.
+- **Promo and Guild Path never stack**: the larger applies, a tie going to the
+  Guild Path benefit the attendee already holds.
+
+> The rules are pure functions in `worker/src/promo.ts`, mirrored in
+> `src/lib/promo.ts` so the price summary re-prices without a round trip. The
+> Worker re-evaluates on submit and is the authority; the mirror is a
+> convenience and both sides must move together.
+
 ### Check-in (P2A)
 
 Search by phone, check in per day, undo, bulk, roster CSV, and an offline queue

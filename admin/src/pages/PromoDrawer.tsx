@@ -19,6 +19,7 @@ type Form = {
   ends_at: string;
   max_redemptions: string;
   max_per_phone: string;
+  min_quantity: string;
   is_active: boolean;
 };
 
@@ -52,6 +53,7 @@ const EMPTY: Form = {
   ends_at: '',
   max_redemptions: '',
   max_per_phone: '1',
+  min_quantity: '1',
   is_active: true,
 };
 
@@ -62,6 +64,7 @@ const SAVE_ERROR_COPY: Record<string, string> = {
   invalid_max_discount: 'A maximum discount only applies to a percentage code.',
   invalid_validity_window: 'The end time must be after the start time.',
   invalid_applied_message: 'Write the message attendees see, up to 300 characters.',
+  invalid_min_quantity: 'Minimum tickets must be a whole number, one or more.',
 };
 
 export default function PromoDrawer() {
@@ -104,6 +107,7 @@ export default function PromoDrawer() {
             ends_at: promo.ends_at ? isoToIstInput(promo.ends_at) : '',
             max_redemptions: promo.max_redemptions === null ? '' : String(promo.max_redemptions),
             max_per_phone: String(promo.max_per_phone),
+            min_quantity: String(promo.min_quantity ?? 1),
             is_active: promo.is_active,
           });
         }
@@ -142,6 +146,11 @@ export default function PromoDrawer() {
       toast.error('A percentage discount cannot exceed 100.');
       return;
     }
+    const minQuantity = Number(form.min_quantity);
+    if (!Number.isInteger(minQuantity) || minQuantity < 1) {
+      toast.error('Minimum tickets must be a whole number, one or more.');
+      return;
+    }
 
     let startsAt: string | null;
     let endsAt: string | null;
@@ -173,6 +182,7 @@ export default function PromoDrawer() {
       ends_at: endsAt,
       max_redemptions: form.max_redemptions ? Number(form.max_redemptions) : null,
       max_per_phone: Number(form.max_per_phone) || 1,
+      min_quantity: minQuantity,
       is_active: form.is_active,
     };
     try {
@@ -292,6 +302,17 @@ export default function PromoDrawer() {
               </select>
             </Field>
           </div>
+
+          <Field
+            label="Minimum tickets"
+            hint="A bulk discount: the code only applies from this many tickets up. Leave at 1 for a code anyone can use on a single ticket."
+          >
+            <input
+              aria-label="Minimum tickets" type="number" min="1" step="1"
+              value={form.min_quantity} onChange={(event) => set('min_quantity', event.target.value)}
+              className="w-full rounded-md border px-3 py-2"
+            />
+          </Field>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Starts at (IST, optional)">

@@ -279,6 +279,8 @@ export interface PromoCodeRow {
   /** Null means unlimited. */
   max_redemptions: number | null;
   max_per_phone: number;
+  /** Tickets a booking must carry before the code applies. 1 means no floor. */
+  min_quantity: number;
   is_active: boolean;
   /** Derived from uncancelled registrations, never a stored counter. */
   redemption_count: number;

@@ -22,6 +22,8 @@ export interface PromoCodeRow {
   ends_at: string | null;
   max_redemptions: number | null;
   max_per_phone: number;
+  /** Tickets a booking must carry before the code applies. 1 means no floor. */
+  min_quantity: number;
   is_active: boolean;
 }
 
@@ -32,6 +34,7 @@ export type PromoRejection =
   | 'promo_not_started'
   | 'promo_expired'
   | 'promo_pass_type'
+  | 'promo_min_quantity'
   | 'promo_exhausted'
   | 'promo_already_used';
 
@@ -116,6 +119,10 @@ export function evaluatePromo(args: {
   if (promo.starts_at && new Date(promo.starts_at) > now) return { ok: false, reason: 'promo_not_started' };
   if (promo.ends_at && new Date(promo.ends_at) <= now) return { ok: false, reason: 'promo_expired' };
   if (promo.pass_type && promo.pass_type !== passType) return { ok: false, reason: 'promo_pass_type' };
+  // A bulk code is refused outright rather than applied at zero: an attendee
+  // who is one ticket short should be told the floor, not shown a code that
+  // silently saves nothing.
+  if (quantity < promo.min_quantity) return { ok: false, reason: 'promo_min_quantity' };
   if (promo.max_redemptions !== null && redemptions.total >= promo.max_redemptions) {
     return { ok: false, reason: 'promo_exhausted' };
   }

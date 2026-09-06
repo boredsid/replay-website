@@ -32,6 +32,16 @@ export function promoAppliesToPass(rule: ApiPromoRule, passType: PassType): bool
 }
 
 /**
+ * Whether a bulk code still covers the order after the attendee changed how
+ * many tickets they are buying. Older Worker responses carry no floor, so a
+ * missing value reads as one — the rule every code followed before bulk
+ * discounts existed.
+ */
+export function promoAppliesToQuantity(rule: ApiPromoRule, quantity: number): boolean {
+  return quantity >= (rule.min_quantity ?? 1);
+}
+
+/**
  * Guild Path and promo codes do not stack: the larger wins, ties going to the
  * Guild Path benefit the attendee already holds.
  */
@@ -52,12 +62,26 @@ const PROMO_ERROR_COPY: Record<string, string> = {
   promo_not_started: "That code isn't active yet.",
   promo_expired: 'That code has expired.',
   promo_pass_type: "That code doesn't apply to the pass you've chosen.",
+  promo_min_quantity: 'That code needs a larger booking.',
   promo_exhausted: 'That code has been fully claimed.',
   promo_already_used: "You've already used that code.",
   registration_closed: 'Registration just closed. Please refresh.',
   rate_limited: 'Too many tries. Wait a moment and try again.',
 };
 
-export function promoErrorMessage(error: unknown): string {
+/**
+ * Copy for a refusal. A minimum-quantity refusal is the one case where the
+ * number is the whole answer, so the Worker sends it back and it is spelled out
+ * rather than left as "a larger booking".
+ */
+export function promoErrorMessage(error: unknown, detail?: { min_quantity?: number | null }): string {
+  if (error === 'promo_min_quantity' && typeof detail?.min_quantity === 'number') {
+    return `That code needs at least ${detail.min_quantity} tickets.`;
+  }
   return (typeof error === 'string' && PROMO_ERROR_COPY[error]) || "We couldn't check that code. Please retry.";
+}
+
+/** The same sentence, for a code dropped locally rather than refused by the Worker. */
+export function promoQuantityMessage(minQuantity: number): string {
+  return `That code needs at least ${minQuantity} tickets.`;
 }

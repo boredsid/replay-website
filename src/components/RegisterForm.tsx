@@ -2,7 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { getEditionSpots, lookupPhone, previewPromoCode, previewRegistration, registerForEdition, captureLead } from '../lib/worker';
 import type { ApiEditionSpotsResponse, ApiLookupPhoneResponse, ApiPromoPreviewResponse, ApiRegistrationDetails, EditionRow, Day, PassType } from '../lib/types';
-import { promoAppliesToPass, promoDiscountFor, promoErrorMessage, winningDiscount } from '../lib/promo';
+import {
+  promoAppliesToPass,
+  promoAppliesToQuantity,
+  promoDiscountFor,
+  promoErrorMessage,
+  promoQuantityMessage,
+  winningDiscount,
+} from '../lib/promo';
 import { UpiBottomSheet } from './UpiBottomSheet';
 import { SuccessScreen } from './SuccessScreen';
 import { weekdayName } from '../lib/edition-format';
@@ -155,6 +162,15 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
     }
   }, [promo, passType]);
 
+  // A bulk code stops applying the moment the order drops below its floor —
+  // including when dwindling capacity clamps the quantity down on its own.
+  useEffect(() => {
+    if (promo && !promoAppliesToQuantity(promo.rule, quantity)) {
+      setPromo(null);
+      setPromoError(promoQuantityMessage(promo.rule.min_quantity));
+    }
+  }, [promo, quantity]);
+
   if (success) return <SuccessScreen pending={success.pending} editionName={edition.name} />;
 
   const ticketPrice = computePrice(edition, passType, days);
@@ -197,7 +213,7 @@ export function RegisterForm({ edition, upiId }: RegisterFormProps) {
       setPromoInput('');
     } catch (err: any) {
       setPromo(null);
-      setPromoError(promoErrorMessage(err?.body?.error));
+      setPromoError(promoErrorMessage(err?.body?.error, err?.body));
     } finally {
       setPromoBusy(false);
     }

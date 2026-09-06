@@ -26,7 +26,7 @@ function promo(overrides: Partial<PromoCodeRow> = {}): PromoCodeRow {
     discount_type: 'percent', discount_value: 20, max_discount: null,
     scope: 'booking', pass_type: null,
     starts_at: null, ends_at: null,
-    max_redemptions: null, max_per_phone: 1, is_active: true,
+    max_redemptions: null, max_per_phone: 1, min_quantity: 1, is_active: true,
     redemption_count: 0,
     created_at: '2026-08-31T00:00:00.000Z', updated_at: '2026-08-31T00:00:00.000Z',
     ...overrides,
@@ -61,6 +61,9 @@ describe('discountLabel', () => {
   it('names the cap and the first-ticket scope', () => {
     expect(discountLabel(promo({ max_discount: 500, scope: 'first_ticket' })))
       .toBe('20% off (max ₹500) — first ticket');
+  });
+  it('names the ticket floor only when the code is a bulk discount', () => {
+    expect(discountLabel(promo({ min_quantity: 5 }))).toBe('20% off — the booking · 5+ tickets');
   });
   it('describes a flat amount', () => {
     expect(discountLabel(promo({ discount_type: 'flat', discount_value: 100 })))

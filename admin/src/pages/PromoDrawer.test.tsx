@@ -25,7 +25,7 @@ const EXISTING = {
   discount_type: 'percent', discount_value: 20, max_discount: 500,
   scope: 'booking', pass_type: null,
   starts_at: '2026-09-01T04:30:00.000Z', ends_at: null,
-  max_redemptions: 100, max_per_phone: 1, is_active: true,
+  max_redemptions: 100, max_per_phone: 1, min_quantity: 5, is_active: true,
   redemption_count: 7,
   created_at: '2026-08-31T00:00:00.000Z', updated_at: '2026-08-31T00:00:00.000Z',
 };
@@ -95,6 +95,7 @@ describe('PromoDrawer', () => {
       starts_at: '2026-09-01T04:30:00.000Z', // IST in, UTC out
       max_redemptions: 100,
       max_per_phone: 1,
+      min_quantity: 1, // no floor unless the organiser sets one
       is_active: true,
     });
     expect(await screen.findByText('Promo list')).toBeInTheDocument();
@@ -122,6 +123,39 @@ describe('PromoDrawer', () => {
     expect(JSON.parse(call[1].body)).toMatchObject({ discount_type: 'flat', discount_value: 100, max_discount: null });
   });
 
+  it('sends a bulk floor so the code only applies to a group booking', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    await screen.findByRole('heading', { name: 'New promo code' });
+    await user.type(screen.getByLabelText('Code'), 'GROUP5');
+    await user.type(screen.getByLabelText('Applied message'), 'Group rate unlocked — 20% off.');
+    await user.type(screen.getByLabelText('Discount value'), '20');
+    await user.clear(screen.getByLabelText('Minimum tickets'));
+    await user.type(screen.getByLabelText('Minimum tickets'), '5');
+    await user.click(screen.getByRole('button', { name: 'Create promo code' }));
+
+    await waitFor(() =>
+      expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/promo-codes', expect.objectContaining({ method: 'POST' })),
+    );
+    const call = (fetchAdmin as any).mock.calls.find(([path]: [string]) => path === '/api/admin/promo-codes');
+    expect(JSON.parse(call[1].body)).toMatchObject({ code: 'GROUP5', min_quantity: 5 });
+  });
+
+  it('refuses an empty minimum before calling the API', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    await screen.findByRole('heading', { name: 'New promo code' });
+    await user.type(screen.getByLabelText('Code'), 'GROUP5');
+    await user.type(screen.getByLabelText('Applied message'), 'Group rate unlocked.');
+    await user.type(screen.getByLabelText('Discount value'), '20');
+    await user.clear(screen.getByLabelText('Minimum tickets'));
+    await user.click(screen.getByRole('button', { name: 'Create promo code' }));
+
+    expect(fetchAdmin).not.toHaveBeenCalledWith('/api/admin/promo-codes', expect.anything());
+  });
+
   it('refuses a percentage above 100 before calling the API', async () => {
     const user = userEvent.setup();
     renderNew();
@@ -145,6 +179,7 @@ describe('PromoDrawer', () => {
     expect(screen.getByLabelText('Applied message')).toHaveValue('Early bird unlocked — 20% off your whole order.');
     expect(screen.getByLabelText('Maximum discount')).toHaveValue(500);
     expect(screen.getByLabelText('Starts at')).toHaveValue('2026-09-01T10:00'); // back to IST
+    expect(screen.getByLabelText('Minimum tickets')).toHaveValue(5);
     expect(screen.getByText(/7/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete promo code' })).toBeDisabled();
   });

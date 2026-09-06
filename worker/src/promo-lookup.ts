@@ -6,7 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PromoCodeRow, PromoRedemptions } from './promo';
 
 export const PROMO_COLUMNS =
-  'id, edition_id, code, applied_message, internal_note, discount_type, discount_value, max_discount, scope, pass_type, starts_at, ends_at, max_redemptions, max_per_phone, is_active, created_at, updated_at';
+  'id, edition_id, code, applied_message, internal_note, discount_type, discount_value, max_discount, scope, pass_type, starts_at, ends_at, max_redemptions, max_per_phone, min_quantity, is_active, created_at, updated_at';
 
 export interface PromoContext {
   promo: PromoCodeRow | null;
@@ -19,6 +19,7 @@ function readPromoRow(row: any): PromoCodeRow {
     discount_value: Number(row.discount_value),
     max_discount: row.max_discount === null ? null : Number(row.max_discount),
     max_per_phone: Number(row.max_per_phone),
+    min_quantity: Number(row.min_quantity),
     max_redemptions: row.max_redemptions === null ? null : Number(row.max_redemptions),
   };
 }

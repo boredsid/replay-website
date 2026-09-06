@@ -55,7 +55,7 @@ describe('RegisterForm', () => {
     code: 'SAVE20',
     message: 'Early bird unlocked — 20% off your whole order.',
     discount: 140,
-    rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: null },
+    rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: null, min_quantity: 1 },
   };
 
   async function pickSaturday(user: ReturnType<typeof userEvent.setup>) {
@@ -100,7 +100,7 @@ describe('RegisterForm', () => {
       code: 'SMALL',
       message: '₹50 off, with our thanks.',
       discount: 50,
-      rule: { discount_type: 'flat', discount_value: 50, max_discount: null, scope: 'booking', pass_type: null },
+      rule: { discount_type: 'flat', discount_value: 50, max_discount: null, scope: 'booking', pass_type: null, min_quantity: 1 },
     });
     mockRoute((u) => u.includes('/api/lookup-phone'), 200, {
       user: { found: true, name: 'Asha', email: 'a@b.c' },
@@ -145,7 +145,7 @@ describe('RegisterForm', () => {
       code: 'WEEKEND',
       message: 'Weekend deal applied.',
       discount: 240,
-      rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: 'campaign' },
+      rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: 'campaign', min_quantity: 1 },
     });
     const user = userEvent.setup();
     render(<RegisterForm {...buildProps()} />);
@@ -166,6 +166,46 @@ describe('RegisterForm', () => {
     expect(screen.getByLabelText(/sunday/i)).not.toBeChecked();
     await user.click(screen.getByLabelText(/sunday/i));
     expect(screen.getAllByText('₹700')).toHaveLength(2); // full price, no promo line
+  });
+
+  it('names the ticket floor when a bulk code is refused', async () => {
+    mockPromo({ error: 'promo_min_quantity', min_quantity: 5 }, 404);
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+
+    await user.type(screen.getByLabelText(/promo code/i), 'GROUP5');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+
+    expect(await screen.findByText('That code needs at least 5 tickets.')).toBeInTheDocument();
+    expect(screen.getAllByText('₹700')).toHaveLength(2); // subtotal and total, undiscounted
+  });
+
+  it('drops a bulk code when the attendee reduces the ticket count below its floor', async () => {
+    mockPromo({
+      ...SAVE20,
+      code: 'GROUP5',
+      message: 'Group rate unlocked — 20% off.',
+      discount: 700,
+      rule: { discount_type: 'percent', discount_value: 20, max_discount: null, scope: 'booking', pass_type: null, min_quantity: 5 },
+    });
+    const user = userEvent.setup();
+    render(<RegisterForm {...buildProps()} />);
+    await pickSaturday(user);
+
+    const increase = screen.getByRole('button', { name: /increase ticket quantity/i });
+    for (let i = 0; i < 4; i += 1) await user.click(increase);
+
+    await user.type(screen.getByLabelText(/promo code/i), 'GROUP5');
+    await user.click(screen.getByRole('button', { name: /^apply$/i }));
+    await screen.findByText(/GROUP5 applied/);
+    expect(screen.getByText('−₹700')).toBeInTheDocument(); // 20% of five ₹700 tickets
+
+    await user.click(screen.getByRole('button', { name: /decrease ticket quantity/i }));
+
+    expect(await screen.findByText('That code needs at least 5 tickets.')).toBeInTheDocument();
+    expect(screen.queryByText(/GROUP5 applied/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('₹2800')).toHaveLength(2); // four tickets, subtotal and total
   });
 
   it('sends the applied code with the registration and stops if the Worker refuses it', async () => {

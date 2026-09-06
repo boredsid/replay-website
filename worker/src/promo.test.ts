@@ -24,6 +24,7 @@ function promo(overrides: Partial<PromoCodeRow> = {}): PromoCodeRow {
     ends_at: null,
     max_redemptions: null,
     max_per_phone: 1,
+    min_quantity: 1,
     is_active: true,
     ...overrides,
   };
@@ -137,6 +138,42 @@ describe('evaluatePromo', () => {
       redemptions: NO_REDEMPTIONS,
     });
     expect(result).toEqual({ ok: false, reason: 'promo_pass_type' });
+  });
+
+  it('refuses a bulk code on a booking under its minimum', () => {
+    const result = evaluatePromo({
+      ...base,
+      quantity: 4,
+      promo: promo({ min_quantity: 5 }),
+      redemptions: NO_REDEMPTIONS,
+    });
+    expect(result).toEqual({ ok: false, reason: 'promo_min_quantity' });
+  });
+
+  it('accepts a bulk code the moment the booking reaches its minimum', () => {
+    const result = evaluatePromo({
+      ...base,
+      quantity: 5,
+      promo: promo({ min_quantity: 5 }),
+      redemptions: NO_REDEMPTIONS,
+    });
+    expect(result).toEqual({
+      ok: true,
+      id: 'promo-1',
+      code: 'SAVE20',
+      message: 'Nice — 20% off your order.',
+      discount: 800, // 20% of five 800-rupee tickets
+    });
+  });
+
+  it('weighs the minimum before the redemption caps, so the floor is what is reported', () => {
+    const result = evaluatePromo({
+      ...base,
+      quantity: 1,
+      promo: promo({ min_quantity: 5, max_redemptions: 10 }),
+      redemptions: { total: 10, forPhone: 4 },
+    });
+    expect(result).toEqual({ ok: false, reason: 'promo_min_quantity' });
   });
 
   it('accepts a code restricted to the pass being bought', () => {
