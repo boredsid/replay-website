@@ -4,6 +4,51 @@ Operational guidance for agents working in this repository. Keep it current.
 See the "Appending learnings" section below: durable, non-obvious discoveries
 belong there, while ephemeral task status and secrets do not.
 
+`CLAUDE.md` at the repo root is a symlink to this file. There is one set of
+instructions, and every agent — Claude Code, Codex, anything else — reads it.
+Edit `AGENTS.md`; never replace the symlink with a second copy.
+
+## Start new work in a new worktree
+
+**Every new piece of work gets its own worktree, on its own branch, cut from
+`origin/main`.** Do this before the first edit, not after the diff has grown.
+
+```
+git fetch origin
+git worktree add ../replay-<slug> -b <slug> origin/main
+```
+
+Then work only in `../replay-<slug>`. The rules that make this hold:
+
+1. **The `main` checkout is read-only.** It exists to fetch from and branch
+   from. No session edits files there — not "just one quick fix".
+2. **Branch from `origin/main`, never from local `main`.** Local `main` is
+   routinely behind; a session that branches from it silently rebuilds work
+   that has already merged.
+3. **One worktree, one branch, one concern.** A session that needs another
+   session's work rebases on merged `main`. It never reads or edits a sibling
+   worktree.
+4. **Integrate only through git** — commit, push, PR, merge. The filesystem is
+   not a channel between sessions.
+5. **Deploy from the worktree you verified.** Wrangler ships the working tree
+   it is run in, not the merged commit, so deploying from a shared checkout
+   ships whatever half-finished work is sitting in it. See the deploy notes
+   below for the order and the Direct Upload trap.
+6. **Check `supabase/migrations/` before naming a migration.** Timestamp
+   prefixes are the one thing worktrees cannot keep separate; two branches
+   picking the same prefix collide at merge.
+
+Remove the worktree once the branch has merged:
+
+```
+git worktree remove ../replay-<slug>
+```
+
+Sessions sharing a single checkout is how four unrelated features — a finance
+snapshot source, an expense GST credit, a promo minimum quantity and a
+per-entry category — once ended up as one 27-file diff on `main`, each session
+reading the others' half-written edits as the current state of the repo.
+
 ## Current source of truth
 
 - `src/` is the Astro 7 public site, deployed to Cloudflare Pages from `main`.
@@ -323,3 +368,5 @@ gh run watch
 - 2026-08-27 — `sponsors.show_in_header` (migration `20260828120000_sponsor_header_lockup.sql`) is the console's switch for whether a sponsor joins the header lockup, offered in the partner drawer only on the `title` and `association` tiers — the two the header reads. It defaults to **true**, because the tier itself sells the lockup; the switch exists to hold a credit back while a deal is still being papered, not to have to remember to turn one on. A sponsor switched off keeps its tier and its place on the logo wall. The flag rides the same path as the rest: worker `parseSponsor` → `sponsors.show_in_header` → the normaliser's select → `manifest.json` as `inHeader` → `headerLockup()`. **Why it matters:** the normaliser names its columns explicitly and throws rather than degrade, so **the migration has to be applied before the site builds** — a build against a database without the column fails at `astro:config:setup` with `supabase read failed (400)`, which is exactly what it did here before the column existed.
 
 - 2026-08-31 — Promo codes shipped across all four packages. A code lives in `public.promo_codes`, scoped to one edition (`unique (edition_id, code)`), and carries its own `applied_message` — the copy an attendee sees the instant the code is accepted is data, not something baked into the site build, so changing it needs no rebuild. **Why it matters:** four rules that are easy to get wrong from the outside. (1) **Promo and Guild Path never stack — the larger wins, ties going to Guild Path.** That judgement is `resolveDiscount()` in `worker/src/promo.ts`, and it decides all three of `registrations.discount_applied` (the winner's amount), `promo_discount` (0 whenever Guild Path won) and `guild_tier_at_purchase` (null whenever the promo won). A code beaten by Guild Path is deliberately NOT recorded as redeemed, so it does not burn a use it never paid for. (2) **Redemptions are derived, never counted in a column** — `countPromoRedemptions` counts uncancelled registrations holding the `promo_code_id`, the same way capacity derives from reserved seats, so a cancellation returns the use to the pool and no counter can drift. This is why deleting a redeemed code is refused (`promo_code_redeemed`, 409) — deactivate instead; `promo_code` also stores the redeemed text so history survives the row. (3) **The rules are pure and duplicated on purpose**: `worker/src/promo.ts` is authoritative and `src/lib/promo.ts` mirrors it so the public form re-prices instantly when pass, day or quantity change, exactly as `RegisterForm` already mirrors the Guild Path maths. Both have their own tests; change one and you must change the other. (4) `promo_codes` is granted to `service_role` only, never anon/authenticated — codes must not be enumerable through the Data API, which is also why `/api/promo/preview` rate-limits on the caller (phone, else IP) and never on the edition id, a bucket every anonymous visitor would share.
+
+- 2026-09-06 — Claude Code does **not** auto-load `AGENTS.md`; it loads `CLAUDE.md` only. Verified on 2.1.240 with a canary file and `--disallowed-tools "Read,Bash,Glob,Grep"`: `AGENTS.md` alone returns NONE, `CLAUDE.md` returns the canary, and a `CLAUDE.md` symlink pointing at `AGENTS.md` returns it too. **Why it matters:** for months this file was invisible to Claude sessions unless one happened to open it with a tool, which is why sessions kept rediscovering the deploy order and the documentation rules. Root `CLAUDE.md` is now a committed symlink to `AGENTS.md`; if a session ever reports that it cannot see repo instructions, check that the symlink survived (a tool that rewrites `CLAUDE.md` would replace it with a real file and silently fork the two).
