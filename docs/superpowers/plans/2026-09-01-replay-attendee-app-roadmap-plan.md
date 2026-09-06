@@ -9,8 +9,8 @@ tasks sized for a working session.
 **Shipped: P0, P2A, P2B, P2E, P2C, P2D, P3.** Every phase on the critical path
 is live in production.
 
-**P4 shipped 2026-09-04. P6 shipped 2026-09-05. Nothing is outstanding.**
-P5 was removed from the roadmap.
+**P0-P4 and P6 are shipped. P5 was removed. P7 is open** — see below; it is
+the only outstanding phase.
 
 The handoff section at the bottom was written when P4 and P6 were ahead rather
 than behind. Its ground rules still apply to any work in this repo; its P4 and
@@ -612,7 +612,8 @@ Once decided:
 3. Circulation queue with attributed overrides and audit.
 4. Attendee: catalogue search by player count, duration, complexity,
    availability; my loans with due time and collection/return points.
-5. Offline ledger export with a named reconciliation owner.
+5. Offline ledger export. (The "named reconciliation owner" this originally
+   asked for was removed from scope on 2026-09-05 -- see the P4 section.)
 
 ---
 
@@ -654,6 +655,43 @@ matchmaking and looking-for-group remain explicitly out of scope.
 > of all fifty-two admin routes, so a route added later inherits it instead of
 > being open until somebody remembers.
 
+
+---
+
+# P7 — Booking management in the admin
+
+Opened 2026-09-05. Attendees can book sessions from the app, and the admin can
+only see that one session at a time.
+
+**What already exists** — do not rebuild it. `/programme/:id/roster` shows a
+single session's confirmed list and waitlist in queue order, and lets staff add
+or remove somebody. It is reachable from the Programme list, on bookable
+sessions only.
+
+**What is missing**, in the order it is likely to be wanted:
+
+1. **The reverse view: what has this person booked.** Nothing answers it. A
+   pass scanned at the door or at the library counter says who somebody is and
+   what they have borrowed, and nothing about the three sessions they are
+   holding seats in. This is the gap that will be felt first, because it is the
+   question an attendee asks in person.
+2. **One view across the programme.** Seeing the state of the day means opening
+   four rosters one at a time, which nobody will do while standing up. A single
+   list of bookable sessions with taken and free seats, waitlist depth, and the
+   ones that have filled.
+3. **Export.** The check-in roster has a CSV; sessions have none. Same argument
+   as the library ledger: when the network goes, paper takes over.
+
+Notes for whoever builds it:
+
+- `session_signups` already holds everything needed. Queue position is derived
+  from `signed_up_at` rather than stored, so read it the way
+  `handleSessionRoster` does rather than inventing a second answer.
+- Cancelling a seat promotes the next person and notifies them. Any new way to
+  remove somebody must go through `cancel_session_signup`, not a direct update,
+  or the waitlist silently stops moving.
+- Attendee-facing booking is done and needs nothing. This phase is admin
+  visibility only.
 
 ---
 
@@ -750,8 +788,13 @@ The catalogue is largely solved; **circulation is not**. In dependency order:
 3. Staff issue/return flow: scan the QR, pick the copy, issue.
 4. Circulation queue with attributed overrides.
 5. Attendee-side: my loans, due times, collection and return points.
-6. Offline paper ledger with a **named** reconciliation owner. This is a launch
-   requirement, not a nicety.
+6. Offline paper ledger. Shipped as a printable sheet and a CSV.
+
+   The original scope asked for a **named reconciliation owner** alongside it.
+   Removed 2026-09-05: naming somebody in an export header buys nothing the
+   export does not already give you, and who counts the shelf on Sunday is a
+   rota question rather than a software one. It was raised repeatedly as
+   outstanding work and was never work.
 
 ### Sizing
 
@@ -797,8 +840,6 @@ one. The current allowlist is safe; it is simply coarse.
   untested surface going into the event and costs ten minutes to clear.
 - **Last call and the closing-time cap are unexercised**, because both rules
   relax outside the event and today is outside it.
-- **Nobody is named to reconcile the game library** at close on Sunday. See
-  `docs/LIVE_EVENT_READINESS.md`.
 - **No human has signed in as anything but a full admin.** The role map has
   thirty-odd tests and none of them is a person discovering that a screen they
   need is missing. Ten volunteers now hold non-admin roles; one of them opening

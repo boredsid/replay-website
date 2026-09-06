@@ -175,7 +175,8 @@ secure-ticket, check-in, and library phases remain gated by that plan.
   staff-resolved states.
 - Show the borrower where to collect/return the game and when it is due.
 - Give organisers a live circulation view, manual override, audit trail, and an
-  offline fallback. **Shipped 2026-09-04**: Admin → Game library carries both a
+  offline fallback. All shipped 2026-09-04; the fallback is a printable ledger
+  and a CSV on the Game library screen. **Shipped 2026-09-04**: Admin → Game library carries both a
   printable ledger and a CSV. The printed sheet deliberately has no phone
   numbers — it sits on a counter all day — while the CSV does, because chasing
   a game that walked needs a number and it is downloaded by an authenticated
@@ -190,8 +191,9 @@ secure-ticket, check-in, and library phases remain gated by that plan.
   one; the library does not. The paper ledger covers the same failure — the
   venue network dropping mid-afternoon — with far less that can go wrong, and
   adding offline write-replay days before the event was judged a worse trade.
-- Decide whether library inventory is imported from an existing BGC catalogue
-  or maintained as REPLAY-specific copies before designing the schema.
+- ~~Decide whether library inventory is imported from an existing BGC catalogue
+  or maintained as REPLAY-specific copies~~ — settled 2026-09-02: REPLAY-owned
+  copies, which include the BGC catalogue anyway.
 
 ### Explicit follow-up
 

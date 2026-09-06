@@ -1,6 +1,6 @@
 # REPLAY attendee app — remaining roadmap design
 
-Status: **every phase shipped.** P0, P2A–E and P3 by 2026-09-02; P4 on
+Status: **P0-P4 and P6 shipped; P7 open.** P0, P2A–E and P3 by 2026-09-02; P4 on
 2026-09-04; P6 on 2026-09-05. P5 was taken out of scope on 2026-09-02.
 Companion plan: `docs/superpowers/plans/2026-09-01-replay-attendee-app-roadmap-plan.md`,
 which carries the handoff notes for what is left.
@@ -721,8 +721,12 @@ pick the copy, issue. Attendee-side: catalogue search by player count,
 duration, complexity, and availability; my loans with due times and
 collection/return points.
 
-An offline paper ledger with a named reconciliation owner is a launch
-requirement, not a nicety.
+An offline paper ledger is a launch requirement, not a nicety. Shipped
+2026-09-04 as a printable sheet and a CSV.
+
+The "named reconciliation owner" this asked for was removed from scope on
+2026-09-05: who counts the shelf on Sunday is a rota question, and a name in an
+export header buys nothing the export does not already give you.
 
 ---
 
@@ -753,6 +757,18 @@ deploy. Five roles: `admin`, `basic_admin` (everything but the staff table),
 
 ---
 
+## P7 — Booking management in the admin
+
+Opened 2026-09-05, after P2C put bookings in attendees' hands without giving
+organisers a way to see them in aggregate.
+
+The asymmetry is the point: an attendee knows exactly what they have booked,
+and an organiser can only find out one session at a time. Three things close
+it — what a given person has booked, one view across the whole programme, and
+an export for when the network is not there.
+
+Deliberately admin-only. Nothing about attendee booking changes.
+
 ## Cross-cutting rules
 
 **The public bootstrap contract does not change.** No sign-up state, check-in
@@ -781,8 +797,11 @@ that changes a contract deploys the Worker before the app and admin builds.
    which include the BGC catalogue anyway. It shaped far less than this document
    claimed: it decides where title metadata comes from, not the loan model,
    which keys on copies either way. P4 shipped 2026-09-04.
-2. **Who owns capacity numbers** and turns on `signup_mode = 'app'` per session.
-   Still open. Four sessions on day one are currently bookable.
+2. ~~**Who owns capacity numbers**~~ — removed from scope 2026-09-05. It was
+   never a software question: capacity is a number somebody types into the
+   programme editor, and `signup_mode` is a checkbox beside it. Whoever edits
+   the programme decides, the same way they decide a session's title. Raised
+   three times as an open decision and it should not be raised a fourth.
 3. **What happens to sign-ups and loans if a registration is cancelled** after
    the fact. Partly answered for the purchaser identity by
    `20260901184903_release_purchaser_claim.sql`; sign-ups and loans are still

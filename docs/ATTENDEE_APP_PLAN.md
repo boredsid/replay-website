@@ -26,7 +26,7 @@ sequence and feature boundaries.
 5. **Personal data never enters public payloads.** Tickets, check-in, and loans
    require a separate authenticated contract and audited organiser operations.
 6. **Event-day actions need fallbacks.** Check-in and circulation ship only with
-   printable/offline procedures and reconciliation ownership.
+   printable/offline procedures. Both have them.
 
 ## Feature plan
 
@@ -115,7 +115,8 @@ game titles.
 - Staff see a live circulation queue and may override with a reason; all
   transitions are attributed and audited.
 - The app shows collection point, return point, and due time.
-- An offline paper/export ledger has a named reconciliation owner.
+- An offline paper/export ledger exists. (The named owner this once asked for
+  was removed from scope on 2026-09-05: a rota question, not a software one.)
 
 ### Follow-up, not launch scope
 
@@ -187,7 +188,7 @@ Phase 1 is ready for a preview deployment when:
 - Privacy and data-use copy covering device pairing, the QR handle, and push
   consent. Identity and recovery are settled: kiosk pairing code, re-pair at the
   desk. See the roadmap design.
-- Library inventory source, library owner, loan duration, and offline ledger
-  reconciliation owner.
-- Named owners for check-in source of truth, offline reconciliation, and the
-  authority to pause ticket sales.
+- Library owner. Inventory source (REPLAY-owned copies) and loan duration
+  (four hours, capped at closing) were settled on 2026-09-02 and 2026-09-04.
+- Named owners for check-in source of truth and the authority to pause ticket
+  sales. Ledger reconciliation was removed from scope on 2026-09-05.
