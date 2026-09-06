@@ -38,8 +38,8 @@ export default function Dashboard() {
           <Stat label="Expenses" value={inr(finances.expenses)} hint="Recorded expenses for this edition" />
           <Stat label={finances.profit < 0 ? 'Loss to date' : 'Profit to date'} value={inr(Math.abs(finances.profit))} negative={finances.profit < 0} hint="Net revenue minus recorded expenses" />
           <Stat label="Registrations to break even" value={finances.registrations_to_break_even ?? '—'} hint={finances.average_ticket_income !== null && finances.average_ticket_income > 0
-            ? `At ${inr(finances.average_ticket_income)} average income per ticket, including memberships. Assumes one ticket per registration and no further costs.`
-            : 'Needs confirmed ticket income to estimate. Membership contributions count toward ticket income.'} />
+            ? `At ${inr(finances.average_ticket_income)} average income per ticket, including memberships and excluding desk entries. Assumes one ticket per registration and no further costs.`
+            : 'Needs confirmed ticket income, from registrations other than desk entries, to estimate. Membership contributions count toward ticket income.'} />
         </>}
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

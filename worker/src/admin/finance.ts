@@ -11,7 +11,7 @@ export interface FinanceEntry {
 export interface FinanceSnapshot {
   edition: { id: string; slug: string; name: string; pricing: { oneshot?: number }; capacity_per_day: Record<string, number>; start_date: string; end_date: string } | null;
   accounts: FinanceAccount[];
-  registrations: { id: string; created_at: string; payment_status: string; amount_paid: number; discount_applied: number; guild_tier_at_purchase: string | null; seats: number; days: string[] }[];
+  registrations: { id: string; created_at: string; payment_status: string; amount_paid: number; discount_applied: number; guild_tier_at_purchase: string | null; seats: number; days: string[]; source?: Record<string, unknown> | null }[];
   partners: { id: string; created_at: string; organization_name: string; payment_status: string; total_amount: number; gst_amount: number }[];
   entries: FinanceEntry[];
 }
@@ -20,11 +20,12 @@ const rupees = (value: number) => value / 100;
 export function summarizeFinance(snapshot: FinanceSnapshot) {
   const receiver = snapshot.accounts.find((a) => a.automatic_income);
   if (!receiver) throw new Error('Automatic income account is not configured.');
-  const totals = { tickets: 0, bgc: 0, partners: 0, gst: 0, manual: 0, expenses: 0, pending: 0 };
+  const totals = { tickets: 0, bgc: 0, partners: 0, gst: 0, manual: 0, expenses: 0, pending: 0, desk: 0 };
   const accounts = snapshot.accounts.map((a) => ({ ...a, income: 0, expenses: 0, bgc: 0 }));
   const recipient = accounts.find((a) => a.id === receiver.id)!;
   const reserved: Record<string, number> = {};
   let confirmedTickets = 0;
+  let deskTickets = 0;
   const automatic: { id: string; source_id: string; source: 'registration' | 'partner' | 'bgc'; description: string; amount: number; account_id: string; entry_date: string }[] = [];
   for (const r of snapshot.registrations) {
     if (r.payment_status !== 'cancelled') for (const day of r.days) reserved[day] = (reserved[day] ?? 0) + r.seats;
@@ -35,6 +36,10 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
     // no Guild tier, so promo reductions never become BGC income.
     const subsidy = r.guild_tier_at_purchase ? paise(r.discount_applied) : 0;
     totals.tickets += paid; totals.bgc += subsidy; confirmedTickets += r.seats;
+    // A row typed in at the desk — a comp, or a booking taken by hand — is not a
+    // sale at the going rate, so it is tracked separately for anything that
+    // reasons about what the next ticket is worth. It still counts as income.
+    if (r.source?.manual === true) { totals.desk += paid + subsidy; deskTickets += r.seats; }
     recipient.income += paid + subsidy; recipient.bgc += subsidy;
     if (paid) automatic.push({ id: `registration:${r.id}`, source_id: r.id, source: 'registration', description: 'Ticket payment', amount: rupees(paid), account_id: receiver.id, entry_date: r.created_at });
     if (subsidy) automatic.push({ id: `bgc:${r.id}`, source_id: r.id, source: 'bgc', description: 'BGC · Guild Path contribution', amount: rupees(subsidy), account_id: receiver.id, entry_date: r.created_at });
@@ -65,6 +70,7 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
       net_revenue: rupees(income - totals.gst), profit: rupees(profit), shortfall: rupees(Math.max(0, -profit)), pending_income: rupees(totals.pending),
       confirmed_tickets: confirmedTickets,
       average_ticket_income: confirmedTickets ? rupees(totals.tickets + totals.bgc) / confirmedTickets : null,
+      desk_tickets: deskTickets, desk_ticket_income: rupees(totals.desk),
       remaining_day_tickets: Object.entries(snapshot.edition?.capacity_per_day ?? {}).reduce((sum, [day, cap]) => sum + Math.max(0, cap - (reserved[day] ?? 0)), 0),
     },
   };

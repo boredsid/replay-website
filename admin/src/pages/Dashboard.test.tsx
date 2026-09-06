@@ -25,7 +25,7 @@ describe('dashboard cards', () => {
     expect(screen.getByText('Expenses')).toBeInTheDocument();
     expect(screen.getByText('Loss to date')).toBeInTheDocument();
     expect(screen.getByText('Registrations to break even')).toBeInTheDocument();
-    expect(screen.getByText(/At ₹250 average income per ticket, including memberships/)).toBeInTheDocument();
+    expect(screen.getByText(/At ₹250 average income per ticket, including memberships and excluding desk entries/)).toBeInTheDocument();
     expect(screen.queryByText('Cancelled', { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText('Revenue', { exact: true })).not.toBeInTheDocument();
   });
@@ -40,7 +40,7 @@ describe('dashboard cards', () => {
     fetchAdmin.mockResolvedValue({ ...data, finances: { ...data.finances, average_ticket_income: null, registrations_to_break_even: null } }); render(<Dashboard />);
     await screen.findByText('Registrations to break even');
     expect(screen.getByText('—')).toBeInTheDocument();
-    expect(screen.getByText(/Needs confirmed ticket income to estimate/)).toBeInTheDocument();
+    expect(screen.getByText(/Needs confirmed ticket income, from registrations other than desk entries, to estimate/)).toBeInTheDocument();
   });
   it('shows an error instead of false financial totals when loading fails', async () => {
     fetchAdmin.mockRejectedValue(new Error('dashboard_totals_failed')); render(<Dashboard />);

@@ -63,6 +63,7 @@ export interface DashboardData {
     net_revenue: number;
     expenses: number;
     profit: number;
+    /** Averaged over tickets sold through the site; desk entries are left out. */
     average_ticket_income: number | null;
     registrations_to_break_even: number | null;
   } | null;
