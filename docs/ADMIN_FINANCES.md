@@ -34,6 +34,15 @@ ticket per registration and no further fixed costs. The average includes BGC
 contributions and uses `seats`, not seat-days. Remaining capacity counts pending
 and confirmed reservations across days and is expressed as one-day tickets.
 
+The main dashboard reuses this same finance summary for net revenue, expenses
+and profit. Its break-even estimate uses the actual average income per confirmed
+ticket (attendee payments plus membership contributions), without rounding the
+average before dividing. It assumes one ticket per additional registration and
+no further costs. With a shortfall but no positive ticket income, it shows no
+estimate. Dashboard confirmed/pending counts are ticket-days: `seats × days.length`.
+Financial cards and values are restricted to full/basic admins; desk staff still
+receive the operational counts and recent activity.
+
 ## Accounts, entries and audit
 
 `finance_accounts` seeds all existing full/basic admins. The account named

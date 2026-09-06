@@ -79,7 +79,7 @@ function FinancePage() {
     {report && s && <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Net revenue', money(s.net_revenue), 'Includes BGC contributions; excludes partner GST'],
+          ['Net revenue', money(s.net_revenue), 'Includes membership constributions; excludes partner GST'],
           ['Expenses', money(s.expenses), 'All recorded expenses for this edition'],
           [s.profit < 0 ? 'Loss to date' : s.profit > 0 ? 'Profit to date' : 'Break-even', money(Math.abs(s.profit)), 'Based on recorded income and expenses'],
           ['Registrations to break even', needed === null ? 'Not reachable' : String(needed), `At ${money(price)} income and ${money(Number(variableCost) || 0)} extra cost per ticket`],

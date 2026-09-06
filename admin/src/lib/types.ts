@@ -58,7 +58,14 @@ export interface AuditEntry {
 export interface DashboardData {
   edition: { id: string; slug: string; name: string; registration_status: string };
   spots_by_day: { day1: SpotCount; day2: SpotCount };
-  totals: { confirmed: number; pending: number; cancelled: number; revenue: number };
+  totals: { confirmed: number; pending: number };
+  finances: {
+    net_revenue: number;
+    expenses: number;
+    profit: number;
+    average_ticket_income: number | null;
+    registrations_to_break_even: number | null;
+  } | null;
   recent_registrations: RegistrationRow[];
   recent_leads: LeadRow[];
 }
