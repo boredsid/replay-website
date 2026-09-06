@@ -1,7 +1,7 @@
 # REPLAY attendee app — remaining roadmap design
 
-Status: **P0, P2A, P2B, P2E, P2C, P2D and P3 shipped as of 2026-09-02.**
-P4 and P6 remain; P5 was taken out of scope on 2026-09-02.
+Status: **every phase shipped.** P0, P2A–E and P3 by 2026-09-02; P4 on
+2026-09-04; P6 on 2026-09-05. P5 was taken out of scope on 2026-09-02.
 Companion plan: `docs/superpowers/plans/2026-09-01-replay-attendee-app-roadmap-plan.md`,
 which carries the handoff notes for what is left.
 Expands and partly supersedes `docs/ATTENDEE_APP_PLAN.md` Phases 2–4.
@@ -740,11 +740,16 @@ somebody has established what they are.
 Chat, profiles, matchmaking and looking-for-group were listed here as
 explicitly out of scope, and remain so.
 
-## P6 — Deferred privilege model
+## P6 — Privilege model
 
-A real role table replacing the flat `ADMIN_EMAILS` allowlist: check-in staff,
-library staff, programme editors, full admins. Deliberately deferred, and worth
-doing before the next edition scales the volunteer count.
+**Shipped 2026-09-05.** Deferred until the volunteer count forced it, which
+happened during this edition rather than the next: ten people needed access,
+and `ADMIN_EMAILS` gives everyone everything.
+
+`staff` (email, roles[]) is the authority, synced to Cloudflare Access so
+adding somebody is one screen rather than a dashboard edit plus a Worker
+deploy. Five roles: `admin`, `basic_admin` (everything but the staff table),
+`check_in`, `library`, `programme`. See the plan for what went beyond scope.
 
 ---
 

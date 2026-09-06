@@ -9,11 +9,12 @@ tasks sized for a working session.
 **Shipped: P0, P2A, P2B, P2E, P2C, P2D, P3.** Every phase on the critical path
 is live in production.
 
-**Remaining: P4 (blocked) and P6 (deferred).** P5 was removed from the roadmap.
+**P4 shipped 2026-09-04. P6 shipped 2026-09-05. Nothing is outstanding.**
+P5 was removed from the roadmap.
 
-If you are a new session picking this up, **read "Handoff — P4 and P6" at the
-bottom first.** It is written for exactly that, and it will save you from
-rebuilding things that already exist.
+The handoff section at the bottom was written when P4 and P6 were ahead rather
+than behind. Its ground rules still apply to any work in this repo; its P4 and
+P6 sections are now a record of what was built.
 
 ## How to use this plan across sessions
 
@@ -622,11 +623,36 @@ claims about a building that someone has to walk and verify.
 `src/lib/venue-map.ts` already accepts them once established. Chat, profiles,
 matchmaking and looking-for-group remain explicitly out of scope.
 
-# P6 — Deferred privilege model
+# P6 — Privilege model
 
-Replace the flat `ADMIN_EMAILS` allowlist with real roles: check-in staff,
-library staff, programme editors, full admins. Worth doing before the next
-edition scales the volunteer count. See the handoff section below.
+> **Shipped 2026-09-05**, a year earlier than planned: the volunteer count
+> reached ten, which is the point at which an environment variable stops being
+> an honest way to say who may do what.
+>
+> `staff` (email, roles[]) replaces `ADMIN_EMAILS`. Five roles rather than the
+> four planned — `basic_admin` was added during the build, being everything a
+> full admin does except edit the staff table. That is the only privilege
+> boundary that matters: a role that can edit staff can grant itself every
+> other role.
+>
+> Four things went beyond the original scope:
+>
+> 1. **Cloudflare Access is synced from the table.** Adding somebody used to
+>    mean editing a dashboard policy *and* a Worker secret, one of which needed
+>    a deploy. Now it is one screen. The sync preserves rules it did not create
+>    and never writes an object it could not first read.
+> 2. **Authorisation is method-aware.** Every member of staff can read the
+>    programme, notices and bookings; only the role that owns a page can write
+>    to it.
+> 3. **Bookings read that way are redacted** — no money, phone masked to the
+>    last four digits.
+> 4. **The last full admin cannot be removed or demoted**, by a database
+>    trigger rather than by application code, so it holds whichever caller is
+>    wrong.
+>
+> `verifyAccessJwt` now only authenticates. Authorisation is one check in front
+> of all fifty-two admin routes, so a route added later inherits it instead of
+> being open until somebody remembers.
 
 
 ---
@@ -773,6 +799,13 @@ one. The current allowlist is safe; it is simply coarse.
   relax outside the event and today is outside it.
 - **Nobody is named to reconcile the game library** at close on Sunday. See
   `docs/LIVE_EVENT_READINESS.md`.
+- **No human has signed in as anything but a full admin.** The role map has
+  thirty-odd tests and none of them is a person discovering that a screen they
+  need is missing. Ten volunteers now hold non-admin roles; one of them opening
+  the admin before the event is worth more than any of those tests.
+- **`ADMIN_EMAILS` is still set as a Worker secret and is read by nothing.**
+  Left in place deliberately so a rollback has something to land on; delete it
+  once the roles have been through an event.
 
 ---
 
@@ -789,5 +822,5 @@ one. The current allowlist is safe; it is simply coarse.
 | Offline queue double-checks-in | P2A | `client_event_id` unique index; replay test |
 | Cron double-sends reminders | P2D | `reminded_at` stamp; at-least-once assumed |
 | Screenshotted QR used for another's loan | P2B/P4 | Staff see the name on scan; rotation available as hardening |
-| Kiosk tablet left signed in reaches all admin data | P2A | Operational for now; P6 is the real fix |
+| Kiosk tablet left signed in reaches all admin data | P2A | Addressed by P6: give the kiosk account `check_in` only, and it reaches nothing else |
 | iOS install instructions wrong or stale | P2E | Test on a real iPhone, not a simulator viewport |
