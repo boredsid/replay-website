@@ -1,5 +1,10 @@
 # REPLAY attendee app — implementation plan
 
+> **Write-once record, closed 2026-09-06.** This is what was planned and
+> what was learned building it, as at the time. It is not maintained and is
+> not current state — see [`docs/DELIVERED.md`](../../DELIVERED.md) and
+> [`docs/ROADMAP.md`](../../ROADMAP.md) for that.
+
 Companion to `docs/superpowers/specs/2026-09-01-replay-attendee-app-roadmap-design.md`.
 Read the spec first for the *why*; this document is the *how*, broken into
 tasks sized for a working session.

@@ -163,7 +163,7 @@ If any endpoint or credential appears in source, documentation, logs, or chat, r
 
 ## Next milestone
 
-Use [docs/LIVE_EVENT_READINESS.md](docs/LIVE_EVENT_READINESS.md) for the dedicated content and operational launch session before registration opens.
+See [docs/DELIVERED.md](docs/DELIVERED.md) for what is built and why, and [docs/ROADMAP.md](docs/ROADMAP.md) for what is not.
 
 ## Historical notes
 

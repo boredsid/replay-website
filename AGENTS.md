@@ -7,10 +7,9 @@ belong there, while ephemeral task status and secrets do not.
 ## Current source of truth
 
 - `src/` is the Astro 7 public site, deployed to Cloudflare Pages from `main`.
-- `app/` is the Vite/React attendee PWA for `app.replaycon.in`. Its public
-  schedule, device-local agenda, venue shell, and runtime announcements are
-  implemented; secure tickets, maps, check-in, and library circulation remain
-  gated by `docs/ATTENDEE_APP_PLAN.md`.
+- `app/` is the Vite/React attendee PWA for `app.replaycon.in`. Schedule, saved
+  agenda, venue map, announcements, pairing, the pass, session bookings, push
+  notifications and game-library borrowing all ship. See `docs/DELIVERED.md`.
 
   **Its Pages project is Direct Upload, so a merge alone has never shipped it.**
   `.github/workflows/deploy-app.yml` now deploys it when app code lands on
@@ -39,7 +38,14 @@ belong there, while ephemeral task status and secrets do not.
   and signing secret belong only in Apps Script/Cloudflare secret storage.
 - `README.md` documents local setup, verification, current behavior, and the
   deployment/secret boundary.
-- `docs/LIVE_EVENT_READINESS.md` is the deliberately deferred launch checklist.
+- **`docs/DELIVERED.md` and `docs/ROADMAP.md` are the only two documents that
+  describe features, and the only two anyone updates.** The first is what exists
+  and why it is built that way; the second is what is not built, what is
+  decided, and what was deliberately removed. Dated files under
+  `docs/superpowers/` are write-once records of a moment — useful history, never
+  current state. This file covers how to *work* in the repo; it does not
+  describe features, and adding a feature narrative here is how the same fact
+  ends up in three places contradicting itself.
 - `scratch/` is gitignored, and is where generated artwork, exports and one-off
   working files go.
 
