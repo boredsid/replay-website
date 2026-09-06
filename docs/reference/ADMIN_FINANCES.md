@@ -62,7 +62,12 @@ entries can retain their previous account during a correction.
 
 Manual records in `finance_entries` have an edition, owner account, income/expense
 type, date, category, description, amount, an optional GST credit on expenses,
-and optional notes/receipt reference.
+and optional notes/receipt reference. Category is a dropdown for both income and
+expenses, offering a fixed seed list plus every category already used in any
+edition (`finance_snapshot` returns them), with "Add a new category" at the
+bottom. A category exists only because an entry uses it — there is no category
+table to curate — and a new name matching an existing one case-insensitively is
+filed under the existing spelling, so the list does not collect near-duplicates.
 The Worker stamps the authenticated creator/editor. Entry edits use optimistic
 concurrency via `updated_at`. Client-generated UUIDs make identical create
 retries idempotent. Voiding requires a reason and preserves the original record;
@@ -77,7 +82,8 @@ cached because `/api/*` already uses the admin's network-only policy.
 ## Rollout and verification
 
 Apply `20260906042208_edition_finances.sql`, `20260906120000_finance_snapshot_source.sql`
-and `20260906130000_finance_expense_gst_credit.sql` after checking linked migration state,
+`20260906130000_finance_expense_gst_credit.sql` and
+`20260906160000_finance_snapshot_categories.sql` after checking linked migration state,
 then deploy the Worker, then the admin Pages build. No public-site rebuild is
 needed. Confirm the automatic account before release:
 
@@ -95,6 +101,6 @@ adding dated/source-specific allocations first.
 Regression coverage is in `worker/src/admin/finance.test.ts`,
 `admin/src/lib/finance.test.ts` and `admin/src/pages/Finance.test.tsx`. It covers
 Guild vs promo income, multi-ticket and free Guild bookings, statuses, GST,
-paise, >1,000 bookings, recorded GST credit, account access, retry safety,
-concurrent edits, voiding,
+paise, >1,000 bookings, recorded GST credit, category creation and case folding,
+account access, retry safety, concurrent edits, voiding,
 edition selection, error states and break-even calculations.

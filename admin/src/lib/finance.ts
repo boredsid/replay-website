@@ -9,7 +9,7 @@ export interface FinanceEntry {
 }
 export interface FinanceReport {
   edition: { id: string; name: string; slug: string; pricing: { oneshot?: unknown } };
-  accounts: FinanceAccount[]; entries: FinanceEntry[];
+  accounts: FinanceAccount[]; entries: FinanceEntry[]; categories: string[];
   automatic: { id: string; source_id: string; source: 'registration' | 'partner' | 'bgc'; description: string; amount: number; account_id: string; entry_date: string }[];
   summary: {
     ticket_income: number; bgc_income: number; partner_income: number; partner_gst: number; manual_income: number;

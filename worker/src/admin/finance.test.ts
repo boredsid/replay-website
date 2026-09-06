@@ -72,6 +72,10 @@ describe('edition finances', () => {
     expect(summarizeFinance(data).summary.income).toBe(150.1);
     expect(summarizeFinance(snapshot()).summary.average_ticket_income).toBeNull();
   });
+  it('passes the categories in use through, defaulting to none on an older snapshot', () => {
+    expect(summarizeFinance({ ...snapshot(), categories: ['Stall rental', 'Venue'] }).categories).toEqual(['Stall rental', 'Venue']);
+    expect(summarizeFinance(snapshot()).categories).toEqual([]);
+  });
   it('restricts every finance route to full/basic admins', () => {
     for (const role of ['admin', 'basic_admin', 'check_in', 'library', 'programme']) for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) for (const path of ['/api/admin/finance', '/api/admin/finance/entries', `/api/admin/finance/entries/${entryId}`]) {
       expect(mayReach([role], path, method)).toBe(['admin', 'basic_admin'].includes(role));

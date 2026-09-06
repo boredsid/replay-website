@@ -16,7 +16,7 @@ const accountId = '33333333-3333-4333-8333-333333333333';
 const report: FinanceReport = {
   edition: { id: editionId, name: 'REPLAY', slug: 'replay-3', pricing: { oneshot: 700 } },
   accounts: [{ id: accountId, name: 'Me', staff_email: 'me@example.com', active: true, automatic_income: true, income: 700, expenses: 2100, balance: -1400, bgc: 140 }],
-  entries: [], automatic: [],
+  entries: [], automatic: [], categories: ['Stall rental', 'Venue'],
   summary: { ticket_income: 560, bgc_income: 140, partner_income: 0, partner_gst: 0, manual_income: 0, income: 700, net_revenue: 700, expenses: 2100, expense_gst_credit: 0, profit: -1400, shortfall: 1400, pending_income: 0, confirmed_tickets: 1, average_ticket_income: 700, desk_tickets: 0, desk_ticket_income: 0, remaining_day_tickets: 100 },
 };
 beforeEach(() => {
@@ -74,6 +74,29 @@ describe('finance page', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }));
     await waitFor(() => expect(fetchAdmin.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2));
     expect(JSON.parse(fetchAdmin.mock.calls.filter(([, init]) => init?.method === 'POST')[1][1].body)).toMatchObject({ kind: 'income', gst_credit: 0 });
+  });
+  it('offers categories in use and files a new one under an existing spelling', async () => {
+    show(); await screen.findByText('Loss to date');
+    await userEvent.click(screen.getByRole('button', { name: 'Add income / expense' }));
+    expect(screen.getByRole('option', { name: 'Stall rental' })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Category'), '__add__');
+    await userEvent.type(screen.getByLabelText('New category'), '  stall RENTAL ');
+    await userEvent.type(screen.getByLabelText('Amount (\u20b9)'), '900');
+    await userEvent.type(screen.getByLabelText('Description'), 'Second table');
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }));
+    await waitFor(() => expect(fetchAdmin.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+    expect(JSON.parse(fetchAdmin.mock.calls.find(([, init]) => init?.method === 'POST')![1].body).category).toBe('Stall rental');
+  });
+  it('keeps a genuinely new category as typed', async () => {
+    show(); await screen.findByText('Loss to date');
+    await userEvent.click(screen.getByRole('button', { name: 'Add income / expense' }));
+    await userEvent.selectOptions(screen.getByLabelText('Category'), '__add__');
+    await userEvent.type(screen.getByLabelText('New category'), 'Insurance');
+    await userEvent.type(screen.getByLabelText('Amount (\u20b9)'), '2500');
+    await userEvent.type(screen.getByLabelText('Description'), 'Event cover');
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }));
+    await waitFor(() => expect(fetchAdmin.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+    expect(JSON.parse(fetchAdmin.mock.calls.find(([, init]) => init?.method === 'POST')![1].body).category).toBe('Insurance');
   });
   it('preserves the selected historical edition on refresh', async () => {
     show(); await screen.findByText('Loss to date');

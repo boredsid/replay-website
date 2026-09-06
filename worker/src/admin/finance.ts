@@ -14,6 +14,9 @@ export interface FinanceSnapshot {
   registrations: { id: string; created_at: string; payment_status: string; amount_paid: number; discount_applied: number; guild_tier_at_purchase: string | null; seats: number; days: string[]; source?: Record<string, unknown> | null }[];
   partners: { id: string; created_at: string; organization_name: string; payment_status: string; total_amount: number; gst_amount: number }[];
   entries: FinanceEntry[];
+  // Every category in use, across editions: one coined for REPLAY 3 stays
+  // offered in REPLAY 4. Older snapshots predate the key.
+  categories?: string[];
 }
 const paise = (value: number) => Math.round(Number(value) * 100);
 const rupees = (value: number) => value / 100;
@@ -64,7 +67,7 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
   const income = totals.tickets + totals.bgc + totals.partners + totals.manual;
   const profit = income - totals.gst - totals.expenses;
   return {
-    edition: snapshot.edition, entries: snapshot.entries, automatic,
+    edition: snapshot.edition, entries: snapshot.entries, automatic, categories: snapshot.categories ?? [],
     accounts: accounts.map((a) => ({ ...a, income: rupees(a.income), expenses: rupees(a.expenses), bgc: rupees(a.bgc), balance: rupees(a.income - a.expenses) })),
     summary: {
       ticket_income: rupees(totals.tickets), bgc_income: rupees(totals.bgc), partner_income: rupees(totals.partners), partner_gst: rupees(totals.gst),

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchAdmin } from '@/lib/api';
@@ -10,6 +10,10 @@ import type { EditionRow } from '@/lib/types';
 const money = (v: number) => `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const field = 'w-full rounded-md border bg-background px-3 py-2 text-sm';
 const button = 'rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50';
+// Seeds only: a category exists because an entry uses it, so the dropdown grows
+// as entries are added and these are simply always offered.
+const seedCategories = ['Venue', 'Food & drinks', 'Printing', 'Marketing', 'Transport', 'Equipment', 'General', 'Other income'];
+const addCategory = '__add__';
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 const displayDate = (value: string) => value.length === 10 ? value : new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' }).format(new Date(value));
 
@@ -128,6 +132,9 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
   const [gstCredit, setGstCredit] = useState(entry && Number(entry.gst_credit) ? String(entry.gst_credit) : '');
   const [description, setDescription] = useState(entry?.description ?? '');
   const [category, setCategory] = useState(entry?.category ?? 'General');
+  const [adding, setAdding] = useState(false);
+  // Categories in use anywhere, so one coined for a past edition stays offered.
+  const categories = useMemo(() => [...new Set([...seedCategories, ...(report.categories ?? []), ...(entry ? [entry.category] : [])])].sort((a, b) => a.localeCompare(b)), [report.categories, entry]);
   const [date, setDate] = useState(entry?.entry_date ?? today());
   const [notes, setNotes] = useState(entry?.notes ?? '');
   const [reason, setReason] = useState('');
@@ -135,12 +142,16 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
   const [error, setError] = useState('');
   async function save(event: FormEvent, voidEntry = false) {
     event.preventDefault(); if (busy) return; setBusy(true); setError('');
+    // A new name that only differs in case is the same category; keep the
+    // spelling already in use so the dropdown doesn't collect near-duplicates.
+    const named = category.trim();
+    const chosen = categories.find((c) => c.toLowerCase() === named.toLowerCase()) ?? named;
     try {
       await fetchAdmin(`/api/admin/finance/entries${entry ? `/${entry.id}` : ''}`, {
         method: entry ? 'PATCH' : 'POST', body: JSON.stringify(voidEntry ? { updated_at: entry?.updated_at, void_reason: reason } : {
           id: id.current, edition_id: report.edition.id, account_id: account, kind, amount: Number(amount),
           gst_credit: kind === 'expense' && gstCredit !== '' ? Number(gstCredit) : 0,
-          description, category, entry_date: date, notes, updated_at: entry?.updated_at,
+          description, category: chosen, entry_date: date, notes, updated_at: entry?.updated_at,
         }),
       });
       toast.success(voidEntry ? 'Entry voided' : 'Entry saved'); onClose();
@@ -155,7 +166,15 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
       <label className="space-y-1 text-sm">Amount (₹)<input required className={field} type="number" min="0.01" max="999999999.99" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       {kind === 'expense' && <label className="space-y-1 text-sm">GST credit (₹)<input className={field} type="number" min="0" max={amount || '999999999.99'} step="0.01" placeholder="0.00" value={gstCredit} onChange={(e) => setGstCredit(e.target.value)} /></label>}
       <label className="space-y-1 text-sm">Description<input required maxLength={240} className={field} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
-      <label className="space-y-1 text-sm">Category<input required maxLength={80} className={field} list="finance-categories" value={category} onChange={(e) => setCategory(e.target.value)} /><datalist id="finance-categories">{['Venue', 'Food & drinks', 'Printing', 'Marketing', 'Transport', 'Equipment', 'General', 'Other income'].map((c) => <option key={c}>{c}</option>)}</datalist></label>
+      <div className="space-y-1 text-sm"><label className="block space-y-1">{adding ? 'New category' : 'Category'}
+        {adding
+          ? <input required autoFocus maxLength={80} className={field} placeholder="Name it as you'd file it" value={category} onChange={(e) => setCategory(e.target.value)} />
+          : <select required className={field} value={category} onChange={(e) => { if (e.target.value === addCategory) { setAdding(true); setCategory(''); } else setCategory(e.target.value); }}>
+            <option value="">Choose a category</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            <option value={addCategory}>+ Add a new category…</option>
+          </select>}
+      </label>{adding && <button type="button" className="text-xs underline" onClick={() => { setAdding(false); setCategory(entry?.category ?? 'General'); }}>Use an existing category</button>}</div>
       <label className="space-y-1 text-sm">Date<input required type="date" className={field} value={date} onChange={(e) => setDate(e.target.value)} /></label>
     </div><label className="block space-y-1 text-sm">Notes / receipt reference<textarea className={field} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
     <p className="text-xs text-muted-foreground">Record the full expense amount, and the GST on it separately if the invoice shows input credit. The credit is kept for filing only: it is not deducted from expenses, profit or account balances. Ticket, partner and BGC income appears automatically; don't enter it again.</p>
