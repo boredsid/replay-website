@@ -4,7 +4,7 @@ import { adminJson } from './auth';
 export interface FinanceAccount { id: string; name: string; staff_email: string; automatic_income: boolean; active: boolean }
 export interface FinanceEntry {
   id: string; edition_id: string; account_id: string; kind: 'income' | 'expense'; amount: number;
-  description: string; category: string; entry_date: string; notes: string;
+  gst_credit: number; description: string; category: string; entry_date: string; notes: string;
   created_by: string; updated_by: string; created_at: string; updated_at: string;
   voided_at: string | null; void_reason: string | null;
 }
@@ -20,7 +20,7 @@ const rupees = (value: number) => value / 100;
 export function summarizeFinance(snapshot: FinanceSnapshot) {
   const receiver = snapshot.accounts.find((a) => a.automatic_income);
   if (!receiver) throw new Error('Automatic income account is not configured.');
-  const totals = { tickets: 0, bgc: 0, partners: 0, gst: 0, manual: 0, expenses: 0, pending: 0, desk: 0 };
+  const totals = { tickets: 0, bgc: 0, partners: 0, gst: 0, manual: 0, expenses: 0, credit: 0, pending: 0, desk: 0 };
   const accounts = snapshot.accounts.map((a) => ({ ...a, income: 0, expenses: 0, bgc: 0 }));
   const recipient = accounts.find((a) => a.id === receiver.id)!;
   const reserved: Record<string, number> = {};
@@ -57,7 +57,9 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
     if (!account) throw new Error('Finance entry account is missing.');
     const amount = paise(e.amount);
     if (e.kind === 'income') { totals.manual += amount; account.income += amount; }
-    else { totals.expenses += amount; account.expenses += amount; }
+    // The GST credit is recorded for later filing only; it never reduces the
+    // expense, so profit and account balances stay untouched by it.
+    else { totals.expenses += amount; account.expenses += amount; totals.credit += paise(e.gst_credit ?? 0); }
   }
   const income = totals.tickets + totals.bgc + totals.partners + totals.manual;
   const profit = income - totals.gst - totals.expenses;
@@ -66,7 +68,7 @@ export function summarizeFinance(snapshot: FinanceSnapshot) {
     accounts: accounts.map((a) => ({ ...a, income: rupees(a.income), expenses: rupees(a.expenses), bgc: rupees(a.bgc), balance: rupees(a.income - a.expenses) })),
     summary: {
       ticket_income: rupees(totals.tickets), bgc_income: rupees(totals.bgc), partner_income: rupees(totals.partners), partner_gst: rupees(totals.gst),
-      manual_income: rupees(totals.manual), income: rupees(income), expenses: rupees(totals.expenses),
+      manual_income: rupees(totals.manual), income: rupees(income), expenses: rupees(totals.expenses), expense_gst_credit: rupees(totals.credit),
       net_revenue: rupees(income - totals.gst), profit: rupees(profit), shortfall: rupees(Math.max(0, -profit)), pending_income: rupees(totals.pending),
       confirmed_tickets: confirmedTickets,
       average_ticket_income: confirmedTickets ? rupees(totals.tickets + totals.bgc) / confirmedTickets : null,
@@ -91,13 +93,18 @@ export async function handleFinance(req: Request, sb: SupabaseClient, origin: st
 export function parseFinanceEntry(body: Record<string, unknown>) {
   const text = (key: string) => typeof body[key] === 'string' ? (body[key] as string).trim() : '';
   const amount = body.amount;
+  // Absent means nothing was claimed, which is the same as zero.
+  const credit = body.gst_credit === undefined || body.gst_credit === null || body.gst_credit === '' ? 0 : body.gst_credit;
   const date = text('entry_date');
   if (!UUID.test(text('edition_id')) || !UUID.test(text('account_id'))) throw new Error('Select an edition and account.');
   if (body.kind !== 'income' && body.kind !== 'expense') throw new Error('Choose income or expense.');
   if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > 999999999.99 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.00001) throw new Error('Enter a positive amount with at most two decimal places.');
+  if (typeof credit !== 'number' || !Number.isFinite(credit) || credit < 0 || Math.abs(credit * 100 - Math.round(credit * 100)) > 0.00001) throw new Error('Enter a GST credit of zero or more with at most two decimal places.');
+  if (credit > amount) throw new Error('The GST credit cannot exceed the expense amount.');
+  if (credit > 0 && body.kind !== 'expense') throw new Error('Only an expense can carry a GST credit.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error('Enter a valid date.');
   if (!text('description') || text('description').length > 240 || !text('category') || text('category').length > 80 || text('notes').length > 2000) throw new Error('Enter a description and category within the allowed length.');
-  return { edition_id: text('edition_id'), account_id: text('account_id'), kind: body.kind as 'income' | 'expense', amount, entry_date: date, description: text('description'), category: text('category'), notes: text('notes') };
+  return { edition_id: text('edition_id'), account_id: text('account_id'), kind: body.kind as 'income' | 'expense', amount, gst_credit: credit, entry_date: date, description: text('description'), category: text('category'), notes: text('notes') };
 }
 
 export async function handleFinanceSave(req: Request, sb: SupabaseClient, actor: string, origin: string, id?: string) {

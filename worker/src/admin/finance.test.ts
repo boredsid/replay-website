@@ -6,7 +6,7 @@ const editionId = '11111111-1111-4111-8111-111111111111';
 const accountId = '22222222-2222-4222-8222-222222222222';
 const entryId = '33333333-3333-4333-8333-333333333333';
 const origin = 'https://admin.replaycon.in';
-const input = { edition_id: editionId, account_id: accountId, kind: 'expense', amount: 20.25, description: 'Printing', category: 'Printing', entry_date: '2026-09-06', notes: '' };
+const input = { edition_id: editionId, account_id: accountId, kind: 'expense', amount: 20.25, gst_credit: 0, description: 'Printing', category: 'Printing', entry_date: '2026-09-06', notes: '' };
 function snapshot(): FinanceSnapshot {
   return {
     edition: { id: editionId, name: 'REPLAY', slug: 'replay-3', pricing: { oneshot: 700 }, capacity_per_day: { day1: 100, day2: 100 }, start_date: '2026-09-12', end_date: '2026-09-13' },
@@ -49,6 +49,16 @@ describe('edition finances', () => {
     expect(result.summary).toMatchObject({ income: 9490, net_revenue: 8050, expenses: 9000, profit: -950, shortfall: 950 });
     expect(result.accounts[0].balance).toBe(490);
   });
+  it('totals the GST credit recorded on expenses without deducting it anywhere', () => {
+    const data = snapshot();
+    data.entries = [
+      { ...input, kind: 'expense', amount: 1180, gst_credit: 180, id: entryId, created_by: 'a', updated_by: 'a', created_at: '', updated_at: '', voided_at: null, void_reason: null },
+      { ...input, kind: 'expense', amount: 590, gst_credit: 90, id: 'voided', created_by: 'a', updated_by: 'a', created_at: '', updated_at: '', voided_at: '2026-09-06', void_reason: 'Duplicate' },
+    ];
+    const result = summarizeFinance(data);
+    expect(result.summary).toMatchObject({ expenses: 1180, expense_gst_credit: 180, profit: -1180 });
+    expect(result.accounts[0].balance).toBe(-1180);
+  });
   it('does not duplicate automatic revenue across refreshes and reflects corrections and cancellations', () => {
     const data = snapshot(); data.registrations = [reg()];
     expect(summarizeFinance(data)).toEqual(summarizeFinance(data));
@@ -80,6 +90,16 @@ describe('manual entries', () => {
   });
   it.each(['2026-02-30', '2026-13-01', 'not-a-date'])('rejects invalid dates %s', (entry_date) => {
     expect(() => parseFinanceEntry({ ...input, entry_date })).toThrow();
+  });
+  it.each([-1, 20.26, 1.001, 'x', Infinity])('rejects an invalid GST credit %s', (gst_credit) => {
+    expect(() => parseFinanceEntry({ ...input, gst_credit })).toThrow();
+  });
+  it('keeps income entries free of GST credit and treats a missing credit as zero', () => {
+    expect(() => parseFinanceEntry({ ...input, kind: 'income', gst_credit: 1 })).toThrow();
+    expect(parseFinanceEntry({ ...input, kind: 'income' })).toMatchObject({ gst_credit: 0 });
+    const { gst_credit: _omitted, ...without } = input;
+    expect(parseFinanceEntry(without)).toMatchObject({ gst_credit: 0 });
+    expect(parseFinanceEntry({ ...input, gst_credit: 20.25 })).toMatchObject({ gst_credit: 20.25 });
   });
   it('strips unknown fields and accepts paise', () => {
     expect(parseFinanceEntry({ ...input, amount: 0.29, created_by: 'forged', voided_at: '2026-09-06' })).toEqual({ ...input, amount: 0.29 });

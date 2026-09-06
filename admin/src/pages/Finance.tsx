@@ -80,7 +80,7 @@ function FinancePage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ['Net revenue', money(s.net_revenue), 'Includes membership constributions; excludes partner GST'],
-          ['Expenses', money(s.expenses), 'All recorded expenses for this edition'],
+          ['Expenses', money(s.expenses), s.expense_gst_credit ? `All recorded expenses; ${money(s.expense_gst_credit)} GST credit noted on them and not deducted` : 'All recorded expenses for this edition'],
           [s.profit < 0 ? 'Loss to date' : s.profit > 0 ? 'Profit to date' : 'Break-even', money(Math.abs(s.profit)), 'Based on recorded income and expenses'],
           ['Registrations to break even', needed === null ? 'Not reachable' : String(needed), `At ${money(price)} income and ${money(Number(variableCost) || 0)} extra cost per ticket`],
         ].map(([label, value, hint]) => <div key={label} className="rounded-xl border bg-background p-4"><p className="text-sm text-muted-foreground">{label}</p><p className={`my-2 text-2xl font-bold ${label === 'Loss to date' ? 'text-destructive' : ''}`}>{value}</p><p className="text-xs text-muted-foreground">{hint}</p></div>)}
@@ -111,7 +111,7 @@ function FinancePage() {
         <select aria-label="Transaction type" className={field} value={filter} onChange={(e) => { setFilter(e.target.value); setLimit(50); }}>{[['all', 'All active entries'], ['income', 'Income'], ['expense', 'Expenses'], ['automatic', 'Automatic income'], ['manual', 'Manual entries'], ['voided', 'Voided entries']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         <select aria-label="Account filter" className={field} value={accountFilter} onChange={(e) => { setAccountFilter(e.target.value); setLimit(50); }}><option value="all">All accounts</option>{report.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
       </div><div className="overflow-x-auto rounded-lg border bg-background"><table className="w-full text-left text-sm"><thead className="bg-muted"><tr>{['Date', 'Description', 'Account', 'Amount', 'Source / action'].map((h) => <th key={h} className="p-3">{h}</th>)}</tr></thead><tbody>
-        {rows.slice(0, limit).map((e) => <tr key={e.id} className="border-t"><td className="whitespace-nowrap p-3">{displayDate(e.entry_date)}</td><td className="min-w-44 p-3"><div>{e.description}</div><div className="text-xs text-muted-foreground">{e.category}{e.voided ? ` · Voided: ${e.manual?.void_reason}` : ''}</div></td><td className="p-3">{accountName(e.account_id)}</td><td className="whitespace-nowrap p-3 font-medium">{e.kind === 'expense' ? '−' : '+'}{money(e.amount)}</td><td className="p-3">{e.manual ? <button className={button} disabled={editor !== null || e.voided} onClick={() => setEditor(e.manual)}>Edit / void</button> : <Link className="underline" to={`/${e.source === 'partner' ? 'partners' : 'registrations'}/${e.source_id}`}>{e.source === 'bgc' ? 'BGC · booking' : e.source === 'partner' ? 'Partner' : 'Booking'}</Link>}</td></tr>)}
+        {rows.slice(0, limit).map((e) => <tr key={e.id} className="border-t"><td className="whitespace-nowrap p-3">{displayDate(e.entry_date)}</td><td className="min-w-44 p-3"><div>{e.description}</div><div className="text-xs text-muted-foreground">{e.category}{Number(e.manual?.gst_credit) > 0 ? ` · ${money(Number(e.manual?.gst_credit))} GST credit` : ''}{e.voided ? ` · Voided: ${e.manual?.void_reason}` : ''}</div></td><td className="p-3">{accountName(e.account_id)}</td><td className="whitespace-nowrap p-3 font-medium">{e.kind === 'expense' ? '−' : '+'}{money(e.amount)}</td><td className="p-3">{e.manual ? <button className={button} disabled={editor !== null || e.voided} onClick={() => setEditor(e.manual)}>Edit / void</button> : <Link className="underline" to={`/${e.source === 'partner' ? 'partners' : 'registrations'}/${e.source_id}`}>{e.source === 'bgc' ? 'BGC · booking' : e.source === 'partner' ? 'Partner' : 'Booking'}</Link>}</td></tr>)}
         {!rows.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No transactions match these filters.</td></tr>}
       </tbody></table></div>{rows.length > limit && <button className={button} onClick={() => setLimit((v) => v + 50)}>Show 50 more ({rows.length} total)</button>}</section>
     </>}
@@ -125,6 +125,7 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
   const [kind, setKind] = useState(entry?.kind ?? 'expense');
   const [account, setAccount] = useState(entry?.account_id ?? report.accounts.find((a) => a.staff_email === actor)?.id ?? '');
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '');
+  const [gstCredit, setGstCredit] = useState(entry && Number(entry.gst_credit) ? String(entry.gst_credit) : '');
   const [description, setDescription] = useState(entry?.description ?? '');
   const [category, setCategory] = useState(entry?.category ?? 'General');
   const [date, setDate] = useState(entry?.entry_date ?? today());
@@ -137,7 +138,9 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
     try {
       await fetchAdmin(`/api/admin/finance/entries${entry ? `/${entry.id}` : ''}`, {
         method: entry ? 'PATCH' : 'POST', body: JSON.stringify(voidEntry ? { updated_at: entry?.updated_at, void_reason: reason } : {
-          id: id.current, edition_id: report.edition.id, account_id: account, kind, amount: Number(amount), description, category, entry_date: date, notes, updated_at: entry?.updated_at,
+          id: id.current, edition_id: report.edition.id, account_id: account, kind, amount: Number(amount),
+          gst_credit: kind === 'expense' && gstCredit !== '' ? Number(gstCredit) : 0,
+          description, category, entry_date: date, notes, updated_at: entry?.updated_at,
         }),
       });
       toast.success(voidEntry ? 'Entry voided' : 'Entry saved'); onClose();
@@ -147,14 +150,15 @@ function EntryEditor({ entry, report, actor, onClose }: { entry: FinanceEntry | 
   return <section ref={editorRef} tabIndex={-1} className="rounded-xl border-2 border-primary bg-background p-4" aria-label={entry ? 'Edit entry' : 'New entry'}>
     <h2 className="mb-3 font-semibold">{entry ? 'Edit entry' : 'New income or expense'}</h2>
     <form onSubmit={(e) => save(e)}><fieldset disabled={busy} className="space-y-3"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <label className="space-y-1 text-sm">Type<select className={field} value={kind} onChange={(e) => setKind(e.target.value as 'income' | 'expense')}><option value="expense">Expense</option><option value="income">Income</option></select></label>
+      <label className="space-y-1 text-sm">Type<select className={field} value={kind} onChange={(e) => { setKind(e.target.value as 'income' | 'expense'); if (e.target.value === 'income') setGstCredit(''); }}><option value="expense">Expense</option><option value="income">Income</option></select></label>
       <label className="space-y-1 text-sm">{kind === 'expense' ? 'Paid by' : 'Received by'}<select required className={field} value={account} onChange={(e) => setAccount(e.target.value)}><option value="">Choose an admin</option>{report.accounts.filter((a) => a.active || a.id === entry?.account_id).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
       <label className="space-y-1 text-sm">Amount (₹)<input required className={field} type="number" min="0.01" max="999999999.99" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+      {kind === 'expense' && <label className="space-y-1 text-sm">GST credit (₹)<input className={field} type="number" min="0" max={amount || '999999999.99'} step="0.01" placeholder="0.00" value={gstCredit} onChange={(e) => setGstCredit(e.target.value)} /></label>}
       <label className="space-y-1 text-sm">Description<input required maxLength={240} className={field} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
       <label className="space-y-1 text-sm">Category<input required maxLength={80} className={field} list="finance-categories" value={category} onChange={(e) => setCategory(e.target.value)} /><datalist id="finance-categories">{['Venue', 'Food & drinks', 'Printing', 'Marketing', 'Transport', 'Equipment', 'General', 'Other income'].map((c) => <option key={c}>{c}</option>)}</datalist></label>
       <label className="space-y-1 text-sm">Date<input required type="date" className={field} value={date} onChange={(e) => setDate(e.target.value)} /></label>
     </div><label className="block space-y-1 text-sm">Notes / receipt reference<textarea className={field} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
-    <p className="text-xs text-muted-foreground">Record the full expense amount. No input GST recovery is assumed. Ticket, partner and BGC income appears automatically; don't enter it again.</p>
+    <p className="text-xs text-muted-foreground">Record the full expense amount, and the GST on it separately if the invoice shows input credit. The credit is kept for filing only: it is not deducted from expenses, profit or account balances. Ticket, partner and BGC income appears automatically; don't enter it again.</p>
     <div className="flex gap-2"><button className={`${button} bg-primary text-primary-foreground`} type="submit">{busy ? 'Saving…' : 'Save entry'}</button><button type="button" className={button} onClick={onClose}>Cancel</button></div></fieldset></form>
     {entry && <form className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4" onSubmit={(e) => save(e, true)}><label className="min-w-60 flex-1 space-y-1 text-sm">Reason for voiding<input required maxLength={240} disabled={busy} className={field} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Duplicate, entered in error…" /></label><button disabled={busy} className={`${button} text-destructive`}>Void entry</button><p className="w-full text-xs text-muted-foreground">Voiding removes this entry from totals and keeps its audit history. Added by {entry.created_by}.</p></form>}
     {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
