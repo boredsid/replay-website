@@ -15,7 +15,7 @@ so nothing can fire twice.
   confirmation. Everyone else is in BCC and no recipient sees another.
 - HTML: `src/emails/replay-3-invite.html`, verified end to end through a real
   Gmail round trip — every colour panel survives, the three offset shadows do
-  not. See `docs/REPLAY3_EMAIL_HANDOFF.md`.
+  not. See `docs/reference/REPLAY3_EMAIL_HANDOFF.md`.
 - Plain text: **Gmail discards whatever plain-text part you supply** and
   generates its own from the HTML. `marketing/replay-3/invite.txt` is therefore
   unused on this path. Keep it for an ESP send.
@@ -44,7 +44,7 @@ Total 285.
 The batch files and `bgc-recipients.txt` are **gitignored and exist on disk
 only** — they hold real attendees' email addresses, and anything committed to git
 history is permanent. Regenerate them from Supabase if they are ever lost; the
-query is at the end of `docs/REPLAY3_EMAIL_HANDOFF.md`. The seven drafts already
+query is at the end of `docs/reference/REPLAY3_EMAIL_HANDOFF.md`. The seven drafts already
 carry their recipients in BCC, so the campaign does not depend on these files.
 
 ## Why 41 a day

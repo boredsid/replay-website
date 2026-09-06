@@ -24,7 +24,7 @@ src/generated/
 
 # Attendee email addresses. These are real people's contact details pulled from
 # public.users, and git history is permanent — keep them on disk, out of the repo.
-# Regenerate from Supabase with the query in docs/REPLAY3_EMAIL_HANDOFF.md.
+# Regenerate from Supabase with the query in docs/reference/REPLAY3_EMAIL_HANDOFF.md.
 marketing/replay-3/bgc-recipients.txt
 marketing/replay-3/batches/
 

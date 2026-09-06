@@ -1,5 +1,10 @@
 # REPLAY rebuild — handoff
 
+> **Write-once record, sealed 2026-09-06.** A snapshot of where the rebuild
+> stood on 2026-06-02, kept as history. It is not current state — see
+> [`docs/DELIVERED.md`](../DELIVERED.md) and [`docs/ROADMAP.md`](../ROADMAP.md).
+> Its paths describe the `docs/superpowers/` layout of the time.
+
 **Last updated:** 2026-06-02
 **Current branch:** `main` (production)
 **Status:** Phase 1 (incl. 1F email rework), Phase 2 historical import, **Phase 3A admin foundation**, and **Phase 3B (editions CRUD + users + manual-add edition selector)** all shipped. The 2026-08-17 fundamentals hardening added registration/payment integrity, current-edition enforcement, capacity serialization, accessibility/SEO/security improvements, dependency upgrades, data-sanity tooling, and a signed replacement email webhook. Apex `https://replaycon.in/` runs on the Astro + Cloudflare Pages + Supabase + Worker stack. Phase 3C (products/orders/sponsors/schedule) and the dedicated live-event-readiness/privacy session remain intentionally deferred.

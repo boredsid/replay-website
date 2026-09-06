@@ -23,7 +23,7 @@
 // Refreshing the BGG side: the `.tsv` files are the harvest, one row per game
 // as `bggId<TAB>title<TAB>year`. They come from the collection page's table
 // and have to be re-harvested through a real browser when a collection
-// changes — see docs/GAME_LIBRARY.md. Everything downstream of them, and the
+// changes — see docs/reference/GAME_LIBRARY.md. Everything downstream of them, and the
 // whole BGC side, is automatic.
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -42,7 +42,7 @@ const outputPath = join(repoRoot, 'src/data/game-library.json');
  * is BGG's "Vallamkali: Boat Races of Alappuzha" — the match fails, and the row
  * becomes a second card for a game already on the shelf, with no box art. This
  * file is the override that repairs those, and it is also what gives BGC-only
- * titles their art. See docs/GAME_LIBRARY.md for how to extend it.
+ * titles their art. See docs/reference/GAME_LIBRARY.md for how to extend it.
  */
 const idOverridesPath = join(repoRoot, 'src/data/bgc-bgg-ids.tsv');
 /**

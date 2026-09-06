@@ -2,8 +2,12 @@
 
 > **Write-once record, closed 2026-09-06.** This is what was planned and
 > what was learned building it, as at the time. It is not maintained and is
-> not current state — see [`docs/DELIVERED.md`](../../DELIVERED.md) and
-> [`docs/ROADMAP.md`](../../ROADMAP.md) for that.
+> not current state — see [`docs/DELIVERED.md`](../DELIVERED.md) and
+> [`docs/ROADMAP.md`](../ROADMAP.md) for that.
+>
+> Paths inside it describe the `docs/superpowers/` layout that existed when it
+> was written. They are left as they were rather than rewritten, because a
+> write-once record that gets edited is not one.
 
 Status: **P0-P4 and P6 shipped; P7 open.** P0, P2A–E and P3 by 2026-09-02; P4 on
 2026-09-04; P6 on 2026-09-05. P5 was taken out of scope on 2026-09-02.

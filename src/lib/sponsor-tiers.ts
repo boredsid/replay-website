@@ -9,7 +9,7 @@ export type SponsorTierKey =
 // the same five lines five times. They are stated once here, and each tier
 // carries only what it adds on top. The full staged specification — the same
 // deliverables grouped before / in the room / in the play / after — lives in
-// `docs/SPONSORSHIP.md`, which is what the partner deck is built from.
+// `docs/reference/SPONSORSHIP.md`, which is what the partner deck is built from.
 export const SPONSOR_BASELINE: string[] = [
   'A dedicated announcement post, plus one co-created content piece',
   'Your logo on the REPLAY website',

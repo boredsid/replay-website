@@ -132,7 +132,7 @@ it. A test asserts no `KEY_ITEMS` blurb appears in the SVG.
 There is no visible read-as-text block. `buildVenueMapSvg()` builds its `<desc>`
 from `venueMapOutline()`, so the whole description sits in the accessibility
 tree where a screen reader reaches it through `role="img"` and `aria-labelledby`.
-That is the accessible alternative `docs/ATTENDEE_APP_PLAN.md` asks for; keep it
+That is the accessible alternative the attendee app needs; keep it
 comprehensive when you change the plan.
 
 A name that cannot letter across its zone at a readable size wraps onto two
@@ -172,7 +172,7 @@ so do not lower it or long names will overrun.
 
 `venueMapOutline()` returns the plain-text description of the map. Both surfaces
 render it under "Read the map as text"; it is the accessible alternative
-`docs/ATTENDEE_APP_PLAN.md` asks for, and it stays correct automatically because
+the attendee app needs, and it stays correct automatically because
 it is generated from the same data.
 
 Run `npm test` after editing. The geometry tests catch overlapping zones and

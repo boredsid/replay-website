@@ -2,7 +2,7 @@ import type { EditionRow, PartnerKind, PartnerOfferKey, PartnerPricing } from '.
 
 // Mirrors worker/src/partner-offers.ts. The four packages are priced on the
 // edition; the sponsorship ladder is negotiated, so the figures below are the
-// asks published in docs/SPONSORSHIP.md and are only a starting point an admin
+// asks published in docs/reference/SPONSORSHIP.md and are only a starting point an admin
 // can type over.
 
 export interface PartnerOffer {

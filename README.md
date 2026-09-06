@@ -167,4 +167,4 @@ See [docs/DELIVERED.md](docs/DELIVERED.md) for what is built and why, and [docs/
 
 ## Historical notes
 
-The detailed build history remains under `docs/superpowers/`. Those files are reference material, not the operational source of truth. Prefer this README, the current migrations, and tested code when older notes disagree.
+The detailed build history remains under `docs/specs/`, `docs/implementation/` and `docs/notes/`, as dated write-once records. Those files are history, not the operational source of truth — prefer `docs/DELIVERED.md`, the current migrations, and tested code when older notes disagree.

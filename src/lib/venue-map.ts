@@ -11,7 +11,7 @@
  * The drawing language comes from the earlier REPLAY venue-map artifact: a
  * printed sheet, heavy ink outlines, pale tints for the open play zones and
  * full brand colour for the rooms people go looking for. See the rendering
- * section below, and `docs/VENUE_MAP.md`.
+ * section below, and `docs/reference/VENUE_MAP.md`.
  *
  * Coordinates are metres:
  *

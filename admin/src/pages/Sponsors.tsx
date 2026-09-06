@@ -5,7 +5,7 @@ import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
 import type { EditionRow, SponsorRow, SponsorTier } from '@/lib/types';
 
-// The ladder from docs/SPONSORSHIP.md, plus community for everyone credited
+// The ladder from docs/reference/SPONSORSHIP.md, plus community for everyone credited
 // on the wall without a package. Order here is wall order.
 const TIER_LABEL: Record<SponsorTier, string> = {
   title: 'Title sponsor',

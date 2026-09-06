@@ -3,8 +3,9 @@
 Open work, open decisions, and what was deliberately taken off the list.
 
 This is one of two documents anyone maintains. The other is
-[`DELIVERED.md`](DELIVERED.md), for what exists and why. Dated files under
-`docs/superpowers/` are write-once records and are never revised.
+[`DELIVERED.md`](DELIVERED.md), for what exists and why. Dated files under `docs/specs/`,
+`docs/implementation/` and `docs/notes/` are write-once records and are never
+revised.
 
 **The "removed from scope" section is load-bearing.** Two items on it were
 raised as outstanding work three and five times respectively, because they were
@@ -107,8 +108,9 @@ snapshot.
 
 - **Small work** goes straight in here as an entry, and moves to `DELIVERED.md`
   when it ships.
-- **A phase big enough to need thinking on paper** gets a dated spec and plan
-  under `docs/superpowers/`, following the existing naming. Those are **working
+- **A phase big enough to need thinking on paper** gets a dated spec in `docs/specs/`
+  and a plan in `docs/implementation/`, following the existing
+  `YYYY-MM-DD-<slug>` naming. Those are **working
   documents: live while the phase is active, abandoned the moment it ships, and
   never revised afterwards.** When it ships, the durable lessons — the ones that
   cost something to learn — graduate into `DELIVERED.md`, and the planning doc

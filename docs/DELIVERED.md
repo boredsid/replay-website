@@ -3,9 +3,10 @@
 Everything built and live, and — where it matters — why it is built that way.
 
 This is one of two documents anyone maintains. The other is
-[`ROADMAP.md`](ROADMAP.md), for what is not built yet. Dated files under
-`docs/superpowers/` are write-once records of a moment and are never revised;
-do not trust them for current state.
+[`ROADMAP.md`](ROADMAP.md), for what is not built yet. Dated files under `docs/specs/`,
+`docs/implementation/` and `docs/notes/` are write-once records of a moment and
+are never revised; do not trust them for current state. `docs/reference/` holds
+maintained how-it-works notes for individual subsystems.
 
 **Read the "why" notes before changing something near them.** Each one is a
 mistake somebody already made, usually in production, usually at the point
@@ -36,12 +37,12 @@ changes nothing until a build runs** — push an empty commit to trigger one.
 - **Venue floor plan** — geometry and SVG in `src/lib/venue-map.ts`, zero
   dependencies, shared with the attendee app. The organiser's sketch is the
   source of truth for layout; the CAD sets the outer envelope only. See
-  `docs/VENUE_MAP.md`.
+  `docs/reference/VENUE_MAP.md`.
 - **Game library page** — 586 titles from `src/data/game-library.json`, a
   committed snapshot rebuilt on demand by `npm run sync:library`. BoardGameGeek
   has closed every scriptable read path except per-game enrichment, so the
   collection list is harvested through a real browser and committed. See
-  `docs/GAME_LIBRARY.md`.
+  `docs/reference/GAME_LIBRARY.md`.
 
 ## Admin
 
