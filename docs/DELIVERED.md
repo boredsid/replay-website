@@ -58,10 +58,11 @@ changes nothing until a build runs** — push an empty commit to trigger one.
 Behind Cloudflare Access. Registrations, editions, users, promo codes,
 partners, sponsors, leads, audit log, plus the three event-day screens below.
 
-### Roles and staff (P6, 2026-09-05)
+### Roles and staff (P6, 2026-09-05; `read_only` 2026-09-07)
 
 `staff` (email, roles[]) replaced a comma-separated `ADMIN_EMAILS` secret.
-Five roles: `admin`, `basic_admin`, `check_in`, `library`, `programme`.
+Six roles: `admin`, `basic_admin`, `read_only`, `check_in`, `library`,
+`programme`.
 
 - **`basic_admin` is everything except the staff table.** That is the only
   privilege boundary that matters — a role that can edit staff can grant itself
@@ -74,6 +75,18 @@ Five roles: `admin`, `basic_admin`, `check_in`, `library`, `programme`.
   are redacted — no money at all, phone masked to the last four digits. Every
   money field goes, not only `amount_paid`: leaving the discount would let the
   price be worked out from it.
+- **`read_only` is the shared read-only floor and nothing else** — the
+  programme, notices, tickets and events, on GET only. That access already
+  existed for every desk role; before this the only way to give somebody it was
+  to hand them a desk they do not work, which is how a person who wanted to
+  watch the schedule ended up able to check people in. It is also the safe
+  default for a new volunteer before anyone decides which desk they are on.
+  Every desk role contains it, so the admin's role picker treats ticking one
+  beside the other as narrowing rather than adding.
+- **It is the first role without the dashboard**, which had been true of every
+  other role, so `/` now redirects to the first page somebody can actually open
+  (`landingFor` in `admin/src/components/nav.ts`). Widening `READABLE_BY_ALL`
+  widens this role by exactly one page — do it deliberately.
 - **Cloudflare Access is synced from the table**, so adding somebody is one
   screen rather than a dashboard edit plus a Worker deploy. The sync preserves
   rules it did not create and **never writes an object it could not first
@@ -88,6 +101,42 @@ Five roles: `admin`, `basic_admin`, `check_in`, `library`, `programme`.
 > **`Access: Apps and Policies` and `Access: Organizations, Identity Providers,
 > and Groups` are different token permissions.** A token with only the second
 > gets 403 on a policy.
+
+### Events board (P7, 2026-09-07)
+
+`/events` in the admin: every bookable session in the current edition at once,
+with its confirmed list and its queue. Rosters answered one session at a time,
+which is the wrong shape for the questions people stand there asking.
+
+- **One read answers three questions.** `GET /api/admin/events` returns the
+  whole edition — sessions with both lists — and the screen derives the
+  overview, the per-person view and the CSV from it. That is why there is no
+  separate "what has this person booked" endpoint: it is a filter, not a query.
+  Three database reads regardless of how big the programme gets.
+- **"What has this person booked" had no answer before.** A scanned pass says
+  who somebody is and what they have borrowed, and nothing about the seats they
+  hold. Finding an attendee here lists every session they are in or waiting
+  for, with their queue place.
+- **Its permissions are deliberately unlike anything else.** Readable by every
+  member of staff (it is in `READABLE_BY_ALL`); writable by `admin` and
+  `basic_admin` alone, because it has no entry in `RULES` and so is admin-only
+  by omission. A desk role that needs to move somebody uses the session roster
+  it already owns, linked from each session.
+- **Adding and removing go through the same functions the roster does**
+  (`createSignup` / `removeSignup` in `worker/src/admin/session-roster.ts`),
+  which go through the `sign_up_for_session` and `cancel_session_signup` RPCs
+  the attendee app uses. A seat freed here promotes and notifies exactly as one
+  freed from a phone does. The audit records which screen it came from in the
+  `diff`, not as a second action name.
+- **Queue position is derived from `signed_up_at` and never stored**, so the
+  board reads it the same way the roster does — off the array, in order.
+- **The export is one row per person, not per session**, so it sorts in a
+  spreadsheet and a host can be handed the lines that are theirs. Sessions with
+  nobody in them still get a row: "nobody booked" is the thing somebody at an
+  empty table needs confirmed. Phones stay masked, as on the door roster.
+
+> Only sessions with `signup_mode = 'app'` appear. An all-day open-play table
+> has no roster to show, and listing it would bury the handful that do.
 
 ### Promo codes
 

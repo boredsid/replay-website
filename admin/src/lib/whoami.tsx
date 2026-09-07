@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { fetchAdmin } from './api';
 
-export type Role = 'admin' | 'basic_admin' | 'check_in' | 'library' | 'programme';
+export type Role = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
 
 interface WhoAmI { email: string; name?: string | null; roles?: Role[]; }
 const Ctx = createContext<WhoAmI | null>(null);
@@ -34,6 +34,20 @@ export function useCanWrite(...owners: Role[]): boolean {
   const mine = who?.roles ?? [];
   if (mine.includes('admin') || mine.includes('basic_admin')) return true;
   return owners.some((role) => mine.includes(role));
+}
+
+/**
+ * Whether this person may change a booking from the events board.
+ *
+ * Narrower than `useCanWrite` on purpose. The events board is readable by every
+ * member of staff and writable by the two admin roles alone — a desk role that
+ * needs to move somebody uses the session roster, which it already owns. The
+ * Worker enforces this; hiding the buttons only keeps us from offering one that
+ * 403s.
+ */
+export function useCanManageEvents(): boolean {
+  const mine = useContext(Ctx)?.roles ?? [];
+  return mine.includes('admin') || mine.includes('basic_admin');
 }
 
 export function WhoAmIProvider({ fallback, children }: { fallback: ReactNode; children: (who: WhoAmI) => ReactNode }) {

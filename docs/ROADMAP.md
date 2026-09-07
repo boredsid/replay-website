@@ -16,37 +16,19 @@ against, record it here rather than removing it silently.
 
 ## Open
 
-### P7 — Booking management in the admin
+Nothing. P7 (booking management in the admin) shipped on 2026-09-07 — see the
+events board in [`DELIVERED.md`](DELIVERED.md).
 
-Attendees can book sessions from the app, and the admin can only see that one
-session at a time.
+Two things it deliberately did not do, recorded so they are decided rather than
+forgotten:
 
-**Already exists — do not rebuild.** `/programme/:id/roster` shows a single
-session's confirmed list and waitlist in queue order and lets staff add or
-remove somebody. It is reachable from the Programme list, on bookable sessions
-only.
-
-Missing, in the order it will be felt:
-
-1. **What has *this person* booked.** Nothing answers it. A pass scanned at the
-   door or the library counter says who somebody is and what they have
-   borrowed, and nothing about the sessions they hold seats in. This is the
-   question an attendee asks in person, so it is the one that hurts first.
-2. **One view across the programme.** Seeing the state of the day currently
-   means opening four rosters one at a time, which nobody does standing up.
-   Bookable sessions with seats taken and free, waitlist depth, what has filled.
-3. **Export.** Check-in has a CSV; sessions have none. Same argument as the
-   library ledger — when the network goes, paper takes over.
-
-Two traps for whoever builds it:
-
-- **Queue position is derived from `signed_up_at`, not stored.** Read it the way
-  `handleSessionRoster` does, or you will have two answers that disagree.
-- **Removing a seat must go through `cancel_session_signup`**, never a direct
-  update, or promotion stops and the waitlist silently freezes.
-
-Attendee-facing booking is finished and needs nothing. This is admin visibility
-only.
+- **Moving somebody between sessions in one action.** Remove then add does it in
+  two clicks and never leaves a half-applied booking; a single "move" would be
+  two RPC calls that can fail apart.
+- **Seating a specific waitlisted person out of turn.** Promotion is strictly
+  first-come, and the only way a seat opens is a cancellation. Letting staff
+  jump the queue or seat somebody over capacity needs a new database function
+  and a decision about what the queue then means — see the open decisions below.
 
 ---
 
@@ -67,6 +49,11 @@ Things nobody has decided. Each blocks nothing today.
 4. **`renotify` on notifications.** A notice replacing an earlier one with the
    same tag currently arrives silently, which for a republished incident is
    probably wrong. One line.
+5. **Whether staff may seat somebody out of queue order**, or over a session's
+   capacity, when a host says to. Today neither is possible from any screen —
+   promotion is first-come and capacity is enforced in the database. Raised by
+   the events board (2026-09-07) and left undecided, because the answer changes
+   what a waitlist position promises the person holding it.
 
 ## Not this edition
 
