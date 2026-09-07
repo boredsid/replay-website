@@ -1,6 +1,7 @@
 ---
 import type { ScheduleItemRow, ScheduleKind, ScheduleSection, ScheduleSignupMode } from '../lib/types';
 import { calendarDate } from '../lib/edition-format';
+import { ATTENDEE_APP_URL } from '../lib/app-link';
 
 export interface Props {
   date: string;
@@ -59,20 +60,24 @@ const KIND_PILL: Record<ScheduleKind, string> = {
 };
 
 const SIGNUP_LABEL: Record<Exclude<ScheduleSignupMode, 'none'>, string> = {
-  app: 'Book in the app',
+  app: 'Book on App',
 };
 
 const hhmm = (time: string | null) => time ? time.slice(0, 5) : '';
 const timing = (item: ScheduleItemRow) => item.is_all_day
   ? 'All day'
   : `${hhmm(item.start_time)}–${hhmm(item.end_time)}`;
+
+const bookable = (item: ScheduleItemRow) => item.signup_mode !== 'none' && item.public_status !== 'cancelled';
 ---
 
+{/*
+  The day name and date are carried by the tab that reveals this panel, so the
+  heading here is for structure and screen readers only — printing it again
+  would repeat the tab immediately below itself.
+*/}
 <section class="schedule-day" aria-label={`${label} schedule`}>
-  <header class="schedule-day-header">
-    <h2 class="schedule-day-label">{label}</h2>
-    <span class="schedule-day-date">{calendarDate(date)}</span>
-  </header>
+  <h2 class="sr-only">{label} — {calendarDate(date)}</h2>
 
   {items.length === 0 ? (
     <p class="schedule-empty">No published items yet.</p>
@@ -97,15 +102,41 @@ const timing = (item: ScheduleItemRow) => item.is_all_day
                   {item.public_status === 'cancelled' && <span class="pill pill-cream">Cancelled</span>}
                 </div>
 
-                <h4>{item.title}</h4>
-                {item.host_name && <p class="schedule-card__host">Hosted by {item.host_name}</p>}
-                {item.description && <p class="schedule-card__description">{item.description}</p>}
+                <div class="schedule-card__body">
+                  <h4>{item.title}</h4>
+                  {item.host_name && <p class="schedule-card__host">Hosted by {item.host_name}</p>}
 
-                {(item.location || item.signup_mode !== 'none') && (
+                  {item.description && (
+                    <details class="schedule-card__more">
+                      <summary>
+                        <span class="schedule-card__more-label">Details</span>
+                        <svg class="schedule-card__chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+                          <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </summary>
+                      <p>{item.description}</p>
+                    </details>
+                  )}
+                </div>
+
+                {/*
+                  A sibling of the body, not a child of it, so a wide timeline
+                  row can move it into a third column beside the title instead
+                  of stacking it underneath.
+                */}
+                {(item.location || bookable(item)) && (
                   <div class="schedule-card__details">
-                    {item.location && <span>◆ {item.location}</span>}
-                    {item.signup_mode !== 'none' && item.public_status !== 'cancelled' && (
-                      <span>{SIGNUP_LABEL[item.signup_mode]}</span>
+                    {item.location && <span class="schedule-card__location">◆ {item.location}</span>}
+                    {bookable(item) && (
+                      <a
+                        class="pill pill-black schedule-card__book"
+                        href={ATTENDEE_APP_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {SIGNUP_LABEL[item.signup_mode as Exclude<ScheduleSignupMode, 'none'>]}
+                        <span aria-hidden="true">→</span>
+                      </a>
                     )}
                   </div>
                 )}
@@ -119,38 +150,79 @@ const timing = (item: ScheduleItemRow) => item.is_all_day
 </section>
 
 <style>
-  .schedule-day { margin-bottom: 5rem; }
-  .schedule-day-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .8rem; margin-bottom: 2rem; border-bottom: 4px solid var(--color-ink); }
-  .schedule-day-label { margin: 0; font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; line-height: 1; letter-spacing: -.03em; }
-  .schedule-day-date { font-family: var(--font-heading); font-size: .78rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .58; white-space: nowrap; }
   .schedule-empty { padding: 1rem 0; color: rgba(26,26,26,.58); }
 
-  .schedule-group + .schedule-group { margin-top: 3.5rem; }
-  .schedule-group__header { display: grid; gap: .45rem; margin-bottom: 1.25rem; }
-  .schedule-group__header h3 { font-size: clamp(1.45rem, 4vw, 2rem); }
-  .schedule-group__header p { max-width: 68ch; color: rgba(26,26,26,.68); }
+  .schedule-group + .schedule-group { margin-top: 2.4rem; }
+  .schedule-group__header { display: grid; gap: .3rem; margin-bottom: .9rem; }
+  .schedule-group__header h3 { font-size: clamp(1.35rem, 4vw, 1.75rem); }
+  .schedule-group__header p { max-width: 68ch; font-size: .92rem; color: rgba(26,26,26,.68); }
 
-  .schedule-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px; }
-  .schedule-card { display: flex; flex-direction: column; min-width: 0; padding: 22px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-md); }
+  /* `align-items: start` so opening one card's description does not stretch
+     every other card in its row to match. */
+  .schedule-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; align-items: start; }
+  .schedule-card { display: flex; flex-direction: column; min-width: 0; padding: 16px; border: 3px solid var(--color-ink); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
   .schedule-card--cancelled { opacity: .68; background: var(--color-cream); }
   .schedule-card--cancelled h4 { text-decoration: line-through; }
-  .schedule-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .schedule-card__time { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: .82rem; font-weight: 800; }
-  .schedule-card h4 { margin-top: 16px; font-size: 1.3rem; line-height: 1.2; }
-  .schedule-card__host { margin-top: 5px; font-size: .86rem; font-weight: 750; color: rgba(26,26,26,.66); }
-  .schedule-card__description { margin-top: 10px; color: rgba(26,26,26,.75); }
-  .schedule-card__details { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: auto; padding-top: 18px; font-size: .84rem; font-weight: 700; }
-  .schedule-card__details a { color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .schedule-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  /* Card pills sit tighter than the page's default pill so a dense list of
+     them does not read as a wall of badges. */
+  .schedule-card .pill { padding: 2px 9px; font-size: .72rem; }
+  .schedule-card__time { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: .76rem; font-weight: 800; }
+  .schedule-card__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .schedule-card h4 { margin-top: 10px; font-size: 1.08rem; line-height: 1.22; }
+  .schedule-card__host { margin-top: 3px; font-size: .8rem; font-weight: 750; color: rgba(26,26,26,.66); }
+
+  /* Descriptions stay folded away so a long day scans as a list of titles. */
+  .schedule-card__more { margin-top: 8px; }
+  .schedule-card__more summary {
+    display: inline-flex; align-items: center; gap: 5px;
+    width: fit-content; padding: 2px 0;
+    font-family: var(--font-heading); font-size: .72rem; font-weight: 800;
+    letter-spacing: .04em; text-transform: uppercase;
+    color: rgba(26,26,26,.72);
+    cursor: pointer; list-style: none;
+  }
+  .schedule-card__more summary::-webkit-details-marker { display: none; }
+  .schedule-card__more summary:hover { color: var(--color-ink); }
+  .schedule-card__more summary:focus-visible { outline: 3px solid var(--color-ink); outline-offset: 3px; border-radius: 4px; }
+  .schedule-card__more-label { border-bottom: 2px solid currentColor; }
+  .schedule-card__chevron { flex: none; transition: transform .15s ease; }
+  .schedule-card__more[open] .schedule-card__chevron { transform: rotate(180deg); }
+  .schedule-card__more > p { margin-top: 7px; font-size: .9rem; color: rgba(26,26,26,.75); }
+
+  .schedule-card__details { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: auto; padding-top: 11px; font-size: .8rem; font-weight: 700; }
+  .schedule-card__details a:not(.pill) { color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+  /* The one action on a card, so it gets the ink pill and a lift on hover. */
+  .schedule-card__book { gap: 6px; text-decoration: none; transition: transform .12s ease, box-shadow .12s ease; }
+  .schedule-card__book:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--color-ink); }
+  .schedule-card__book:focus-visible { outline: 3px solid var(--color-ink); outline-offset: 3px; }
 
   @media (min-width: 760px) {
+    /* Desktop has the width for a fourth column, so the cards get narrower and
+       tighter rather than growing to fill it — more of the day on one screen.
+       `auto-fill`, not `auto-fit`: a section holding only three items keeps
+       them card-sized instead of stretching them across the whole row. */
+    .schedule-items { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+    .schedule-card { padding: 14px; }
+    .schedule-card h4 { font-size: 1.02rem; }
+
+    /* Three columns — when, what, where — so a timed row is one line of
+       reading rather than a stack, and a full day fits on far less screen. */
     .schedule-items--timeline { grid-template-columns: 1fr; }
-    .schedule-items--timeline .schedule-card { display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr); column-gap: 24px; align-items: start; }
-    .schedule-items--timeline .schedule-card__meta { grid-column: 1; grid-row: 1 / span 4; align-content: start; }
-    .schedule-items--timeline .schedule-card h4,
-    .schedule-items--timeline .schedule-card__host,
-    .schedule-items--timeline .schedule-card__description,
-    .schedule-items--timeline .schedule-card__details { grid-column: 2; }
+    /* A fixed "when" column so every title starts on the same line down the
+       day. A kind label too wide for it wraps that one card's time under its
+       pill rather than shunting that row's title out of the column. */
+    .schedule-items--timeline .schedule-card { display: grid; grid-template-columns: 178px minmax(0, 1fr) auto; column-gap: 18px; align-items: start; }
+    .schedule-items--timeline .schedule-card__meta { grid-column: 1; align-content: start; }
+    .schedule-items--timeline .schedule-card__body { grid-column: 2; }
     .schedule-items--timeline .schedule-card h4 { margin-top: 0; }
-    .schedule-items--timeline .schedule-card__details { margin-top: 0; }
+    /* A timeline row is only as tall as its content, so the footer sits beside
+       it — no auto margin pushing it to the bottom of a stretched card. */
+    .schedule-items--timeline .schedule-card__details { grid-column: 3; justify-content: end; margin-top: 0; padding-top: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .schedule-card__chevron, .schedule-card__book { transition: none; }
   }
 </style>

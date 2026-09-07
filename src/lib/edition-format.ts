@@ -38,3 +38,10 @@ export function clockTime(value: string): string {
   const displayHour = hour % 12 || 12;
   return minute === '00' ? `${displayHour} ${suffix}` : `${displayHour}:${minute} ${suffix}`;
 }
+
+/** "Sep 13" — the day label a tab or chip has room for. */
+export function shortCalendarDate(iso: string): string {
+  const parsed = parseIsoDate(iso);
+  if (!parsed) return iso;
+  return `${MONTHS[parsed.month - 1]} ${parsed.day}`;
+}
