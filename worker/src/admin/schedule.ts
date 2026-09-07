@@ -180,3 +180,50 @@ export async function handleSchedulePatch(req: Request, sb: SupabaseClient, id: 
   await writeAudit(sb, { actor_email: email, action: 'schedule.update', target_table: 'schedule_items', target_id: id, diff: diffRows(before.data as any, { ...(before.data as any), ...row }) });
   return adminJson({ ok: true, item: updated.data }, 200, origin);
 }
+
+/**
+ * DELETE /api/admin/schedule/:id
+ *
+ * A live booking is somebody's plan for the day. The row's foreign keys cascade,
+ * so deleting a session people have booked would cancel every one of them with
+ * no notice and take the roster with it -- the same argument that stops a
+ * redeemed promo code being deleted. Refuse, and point at the softer move: the
+ * `cancelled` status is public, so attendees are told rather than simply
+ * finding their session gone.
+ *
+ * Saved agenda entries are a different matter and do cascade away: an item that
+ * no longer exists has nothing to show for them.
+ */
+export async function handleScheduleDelete(
+  sb: SupabaseClient,
+  id: string,
+  email: string,
+  origin: string,
+): Promise<Response> {
+  const before = await sb.from('schedule_items').select('*').eq('id', id).maybeSingle();
+  if (before.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  if (!before.data) return adminJson({ error: 'not_found' }, 404, origin);
+
+  const signups = await sb
+    .from('session_signups')
+    .select('id')
+    .eq('schedule_item_id', id)
+    .neq('status', 'cancelled');
+  if (signups.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const liveSignups = (signups.data ?? []).length;
+  if (liveSignups > 0) {
+    return adminJson({ error: 'session_has_signups', signup_count: liveSignups }, 409, origin);
+  }
+
+  const deleted = await sb.from('schedule_items').delete().eq('id', id);
+  if (deleted.error) return adminJson({ error: 'delete_failed' }, 500, origin);
+
+  await writeAudit(sb, {
+    actor_email: email,
+    action: 'schedule.delete',
+    target_table: 'schedule_items',
+    target_id: id,
+    diff: before.data,
+  });
+  return adminJson({ ok: true }, 200, origin);
+}

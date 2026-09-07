@@ -1,9 +1,18 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
-vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn() }));
+const { FakeApiError } = vi.hoisted(() => ({
+  FakeApiError: class extends Error {
+    status: number;
+    constructor(status: number, message: string) { super(message); this.status = status; }
+  },
+}));
+vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn(), ApiError: FakeApiError }));
+const state = vi.hoisted(() => ({ canWrite: true }));
+vi.mock('@/lib/whoami', () => ({ useCanWrite: () => state.canWrite }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { fetchAdmin } from '@/lib/api';
 import ProgrammeDrawer from './ProgrammeDrawer';
 
@@ -16,6 +25,7 @@ const EDITION = {
 };
 
 beforeEach(() => {
+  state.canWrite = true;
   (fetchAdmin as any).mockReset();
   (fetchAdmin as any).mockImplementation((path: string) => {
     if (path === '/api/admin/editions') return Promise.resolve({ editions: [EDITION] });
@@ -67,4 +77,59 @@ it('offers story-game as an activity type and sends it on create', async () => {
   await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/schedule', expect.objectContaining({ method: 'POST' })));
   const call = (fetchAdmin as any).mock.calls.find((entry: any[]) => entry[0] === '/api/admin/schedule');
   expect(JSON.parse(call[1].body)).toMatchObject({ title: 'Fiasco one-shot', kind: 'story-game' });
+});
+
+const ITEM = {
+  id: 'i1', edition_id: 'e3', day: '2026-09-12', title: 'Fiasco one-shot',
+  section: 'programme', kind: 'story-game', is_all_day: false,
+  start_time: '14:00:00', end_time: '16:00:00', host_name: null, location: null,
+  description: null, signup_mode: 'app', capacity: 6, public_status: 'published', display_order: 0,
+};
+
+function editDrawer(onDelete?: () => Promise<unknown>) {
+  (fetchAdmin as any).mockImplementation((path: string, init?: RequestInit) => {
+    if (path === '/api/admin/editions') return Promise.resolve({ editions: [EDITION] });
+    if (path === '/api/admin/schedule/i1' && init?.method === 'DELETE' && onDelete) return onDelete();
+    if (path === '/api/admin/schedule/i1') return Promise.resolve({ item: ITEM });
+    return Promise.resolve({ ok: true });
+  });
+  return render(
+    <MemoryRouter initialEntries={['/programme/i1']}>
+      <Routes><Route path="/programme/:id" element={<ProgrammeDrawer />} /></Routes>
+    </MemoryRouter>,
+  );
+}
+
+/** The drawer and the confirm dialog both say "Delete item"; this is the dialog's. */
+async function confirmDelete() {
+  await userEvent.click(await screen.findByRole('button', { name: /^delete item$/i }));
+  const dialog = await screen.findByRole('dialog');
+  await userEvent.click(within(dialog).getByRole('button', { name: /^delete item$/i }));
+}
+
+it('deletes an item after confirming, then offers a rebuild', async () => {
+  editDrawer();
+  await screen.findByLabelText('Title');
+  await confirmDelete();
+
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/schedule/i1', { method: 'DELETE' }));
+  expect(await screen.findByText(/rebuild the public site\?/i)).toBeInTheDocument();
+});
+
+it('explains that a booked session must be cancelled rather than deleted', async () => {
+  editDrawer(() => Promise.reject(new FakeApiError(409, 'session_has_signups')));
+  await screen.findByLabelText('Title');
+  await confirmDelete();
+
+  const { toast } = await import('sonner');
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/cancelled instead/i)));
+  expect(screen.queryByText(/rebuild the public site\?/i)).toBeNull();
+});
+
+it('hides the delete button from staff who may only read the programme', async () => {
+  state.canWrite = false;
+  editDrawer();
+
+  await screen.findByLabelText('Title');
+  expect(screen.queryByRole('button', { name: /^delete item$/i })).toBeNull();
 });
