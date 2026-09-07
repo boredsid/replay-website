@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { fetchAdmin, showApiError } from '@/lib/api';
+import { ApiError, fetchAdmin, showApiError } from '@/lib/api';
+import { useCanWrite } from '@/lib/whoami';
 import type { EditionRow, ScheduleItemRow, ScheduleKind, SchedulePublicStatus, ScheduleSection, ScheduleSignupMode } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -69,12 +70,14 @@ export default function ProgrammeDrawer() {
   const { id } = useParams();
   const [search] = useSearchParams();
   const isNew = !id;
+  const canWrite = useCanWrite('programme');
   const [editions, setEditions] = useState<EditionRow[]>([]);
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showRebuild, setShowRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -157,6 +160,30 @@ export default function ProgrammeDrawer() {
       setShowRebuild(true);
     } catch (error) {
       showApiError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Deleting is for an item that should never have existed. An item that is
+   * happening no longer gets the `cancelled` status instead, which the public
+   * site and the app both show -- so anybody who had planned around it is told.
+   */
+  async function remove() {
+    setBusy(true);
+    try {
+      await fetchAdmin(`/api/admin/schedule/${id}`, { method: 'DELETE' });
+      setConfirmDelete(false);
+      toast.success('Programme item deleted');
+      setShowRebuild(true);
+    } catch (error) {
+      setConfirmDelete(false);
+      if (error instanceof ApiError && error.message === 'session_has_signups') {
+        toast.error('People have booked this session. Set it to cancelled instead, or clear the roster first.');
+      } else {
+        showApiError(error);
+      }
     } finally {
       setBusy(false);
     }
@@ -268,7 +295,43 @@ export default function ProgrammeDrawer() {
           <button disabled={busy} onClick={save} className="w-full rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-50">
             {busy ? 'Saving…' : isNew ? 'Create item' : 'Save item'}
           </button>
+
+          {!isNew && canWrite && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+              className="w-full rounded-md border border-destructive px-3 py-2 text-sm font-medium text-destructive disabled:opacity-50"
+            >
+              Delete item
+            </button>
+          )}
         </div>
+
+        <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete {form.title || 'this item'}?</DialogTitle>
+              <DialogDescription>
+                This removes the item for good, and drops it from anyone's saved agenda. To call off something that was
+                announced, set its public status to cancelled instead — that way attendees are told.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button type="button" onClick={() => setConfirmDelete(false)} className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto">
+                Keep it
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { void remove(); }}
+                className="w-full rounded-md bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50 sm:w-auto"
+              >
+                {busy ? 'Deleting…' : 'Delete item'}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showRebuild} onOpenChange={(open) => { if (!open) { setShowRebuild(false); nav('/programme'); } }}>
           <DialogContent>

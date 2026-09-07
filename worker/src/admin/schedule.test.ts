@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleScheduleCreate, handleSchedulePatch } from './schedule';
+import { handleScheduleCreate, handleSchedulePatch, handleScheduleDelete } from './schedule';
 
 const ORIGIN = 'https://admin.replaycon.in';
 const BASE = {
@@ -154,5 +154,47 @@ describe('handleSchedulePatch', () => {
     // The retired modes must be refused by the API too, not only by the database.
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'invalid_signup_mode' });
+  });
+});
+
+describe('handleScheduleDelete', () => {
+  function client(options: { item?: any; signups?: any[] }) {
+    const state = { deleted: false, audit: null as any };
+    const sb: any = {
+      from: (table: string) => {
+        if (table === 'schedule_items') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: options.item ?? null, error: null }) }) }),
+          delete: () => ({ eq: async () => { state.deleted = true; return { error: null }; } }),
+        };
+        if (table === 'session_signups') return {
+          select: () => ({ eq: () => ({ neq: async () => ({ data: options.signups ?? [], error: null }) }) }),
+        };
+        if (table === 'admin_audit_log') return { insert: async (row: any) => { state.audit = row; return { error: null }; } };
+        return {};
+      },
+    };
+    return { sb, state };
+  }
+
+  it('deletes an item nobody has booked and writes an audit row', async () => {
+    const { sb, state } = client({ item: { id: 'item-1', title: 'Open board games' } });
+    const res = await handleScheduleDelete(sb, 'item-1', 'sid@x.com', ORIGIN);
+    expect(res.status).toBe(200);
+    expect(state.deleted).toBe(true);
+    expect(state.audit).toMatchObject({ action: 'schedule.delete', target_table: 'schedule_items', target_id: 'item-1' });
+  });
+
+  it('refuses to delete a session people have booked, and says how many', async () => {
+    const { sb, state } = client({ item: { id: 'item-1', title: 'Fiasco' }, signups: [{ id: 's1' }, { id: 's2' }] });
+    const res = await handleScheduleDelete(sb, 'item-1', 'sid@x.com', ORIGIN);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: 'session_has_signups', signup_count: 2 });
+    expect(state.deleted).toBe(false);
+  });
+
+  it('404s on an item that is not there', async () => {
+    const { sb } = client({});
+    const res = await handleScheduleDelete(sb, 'missing', 'sid@x.com', ORIGIN);
+    expect(res.status).toBe(404);
   });
 });

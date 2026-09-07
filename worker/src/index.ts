@@ -20,7 +20,7 @@ import { handleEdList, handleEdCreate, handleEdPatch } from './admin/editions';
 import { handleUserList, handleUserGet, handleUserPatch, handleUserChangePhone } from './admin/users';
 import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
-import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch } from './admin/schedule';
+import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch, handleScheduleDelete } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch, handleAnnouncementDelete } from './admin/announcements';
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
@@ -252,6 +252,7 @@ export default {
         const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
         if (scheduleMatch && req.method === 'GET') return await handleScheduleGet(sb, scheduleMatch[1], origin);
         if (scheduleMatch && req.method === 'PATCH') return await handleSchedulePatch(req, sb, scheduleMatch[1], email, origin);
+        if (scheduleMatch && req.method === 'DELETE') return await handleScheduleDelete(sb, scheduleMatch[1], email, origin);
 
         if (path === '/api/admin/registrations' && req.method === 'GET') return await handleRegList(req, env, sb, origin, redactRegistrations);
         if (path === '/api/admin/registrations' && req.method === 'POST') return await handleRegCreate(req, env, sb, email, origin);
