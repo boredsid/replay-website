@@ -6,6 +6,8 @@ vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
   return { fetchAdmin: vi.fn(), showApiError: vi.fn(), ApiError: actual.ApiError };
 });
+const state = vi.hoisted(() => ({ canWrite: true }));
+vi.mock('@/lib/whoami', () => ({ useCanWrite: () => state.canWrite }));
 import { fetchAdmin, ApiError } from '@/lib/api';
 import RegistrationDrawer from './RegistrationDrawer';
 
@@ -38,7 +40,31 @@ function renderDrawer() {
   );
 }
 
-beforeEach(() => { (fetchAdmin as any).mockReset(); });
+beforeEach(() => { state.canWrite = true; (fetchAdmin as any).mockReset(); });
+
+it('offers a read-only viewer nothing to press, and nothing about the money', async () => {
+  state.canWrite = false;
+  // What the Worker actually returns to a non-admin: money stripped, phone masked.
+  const { amount_paid: _a, ...redacted } = REG;
+  (fetchAdmin as any).mockImplementation(async (path: string) => {
+    if (path === '/api/admin/editions') throw new ApiError(403, 'forbidden');
+    return { registration: { ...redacted, user_phone: '••••••3210' }, redacted: true };
+  });
+  renderDrawer();
+
+  await screen.findByText('••••••3210');
+  expect(screen.getByText('1-day pass')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /save changes/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^confirm$/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^cancel$/i })).toBeNull();
+  expect(screen.queryByLabelText('Amount')).toBeNull();
+  expect(screen.queryByLabelText('Pass type')).toBeNull();
+  // The discount wording reads the absent money fields as "full price", which
+  // would be a claim about a number this viewer was not shown.
+  expect(screen.queryByText(/full price/i)).toBeNull();
+  // Editions is admin-only; asking for it would only 403.
+  expect((fetchAdmin as any).mock.calls.every((c: any[]) => c[0] !== '/api/admin/editions')).toBe(true);
+});
 
 it('confirms a pending registration', async () => {
   mockApi();

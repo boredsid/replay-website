@@ -5,6 +5,7 @@ import { oneDayPrice, type Day, type EditionRow, type GuildTier, type PassType, 
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { describeDiscount, describeEntry } from '@/lib/discount-source';
+import { useCanWrite } from '@/lib/whoami';
 
 interface Detail {
   id: string;
@@ -61,6 +62,10 @@ function daysOf(draft: Draft): Day[] {
 export default function RegistrationDrawer() {
   const { id } = useParams();
   const nav = useNavigate();
+  // Bookings are written by admins only. Everyone else on staff may open this
+  // to answer a question at the door, so the drawer has two shapes: the form
+  // below, and a card that only states what was bought.
+  const canWrite = useCanWrite();
   const [reg, setReg] = useState<Detail | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [edition, setEdition] = useState<EditionRow | null>(null);
@@ -73,13 +78,15 @@ export default function RegistrationDrawer() {
   }, [id]);
 
   // Only for the base-price hint below the amount, so a failure is silent.
+  // Editions are an admin-only route and there is no amount to hint at when
+  // the row came back redacted, so a read-only viewer never asks.
   const editionId = reg?.edition_id;
   useEffect(() => {
-    if (!editionId) return;
+    if (!editionId || !canWrite) return;
     fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions')
       .then((d) => setEdition(d.editions.find((e) => e.id === editionId) ?? null))
       .catch(() => {});
-  }, [editionId]);
+  }, [editionId, canWrite]);
 
   const seats = draft ? Number(draft.seats) : Number.NaN;
   const amount = draft ? Number(draft.amount_paid) : Number.NaN;
@@ -165,10 +172,29 @@ export default function RegistrationDrawer() {
       <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
         <SheetHeader className="p-0 pr-8">
           <SheetTitle>{reg?.users?.name || 'Registration'}</SheetTitle>
-          <SheetDescription>Correct the pass, then confirm or cancel it.</SheetDescription>
+          <SheetDescription>
+            {canWrite ? 'Correct the pass, then confirm or cancel it.' : 'What this person booked.'}
+          </SheetDescription>
         </SheetHeader>
         {!reg || !draft ? (
           <div>Loading…</div>
+        ) : !canWrite ? (
+          // Everything about the money is stripped from the response for this
+          // viewer, so none of it is shown — not even the discount, whose
+          // wording would otherwise read "None — full price" off the absence
+          // of the very fields that were withheld.
+          <div className="space-y-3">
+            <Field k="Phone" v={reg.user_phone} />
+            <Field k="Email" v={reg.users?.email || '—'} />
+            <Field k="Status" v={reg.payment_status} />
+            <Field k="Pass type" v={reg.pass_type === 'campaign' ? '2-day pass' : '1-day pass'} />
+            <Field k="Days" v={reg.days.map((day) => (day === 'day1' ? 'Sat' : 'Sun')).join(', ')} />
+            <Field k="Tickets" v={String(reg.seats)} />
+            {enteredBy && <Field k="Entered" v={enteredBy} />}
+            <p className="text-xs text-muted-foreground">
+              Only an admin can change a booking or its payment status. Ask one if this needs correcting.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             <Field k="Phone" v={reg.user_phone} />
