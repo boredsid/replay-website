@@ -4,6 +4,7 @@ import type { Role } from './whoami';
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Full admin',
   basic_admin: 'Basic admin',
+  read_only: 'Read only',
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme & notices',
@@ -12,6 +13,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLE_HINTS: Record<Role, string> = {
   admin: 'Everything, including this page',
   basic_admin: 'Everything except this page — cannot change who has access',
+  read_only: 'Look at the programme, notices, tickets and events. Change nothing',
   check_in: 'Check people in, issue app codes, session rosters',
   library: 'Lend and take back games',
   programme: 'Edit the schedule and send notices',
@@ -22,16 +24,20 @@ export const ALL_ROLES = Object.keys(ROLE_LABELS) as Role[];
 /**
  * Which roles each role already contains.
  *
- * Only the two umbrella roles contain anything. The desk roles are siblings:
- * the library desk is not a superset of check-in, so somebody can hold both
- * and frequently does.
+ * The desk roles are siblings of each other: the library desk is not a superset
+ * of check-in, so somebody can hold both and frequently does. They are not
+ * siblings of Read only, which every one of them already contains.
  */
 const COVERS: Record<Role, readonly Role[]> = {
-  admin: ['basic_admin', 'check_in', 'library', 'programme'],
-  basic_admin: ['check_in', 'library', 'programme'],
-  check_in: [],
-  library: [],
-  programme: [],
+  admin: ['basic_admin', 'read_only', 'check_in', 'library', 'programme'],
+  basic_admin: ['read_only', 'check_in', 'library', 'programme'],
+  // Every desk already carries the read-only floor, so Read only is not a
+  // sibling of the desks but something each of them contains. Ticking it
+  // beside a desk narrows the person to it, which is the obvious reading.
+  check_in: ['read_only'],
+  library: ['read_only'],
+  programme: ['read_only'],
+  read_only: [],
 };
 
 /** Whether holding `outer` already means holding `inner`. */

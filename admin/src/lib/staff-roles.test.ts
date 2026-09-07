@@ -71,3 +71,33 @@ describe('orderRoles', () => {
     expect(orderRoles(shuffled)).toEqual(['admin', 'library', 'programme']);
   });
 });
+
+describe('read only', () => {
+  it('is dropped by any desk, because every desk already contains it', () => {
+    // Read only is the shared read-only floor, not a fourth desk. Holding it
+    // beside check-in would show a permission set that says less than it looks.
+    expect(reconcileRoles(['read_only'], 'check_in')).toEqual(['check_in']);
+    expect(reconcileRoles(['read_only'], 'library')).toEqual(['library']);
+    expect(reconcileRoles(['read_only'], 'programme')).toEqual(['programme']);
+  });
+
+  it('drops the desks when picked, narrowing the person', () => {
+    expect(reconcileRoles(['check_in', 'library'], 'read_only')).toEqual(['read_only']);
+    expect(reconcileRoles(['programme'], 'read_only')).toEqual(['read_only']);
+  });
+
+  it('is dropped by either umbrella too', () => {
+    expect(reconcileRoles(['read_only'], 'admin')).toEqual(['admin']);
+    expect(reconcileRoles(['read_only'], 'basic_admin')).toEqual(['basic_admin']);
+    expect(reconcileRoles(['admin'], 'read_only')).toEqual(['read_only']);
+  });
+
+  it('can be turned off like any other role', () => {
+    expect(reconcileRoles(['read_only'], 'read_only')).toEqual([]);
+  });
+
+  it('sorts between the umbrellas and the desks', () => {
+    expect(orderRoles(['programme', 'read_only', 'admin'] as Role[]))
+      .toEqual(['admin', 'read_only', 'programme']);
+  });
+});

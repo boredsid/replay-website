@@ -9,13 +9,14 @@
 // than defaulting to open.
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type Role = 'admin' | 'basic_admin' | 'check_in' | 'library' | 'programme';
+export type Role = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
 
-export const ROLES: readonly Role[] = ['admin', 'basic_admin', 'check_in', 'library', 'programme'];
+export const ROLES: readonly Role[] = ['admin', 'basic_admin', 'read_only', 'check_in', 'library', 'programme'];
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Full admin',
   basic_admin: 'Basic admin',
+  read_only: 'Read only',
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme and notices',
@@ -41,7 +42,7 @@ const STAFF_PREFIX = '/api/admin/staff';
 const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
   // Every signed-in member of staff needs to know who they are, or the admin
   // app cannot render its own navigation.
-  { prefix: '/api/admin/whoami', roles: ['check_in', 'library', 'programme'] },
+  { prefix: '/api/admin/whoami', roles: ['read_only', 'check_in', 'library', 'programme'] },
 
   // The desk. Roster and search are how somebody is found at the door.
   { prefix: '/api/admin/check-in', roles: ['check_in'] },
@@ -68,6 +69,9 @@ const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
  * and look a booking up without being able to rewrite either — and a volunteer
  * who cannot see what is happening is a volunteer who asks somebody else.
  *
+ * This list is what the `read_only` role is: it holds nothing else, so adding
+ * a prefix here widens that role by exactly one page. Do it deliberately.
+ *
  * `handleRegList` and `handleRegGet` additionally redact what a read-only
  * viewer gets: money and full phone numbers are not needed to answer a
  * question, and a sheet of both is a thing to lose.
@@ -77,6 +81,10 @@ const READABLE_BY_ALL: readonly string[] = [
   '/api/admin/sessions',
   '/api/admin/announcements',
   '/api/admin/registrations',
+  // The events board. Deliberately absent from RULES above, so the only people
+  // who may change a booking from it are the two admin roles -- a desk role
+  // reads it here and writes through the session roster it already owns.
+  '/api/admin/events',
 ];
 
 /**

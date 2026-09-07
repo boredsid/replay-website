@@ -157,6 +157,52 @@ export interface ScheduleItemRow {
   created_at: string;
 }
 
+/**
+ * One person's place in one session, as the events board sees it.
+ *
+ * Phones arrive masked and there is no field that could hold an unmasked one:
+ * this list is read to tell two attendees apart, not to ring them.
+ */
+export interface EventBooking {
+  attendee_id: string;
+  name: string;
+  phone_masked: string | null;
+  signed_up_at: string;
+  /** They started on the waitlist and a seat came free. */
+  promoted: boolean;
+}
+
+/**
+ * A bookable session with both its lists.
+ *
+ * `waitlisted` is in queue order — position is derived from `signed_up_at` by
+ * the Worker and never stored, so read it off the array rather than keeping a
+ * second count that can disagree.
+ */
+export interface EventSession {
+  id: string;
+  title: string;
+  day: string;
+  start_time: string | null;
+  end_time: string | null;
+  is_all_day: boolean;
+  location: string | null;
+  host_name: string | null;
+  kind: ScheduleKind;
+  section: ScheduleSection;
+  /** Null means no limit; sessions bookable in the app always have one. */
+  capacity: number | null;
+  public_status: SchedulePublicStatus;
+  seats_remaining: number | null;
+  confirmed: EventBooking[];
+  waitlisted: EventBooking[];
+}
+
+export interface EventsOverview {
+  edition: { id: string; slug: string; name: string };
+  sessions: EventSession[];
+}
+
 export type AnnouncementSeverity = 'info' | 'urgent' | 'incident';
 export type AnnouncementAudience = 'all' | 'day1' | 'day2';
 

@@ -100,29 +100,45 @@ export async function handleSessionRoster(
 }
 
 /**
- * Signs someone up from the desk.
+ * Where a booking change was made from, recorded in the audit `diff`.
+ *
+ * Deliberately not part of the audit `action`: the operation is the same one
+ * whichever screen it came from, and forking the action vocabulary would split
+ * one history into two for no gain. The screen still matters when reading it
+ * back, because the two screens are open to different roles.
+ */
+export type BookingSource = 'roster' | 'events';
+
+export type BookingResult<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
+
+/** Both routes take the two ids the same way, so they reject them the same way. */
+function readIds(scheduleItemId: string, attendeeId: unknown): BookingResult<string> {
+  if (!UUID.test(scheduleItemId)) return { ok: false, error: 'invalid_session_id', status: 400 };
+  if (!UUID.test(String(attendeeId ?? ''))) return { ok: false, error: 'invalid_attendee_id', status: 400 };
+  return { ok: true, data: String(attendeeId) };
+}
+
+/**
+ * Signs someone up on somebody's behalf.
  *
  * Same function the app calls, so an attendee who declines the app gets exactly
  * the same capacity and waitlist treatment — the only difference is who pressed
  * the button, which the audit records.
+ *
+ * Shared by the session roster and the events board rather than copied: the
+ * capacity and waitlist rules have one implementation on the server already,
+ * and a second caller reaching around it is how the two would drift.
  */
-export async function handleSessionSignupCreate(
-  req: Request,
+export async function createSignup(
   sb: SupabaseClient,
   scheduleItemId: string,
+  attendeeIdInput: unknown,
   actorEmail: string,
-  origin: string,
-): Promise<Response> {
-  if (!UUID.test(scheduleItemId)) return adminJson({ error: 'invalid_session_id' }, 400, origin);
-
-  let attendeeId: string;
-  try {
-    const body = await req.json<{ attendee_id?: string }>();
-    if (!UUID.test(String(body?.attendee_id ?? ''))) throw new Error('invalid_attendee_id');
-    attendeeId = body.attendee_id!;
-  } catch (error) {
-    return adminJson({ error: (error as Error).message }, 400, origin);
-  }
+  via: BookingSource,
+): Promise<BookingResult<{ status: string | undefined; queue_position: number }>> {
+  const ids = readIds(scheduleItemId, attendeeIdInput);
+  if (!ids.ok) return ids;
+  const attendeeId = ids.data;
 
   const { data, error } = await sb.rpc('sign_up_for_session', {
     p_attendee_id: attendeeId,
@@ -130,9 +146,9 @@ export async function handleSessionSignupCreate(
   });
   if (error) {
     if (error.message?.includes('session_not_bookable')) {
-      return adminJson({ error: 'session_not_bookable' }, 409, origin);
+      return { ok: false, error: 'session_not_bookable', status: 409 };
     }
-    return adminJson({ error: 'signup_failed' }, 500, origin);
+    return { ok: false, error: 'signup_failed', status: 500 };
   }
 
   const row = (Array.isArray(data) ? data[0] : data) as
@@ -143,44 +159,38 @@ export async function handleSessionSignupCreate(
     action: 'session_signup.desk',
     target_table: 'session_signups',
     target_id: scheduleItemId,
-    diff: { attendee_id: attendeeId, status: row?.status },
+    diff: { attendee_id: attendeeId, status: row?.status, via },
   });
 
-  return adminJson({ status: row?.status, queue_position: row?.queue_position ?? 0 }, 200, origin);
+  return { ok: true, data: { status: row?.status, queue_position: row?.queue_position ?? 0 } };
 }
 
 /**
  * Removes someone from a session, promoting whoever has waited longest.
  *
- * Used when a host knows an attendee will not make it. The promotion is a side
- * effect of the same function the app's cancel uses, so a seat freed here reaches
- * the queue exactly as one freed from a phone does.
+ * Goes through `cancel_session_signup` and never a direct update: the promotion
+ * is a side effect of that function, so a seat freed here reaches the queue
+ * exactly as one freed from a phone does. Writing the row directly would
+ * silently freeze the waitlist.
  */
-export async function handleSessionSignupRemove(
-  req: Request,
+export async function removeSignup(
   env: Env,
   ctx: ExecutionContext,
   sb: SupabaseClient,
   scheduleItemId: string,
+  attendeeIdInput: unknown,
   actorEmail: string,
-  origin: string,
-): Promise<Response> {
-  if (!UUID.test(scheduleItemId)) return adminJson({ error: 'invalid_session_id' }, 400, origin);
-
-  let attendeeId: string;
-  try {
-    const body = await req.json<{ attendee_id?: string }>();
-    if (!UUID.test(String(body?.attendee_id ?? ''))) throw new Error('invalid_attendee_id');
-    attendeeId = body.attendee_id!;
-  } catch (error) {
-    return adminJson({ error: (error as Error).message }, 400, origin);
-  }
+  via: BookingSource,
+): Promise<BookingResult<{ removed: boolean; promoted_attendee_id: string | null }>> {
+  const ids = readIds(scheduleItemId, attendeeIdInput);
+  if (!ids.ok) return ids;
+  const attendeeId = ids.data;
 
   const { data, error } = await sb.rpc('cancel_session_signup', {
     p_attendee_id: attendeeId,
     p_schedule_item_id: scheduleItemId,
   });
-  if (error) return adminJson({ error: 'remove_failed' }, 500, origin);
+  if (error) return { ok: false, error: 'remove_failed', status: 500 };
 
   const row = (Array.isArray(data) ? data[0] : data) as
     { cancelled: boolean; promoted_attendee_id: string | null } | undefined;
@@ -203,15 +213,54 @@ export async function handleSessionSignupRemove(
     action: 'session_signup.remove',
     target_table: 'session_signups',
     target_id: scheduleItemId,
-    diff: { attendee_id: attendeeId, promoted: row?.promoted_attendee_id ?? null },
+    diff: { attendee_id: attendeeId, promoted: row?.promoted_attendee_id ?? null, via },
   });
 
-  return adminJson({
-    removed: row?.cancelled ?? false,
-    // Staff do want to know this one — somebody just got a seat and may need
-    // telling, since there is no push notification yet.
-    promoted_attendee_id: row?.promoted_attendee_id ?? null,
-  }, 200, origin);
+  return {
+    ok: true,
+    data: {
+      removed: row?.cancelled ?? false,
+      // Staff do want to know this one — somebody just got a seat and may need
+      // telling, since the push only lands if they turned notifications on.
+      promoted_attendee_id: row?.promoted_attendee_id ?? null,
+    },
+  };
+}
+
+/** Reads the one field both write routes take, without throwing on bad JSON. */
+async function readAttendeeId(req: Request): Promise<unknown> {
+  try {
+    const body = await req.json<{ attendee_id?: string }>();
+    return body?.attendee_id;
+  } catch {
+    return null;
+  }
+}
+
+export async function handleSessionSignupCreate(
+  req: Request,
+  sb: SupabaseClient,
+  scheduleItemId: string,
+  actorEmail: string,
+  origin: string,
+): Promise<Response> {
+  const result = await createSignup(sb, scheduleItemId, await readAttendeeId(req), actorEmail, 'roster');
+  if (!result.ok) return adminJson({ error: result.error }, result.status, origin);
+  return adminJson(result.data, 200, origin);
+}
+
+export async function handleSessionSignupRemove(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  sb: SupabaseClient,
+  scheduleItemId: string,
+  actorEmail: string,
+  origin: string,
+): Promise<Response> {
+  const result = await removeSignup(env, ctx, sb, scheduleItemId, await readAttendeeId(req), actorEmail, 'roster');
+  if (!result.ok) return adminJson({ error: result.error }, result.status, origin);
+  return adminJson(result.data, 200, origin);
 }
 
 /** Finds an attendee to add, by phone or name, within the current edition. */

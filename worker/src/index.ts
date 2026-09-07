@@ -26,6 +26,7 @@ import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
+import { handleEventsOverview, handleEventsSignupCreate, handleEventsSignupRemove } from './admin/events';
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
@@ -193,6 +194,13 @@ export default {
         if (path === '/api/admin/library/withdraw' && req.method === 'POST') return await handleLibraryWithdraw(req, sb, email, origin);
         if (path === '/api/admin/library/restore' && req.method === 'POST') return await handleLibraryRestore(req, sb, email, origin);
         if (path === '/api/admin/library/lost' && req.method === 'POST') return await handleLibraryLost(req, sb, email, origin);
+
+        // The events board. Readable by every member of staff (see
+        // READABLE_BY_ALL) and writable only by the two admin roles, because
+        // nothing here is listed in RULES.
+        if (path === '/api/admin/events' && req.method === 'GET') return await handleEventsOverview(req, env, sb, origin);
+        if (path === '/api/admin/events/signups' && req.method === 'POST') return await handleEventsSignupCreate(req, sb, email, origin);
+        if (path === '/api/admin/events/signups' && req.method === 'DELETE') return await handleEventsSignupRemove(req, env, ctx, sb, email, origin);
 
         // Matched before the `/sessions/:id` patterns so the search is not
         // treated as a session id.

@@ -116,6 +116,70 @@ describe('basic admin', () => {
   });
 });
 
+describe('read only', () => {
+  it('reads the four pages every member of staff reads, and nothing else', () => {
+    for (const path of ['/api/admin/schedule', '/api/admin/announcements',
+                        '/api/admin/registrations', '/api/admin/events']) {
+      expect(mayReach(['read_only'], path, 'GET')).toBe(true);
+    }
+    for (const path of ['/api/admin/users', '/api/admin/check-in', '/api/admin/library/loans',
+                        '/api/admin/editions', '/api/admin/audit', '/api/admin/finance',
+                        '/api/admin/staff', '/api/admin/dashboard']) {
+      expect(mayReach(['read_only'], path, 'GET')).toBe(false);
+    }
+  });
+
+  it('cannot write anywhere at all, which is the whole role', () => {
+    for (const method of ['POST', 'PATCH', 'DELETE', 'PUT']) {
+      for (const path of ['/api/admin/schedule', '/api/admin/announcements',
+                          '/api/admin/registrations', '/api/admin/events/signups']) {
+        expect(mayReach(['read_only'], path, method)).toBe(false);
+      }
+    }
+    expect(hasFullAccess(['read_only'], '/api/admin/events')).toBe(false);
+  });
+
+  it('still reads whoami, or the app cannot draw its own navigation', () => {
+    expect(mayReach(['read_only'], '/api/admin/whoami')).toBe(true);
+  });
+
+  it('is what a desk role already contains, so holding both adds nothing', () => {
+    // The admin's role picker leans on this: ticking Read only next to a desk
+    // drops the desk, and vice versa.
+    for (const path of ['/api/admin/schedule', '/api/admin/announcements',
+                        '/api/admin/registrations', '/api/admin/events']) {
+      for (const role of ['check_in', 'library', 'programme']) {
+        expect(mayReach([role], path, 'GET')).toBe(true);
+      }
+    }
+  });
+});
+
+describe('the events board', () => {
+  it('is readable by every member of staff', () => {
+    for (const role of ['read_only', 'check_in', 'library', 'programme']) {
+      expect(mayReach([role], '/api/admin/events', 'GET')).toBe(true);
+    }
+  });
+
+  it('is writable by the two admin roles only', () => {
+    // Deliberately narrower than the session roster, which the programme and
+    // check-in desks own. A desk role changes a booking there, not here.
+    for (const method of ['POST', 'DELETE']) {
+      expect(mayReach(['admin'], '/api/admin/events/signups', method)).toBe(true);
+      expect(mayReach(['basic_admin'], '/api/admin/events/signups', method)).toBe(true);
+      for (const role of ['read_only', 'check_in', 'library', 'programme']) {
+        expect(mayReach([role], '/api/admin/events/signups', method)).toBe(false);
+      }
+    }
+  });
+
+  it('leaves the session roster permissions alone', () => {
+    expect(mayReach(['programme'], '/api/admin/sessions/abc/signups', 'POST')).toBe(true);
+    expect(mayReach(['check_in'], '/api/admin/sessions/abc/signups', 'DELETE')).toBe(true);
+  });
+});
+
 describe('what every member of staff can read', () => {
   const desks = ['check_in', 'library', 'programme'];
 

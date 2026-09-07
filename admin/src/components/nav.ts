@@ -1,4 +1,4 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library, ShieldCheck, Wallet } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, CalendarCheck, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library, ShieldCheck, Wallet } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0, roles: ['check_in', 'library', 'programme'] },
@@ -6,6 +6,7 @@ export const NAV = [
   { to: '/check-in', label: 'Check in', mobileLabel: 'Check in', icon: UserCheck, end: false, mobile: 'primary', mobileOrder: 1, roles: ['check_in'] },
   { to: '/library', label: 'Game library', mobileLabel: 'Library', icon: Library, end: false, mobile: 'primary', mobileOrder: 2, roles: ['library'] },
   { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'more', mobileOrder: 0, roles: ['programme'] },
+  { to: '/events', label: 'Events', mobileLabel: 'Events', icon: CalendarCheck, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 4, roles: ['programme'] },
   { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/promos', label: 'Promo codes', mobileLabel: 'Promos', icon: TicketPercent, end: false, mobile: 'more', mobileOrder: 2 },
@@ -19,9 +20,9 @@ export const NAV = [
 ] as const;
 
 /** Pages every signed-in member of staff may read. Writing is still gated. */
-const READABLE_BY_ALL: readonly string[] = ['/programme', '/announcements', '/registrations'];
+const READABLE_BY_ALL: readonly string[] = ['/programme', '/events', '/announcements', '/registrations'];
 
-export type NavRole = 'admin' | 'check_in' | 'library' | 'programme';
+export type NavRole = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
 
 /**
  * The nav a set of roles should see.
@@ -40,6 +41,25 @@ export function navFor(roles: readonly string[]): typeof NAV[number][] {
     if (READABLE_BY_ALL.includes(item.to)) return true;
     return Boolean(allowed?.some((role) => roles.includes(role)));
   });
+}
+
+/**
+ * Where to send somebody who opens the app at `/`.
+ *
+ * Every role used to hold the dashboard, so the root route could just be the
+ * dashboard. `read_only` is the first role that does not — it is the shared
+ * read-only floor and nothing else, and the dashboard is not part of that floor
+ * — so landing them on a page that 403s would make the app look broken to the
+ * one role least able to work out why.
+ *
+ * Falls back to `/` for somebody with no nav at all, which is a staff row with
+ * roles nobody has classified. They get the dashboard's own error, which is the
+ * honest answer.
+ */
+export function landingFor(roles: readonly string[]): string {
+  const items = navFor(roles);
+  if (items.some((item) => item.to === '/')) return '/';
+  return items[0]?.to ?? '/';
 }
 
 export const MOBILE_PRIMARY_NAV = NAV
