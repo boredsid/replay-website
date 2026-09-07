@@ -126,10 +126,46 @@ it('explains that a booked session must be cancelled rather than deleted', async
   expect(screen.queryByText(/rebuild the public site\?/i)).toBeNull();
 });
 
-it('hides the delete button from staff who may only read the programme', async () => {
+it('shows a read-only viewer the item, and no way to change it', async () => {
   state.canWrite = false;
-  editDrawer();
+  (fetchAdmin as any).mockImplementation(async (path: string) => {
+    // Editions are admin-only; the drawer used to open with this call and get
+    // bounced straight back to the list by the 403 it caused.
+    if (path === '/api/admin/editions') throw new FakeApiError(403, 'forbidden');
+    return { item: {
+      id: 'i1', edition_id: 'e3', day: '2026-09-12', title: 'Werewolf', section: 'programme',
+      kind: 'social-game', is_all_day: false, start_time: '18:00:00', end_time: '20:00:00',
+      host_name: 'Asha', location: 'Campfire', description: 'Bring a torch.',
+      signup_mode: 'app', capacity: 24, public_status: 'published', display_order: 0,
+    } };
+  });
 
-  await screen.findByLabelText('Title');
-  expect(screen.queryByRole('button', { name: /^delete item$/i })).toBeNull();
+  render(
+    <MemoryRouter initialEntries={['/programme/i1']}>
+      <Routes><Route path="/programme/:id" element={<ProgrammeDrawer />} /></Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Werewolf');
+  expect(screen.getByText('18:00–20:00')).toBeInTheDocument();
+  expect(screen.getByText('Bring a torch.')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /save item/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /delete item/i })).toBeNull();
+  expect(screen.queryByLabelText('Title')).toBeNull();
+  expect(screen.queryByLabelText('Public status')).toBeNull();
+  expect((fetchAdmin as any).mock.calls.every((c: any[]) => c[0] !== '/api/admin/editions')).toBe(true);
+});
+
+it('sends a read-only viewer away from the new-item route', async () => {
+  state.canWrite = false;
+  render(
+    <MemoryRouter initialEntries={['/programme/new']}>
+      <Routes>
+        <Route path="/programme/new" element={<ProgrammeDrawer />} />
+        <Route path="/programme" element={<div>Programme list</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+  await screen.findByText('Programme list');
+  expect(fetchAdmin).not.toHaveBeenCalled();
 });

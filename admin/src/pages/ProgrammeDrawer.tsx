@@ -72,6 +72,7 @@ export default function ProgrammeDrawer() {
   const isNew = !id;
   const canWrite = useCanWrite('programme');
   const [editions, setEditions] = useState<EditionRow[]>([]);
+  const [item, setItem] = useState<ScheduleItemRow | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -82,6 +83,15 @@ export default function ProgrammeDrawer() {
   useEffect(() => {
     (async () => {
       try {
+        // Nothing to create, and editions are admin-only: a viewer who may
+        // only look reads the item and asks for nothing else.
+        if (!canWrite) {
+          if (isNew) { nav('/programme'); return; }
+          const itemRes = await fetchAdmin<{ item: ScheduleItemRow }>(`/api/admin/schedule/${id}`);
+          setItem(itemRes.item);
+          setLoaded(true);
+          return;
+        }
         const editionsRes = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
         setEditions(editionsRes.editions);
         if (isNew) {
@@ -117,7 +127,7 @@ export default function ProgrammeDrawer() {
         nav('/programme');
       }
     })();
-  }, [id, isNew, nav, search]);
+  }, [id, isNew, nav, search, canWrite]);
 
   const selectedEdition = editions.find((edition) => edition.id === form.edition_id);
   const dayOptions = useMemo(() => datesForEdition(selectedEdition), [selectedEdition]);
@@ -204,6 +214,39 @@ export default function ProgrammeDrawer() {
   }
 
   if (!loaded) return null;
+
+  if (!canWrite) {
+    const sectionLabel = SECTION_OPTIONS.find(([value]) => value === item?.section)?.[1] ?? item?.section ?? '—';
+    return (
+      <Sheet open onOpenChange={(open) => { if (!open) nav('/programme'); }}>
+        <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-lg">
+          <SheetHeader className="p-0 pr-8">
+            <SheetTitle>{item?.title || 'Programme item'}</SheetTitle>
+            <SheetDescription>What is scheduled. Only a programme editor can change it.</SheetDescription>
+          </SheetHeader>
+          {item && (
+            <div className="mt-5 space-y-3">
+              <Row k="Day" v={item.day} />
+              <Row k="Time" v={item.is_all_day ? 'All day' : `${item.start_time?.slice(0, 5)}–${item.end_time?.slice(0, 5)}`} />
+              <Row k="Public section" v={sectionLabel} />
+              <Row k="Activity type" v={item.kind} />
+              <Row k="Host or organiser" v={item.host_name || '—'} />
+              <Row k="Location" v={item.location || '—'} />
+              <Row k="Booking" v={item.signup_mode === 'app' ? 'Bookable in the app' : 'No booking'} />
+              {item.signup_mode === 'app' && <Row k="Capacity" v={item.capacity === null ? 'No limit' : String(item.capacity)} />}
+              <Row k="Public status" v={item.public_status} />
+              {item.description && (
+                <div className="border-t pt-3">
+                  <div className="mb-1 text-sm text-muted-foreground">Description</div>
+                  <p className="whitespace-pre-wrap text-sm">{item.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open && !showRebuild) nav('/programme'); }}>
@@ -352,4 +395,14 @@ export default function ProgrammeDrawer() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label><span className="mb-1 block text-sm text-muted-foreground">{label}</span>{children}</label>;
+}
+
+/** One stated fact, for the viewer who has nothing to fill in. */
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-b py-1 text-sm">
+      <span className="shrink-0 text-muted-foreground">{k}</span>
+      <span className="break-words text-right">{v}</span>
+    </div>
+  );
 }

@@ -255,7 +255,7 @@ export default {
         if (sponsorMatch && req.method === 'PATCH') return await handleSponsorPatch(req, sb, sponsorMatch[1], email, origin);
         if (sponsorMatch && req.method === 'DELETE') return await handleSponsorDelete(sb, sponsorMatch[1], email, origin);
 
-        if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, sb, origin);
+        if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, env, sb, origin);
         if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);
         const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
         if (scheduleMatch && req.method === 'GET') return await handleScheduleGet(sb, scheduleMatch[1], origin);

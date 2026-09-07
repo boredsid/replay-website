@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { handleScheduleCreate, handleSchedulePatch, handleScheduleDelete } from './schedule';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../editions', () => ({ getCurrentEdition: vi.fn() }));
+import { getCurrentEdition } from '../editions';
+import { handleScheduleList, handleScheduleCreate, handleSchedulePatch, handleScheduleDelete } from './schedule';
 
 const ORIGIN = 'https://admin.replaycon.in';
 const BASE = {
@@ -196,5 +198,48 @@ describe('handleScheduleDelete', () => {
     const { sb } = client({});
     const res = await handleScheduleDelete(sb, 'missing', 'sid@x.com', ORIGIN);
     expect(res.status).toBe(404);
+  });
+});
+
+describe('handleScheduleList', () => {
+  /** A schedule_items table that records which edition it was asked about. */
+  function stub() {
+    const asked: { editionId?: string } = {};
+    const chain: any = {
+      select: () => chain,
+      eq: (_col: string, value: string) => { asked.editionId = value; return chain; },
+      order: () => chain,
+      then: (resolve: any) => resolve({ data: [{ id: 'item-1' }], error: null }),
+    };
+    return { asked, sb: { from: () => chain } as any };
+  }
+
+  beforeEach(() => { vi.mocked(getCurrentEdition).mockReset(); });
+
+  it('answers for the edition that is on when none is named', async () => {
+    // The read-only case: editions are admin-only, so this caller has no id to
+    // send and would otherwise get a 400 it could never fix.
+    vi.mocked(getCurrentEdition).mockResolvedValue({ id: 'edition-3' } as never);
+    const { asked, sb } = stub();
+    const res = await handleScheduleList(new Request('https://x/api/admin/schedule'), {} as any, sb, ORIGIN);
+    expect(res.status).toBe(200);
+    expect(asked.editionId).toBe('edition-3');
+    expect(await res.json()).toEqual({ items: [{ id: 'item-1' }], edition_id: 'edition-3' });
+  });
+
+  it('still honours an edition it was given, without asking which is current', async () => {
+    const { asked, sb } = stub();
+    const req = new Request('https://x/api/admin/schedule?edition_id=edition-1');
+    const res = await handleScheduleList(req, {} as any, sb, ORIGIN);
+    expect(res.status).toBe(200);
+    expect(asked.editionId).toBe('edition-1');
+    expect(getCurrentEdition).not.toHaveBeenCalled();
+  });
+
+  it('says so when nothing is current and no edition was named', async () => {
+    vi.mocked(getCurrentEdition).mockResolvedValue(null as never);
+    const res = await handleScheduleList(new Request('https://x/api/admin/schedule'), {} as any, {} as any, ORIGIN);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: 'no_edition' });
   });
 });

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Env } from '../index';
 import { adminJson } from './auth';
 import { diffRows, writeAudit } from './audit';
+import { getCurrentEdition } from '../editions';
 
 const SECTIONS = ['always-on', 'programme', 'playtesting', 'publisher-showcase', 'event-floor'] as const;
 const KINDS = ['workshop', 'tournament', 'open-play', 'meal', 'talk', 'ttrpg', 'story-game', 'puzzle', 'quiz', 'social-game', 'playtest', 'publisher-showcase', 'booth', 'food', 'merch', 'amenity', 'special'] as const;
@@ -107,9 +109,23 @@ async function dayFallsWithinEdition(sb: SupabaseClient, editionId: string, day:
   return day >= edition.start_date && day <= edition.end_date;
 }
 
-export async function handleScheduleList(req: Request, sb: SupabaseClient, origin: string): Promise<Response> {
-  const editionId = new URL(req.url).searchParams.get('edition_id')?.trim() ?? '';
-  if (!editionId) return adminJson({ error: 'edition_id_required' }, 400, origin);
+/**
+ * The programme for one edition, defaulting to the one that is on.
+ *
+ * The default is what makes this page work for somebody who may only look.
+ * Editions are an admin-only route, so a read-only viewer cannot name an
+ * edition to ask about -- and asking them to would mean handing every desk the
+ * edition list, pricing included, to answer a question none of them asked.
+ * Falling back to the current edition gives them the programme that is
+ * actually happening and widens nobody's reach by a single row.
+ */
+export async function handleScheduleList(req: Request, env: Env, sb: SupabaseClient, origin: string): Promise<Response> {
+  let editionId = new URL(req.url).searchParams.get('edition_id')?.trim() ?? '';
+  if (!editionId) {
+    const current = await getCurrentEdition(env);
+    if (!current) return adminJson({ error: 'no_edition' }, 404, origin);
+    editionId = current.id;
+  }
   const { data, error } = await sb
     .from('schedule_items')
     .select('*')
@@ -119,7 +135,9 @@ export async function handleScheduleList(req: Request, sb: SupabaseClient, origi
     .order('display_order', { ascending: true })
     .order('start_time', { ascending: true });
   if (error) return adminJson({ error: 'query_failed' }, 500, origin);
-  return adminJson({ items: data ?? [] }, 200, origin);
+  // Named in the response because a caller that sent no id has no other way to
+  // learn which edition it is looking at.
+  return adminJson({ items: data ?? [], edition_id: editionId }, 200, origin);
 }
 
 export async function handleScheduleGet(sb: SupabaseClient, id: string, origin: string): Promise<Response> {
