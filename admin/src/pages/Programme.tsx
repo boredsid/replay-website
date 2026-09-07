@@ -25,7 +25,11 @@ export default function Programme() {
   const [items, setItems] = useState<ScheduleItemRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Editions are an admin-only route. Somebody who may only look cannot ask
+  // for the list, so they get no picker and the Worker answers for whichever
+  // edition is on -- which is the one a volunteer is standing in anyway.
   useEffect(() => {
+    if (!canWrite) { setEditionId(''); return; }
     (async () => {
       try {
         const res = await fetchAdmin<{ editions: EditionRow[] }>('/api/admin/editions');
@@ -38,13 +42,16 @@ export default function Programme() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [canWrite]);
 
   async function loadItems(selectedEditionId: string) {
-    if (!selectedEditionId) return;
+    // A read-only viewer sends no id on purpose; everyone else waits until the
+    // editions call has picked one, or the first fetch asks for the wrong set.
+    if (!selectedEditionId && canWrite) return;
     setLoading(true);
     try {
-      const res = await fetchAdmin<{ items: ScheduleItemRow[] }>(`/api/admin/schedule?edition_id=${encodeURIComponent(selectedEditionId)}`);
+      const query = selectedEditionId ? `?edition_id=${encodeURIComponent(selectedEditionId)}` : '';
+      const res = await fetchAdmin<{ items: ScheduleItemRow[] }>(`/api/admin/schedule${query}`);
       setItems(res.items);
     } catch (error) {
       showApiError(error);
@@ -53,11 +60,11 @@ export default function Programme() {
     }
   }
 
-  useEffect(() => { loadItems(editionId); }, [editionId]);
+  useEffect(() => { loadItems(editionId); }, [editionId, canWrite]);
   useEffect(() => {
     const off = onRevalidate(() => loadItems(editionId));
     return () => { off(); };
-  }, [editionId]);
+  }, [editionId, canWrite]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ScheduleItemRow[]>();
@@ -85,19 +92,25 @@ export default function Programme() {
         )}
       </div>
 
-      <label className="mb-5 block max-w-sm">
-        <span className="mb-1 block text-sm text-muted-foreground">Edition</span>
-        <select value={editionId} onChange={(event) => setEditionId(event.target.value)} className="w-full rounded-md border bg-background px-3 py-2">
-          {editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.slug} · {edition.start_date}</option>)}
-        </select>
-      </label>
+      {canWrite && (
+        <label className="mb-5 block max-w-sm">
+          <span className="mb-1 block text-sm text-muted-foreground">Edition</span>
+          <select value={editionId} onChange={(event) => setEditionId(event.target.value)} className="w-full rounded-md border bg-background px-3 py-2">
+            {editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.slug} · {edition.start_date}</option>)}
+          </select>
+        </label>
+      )}
 
       {loading ? (
         <div className="text-muted-foreground">Loading…</div>
       ) : items.length === 0 ? (
         <div className="rounded-md border bg-background p-6">
           <h2 className="font-semibold">No programme items yet</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Create draft items first, then publish them when the public details are confirmed.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {canWrite
+              ? 'Create draft items first, then publish them when the public details are confirmed.'
+              : 'Nothing has been added to this edition’s programme yet.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-7">
