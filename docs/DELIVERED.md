@@ -34,6 +34,15 @@ The marketing and information surface: programme, tickets, venue, game library,
 partners. Server-rendered at build time from Supabase, so **editing data alone
 changes nothing until a build runs** — push an empty commit to trigger one.
 
+- **Schedule page** — the two days are tabs, not stacked sections, and the tabs
+  are a radio group styled with `:has()` rather than a script: the days switch
+  with no JavaScript, arrow keys move between them natively, and both days stay
+  in the HTML for search engines. Descriptions are folded into a `<details>` so
+  a long day scans as a list of titles, and an item with `signup_mode = 'app'`
+  carries an ink "Book on App" pill linking to the attendee app
+  (`src/lib/app-link.ts`). Cards are sized for density over presence: on
+  desktop a timed row is three columns — when, what, where — on one line, with
+  a fixed "when" column so every title starts on the same line down the day.
 - **Venue floor plan** — geometry and SVG in `src/lib/venue-map.ts`, zero
   dependencies, shared with the attendee app. The organiser's sketch is the
   source of truth for layout; the CAD sets the outer envelope only. See

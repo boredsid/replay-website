@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import ScheduleDay from '../components/ScheduleDay.astro';
 import { getCurrentEdition, getScheduleItems, editionOrdinal, publicDateRange } from '../lib/data';
-import { clockTime, weekdayName } from '../lib/edition-format';
+import { clockTime, shortCalendarDate, weekdayName } from '../lib/edition-format';
 
 const edition = await getCurrentEdition();
 const items = edition ? await getScheduleItems(edition.id) : [];
@@ -62,10 +62,34 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
           </div>
         </div>
       ) : (
-        <>
-          <ScheduleDay date={edition.start_date} label={day1Name} items={day1Items} />
-          <ScheduleDay date={edition.end_date} label={day2Name} items={day2Items} />
-        </>
+        /*
+          Radio inputs rather than scripted tabs: the days switch with no
+          JavaScript at all, arrow keys move between them for free, and both
+          days stay in the HTML for search engines and for anyone reading the
+          page without styles.
+        */
+        <div class="day-tabs">
+          <fieldset class="day-tablist">
+            <legend class="sr-only">Choose a day</legend>
+            <label class="day-tab">
+              <input class="sr-only" type="radio" name="schedule-day" value="day-1" checked />
+              <span class="day-tab__name">{day1Name}</span>
+              <span class="day-tab__date">{shortCalendarDate(edition.start_date)}</span>
+            </label>
+            <label class="day-tab">
+              <input class="sr-only" type="radio" name="schedule-day" value="day-2" />
+              <span class="day-tab__name">{day2Name}</span>
+              <span class="day-tab__date">{shortCalendarDate(edition.end_date)}</span>
+            </label>
+          </fieldset>
+
+          <div class="day-panel day-panel--1">
+            <ScheduleDay date={edition.start_date} label={day1Name} items={day1Items} />
+          </div>
+          <div class="day-panel day-panel--2">
+            <ScheduleDay date={edition.end_date} label={day2Name} items={day2Items} />
+          </div>
+        </div>
       )}
     </div>
   </section>
@@ -88,4 +112,39 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
   .schedule-empty { margin-top: 32px; padding: clamp(28px, 6vw, 52px); }
   .schedule-empty h3 { margin-top: 18px; font-size: clamp(1.7rem, 4vw, 2.5rem); }
   .schedule-empty p { max-width: 62ch; margin-top: 12px; color: rgba(26,26,26,.72); }
+
+  .day-tabs { margin-top: 32px; }
+  .day-tablist {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    margin: 0 0 2.5rem; padding: 0 0 1.6rem;
+    border: 0; border-bottom: 4px solid var(--color-ink);
+    min-width: 0;
+  }
+  .day-tab {
+    display: grid; gap: 3px;
+    padding: 12px 24px;
+    border: 3px solid var(--color-ink); border-radius: var(--radius-md);
+    background: var(--color-paper); color: var(--color-ink);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer; user-select: none;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease, color .12s ease;
+  }
+  .day-tab__name { font-family: var(--font-heading); font-size: clamp(1.2rem, 3.4vw, 1.6rem); font-weight: 800; line-height: 1.05; letter-spacing: -.02em; }
+  .day-tab__date { font-family: var(--font-heading); font-size: .72rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .62; }
+  .day-tab:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-md); }
+
+  /* The selected day reads as pressed in: filled, flush, no shadow under it. */
+  .day-tab:has(:checked) {
+    background: var(--color-ink); color: var(--color-cream);
+    transform: translate(2px, 2px); box-shadow: none;
+  }
+  .day-tab:has(:focus-visible) { outline: 3px solid var(--color-orange); outline-offset: 4px; }
+
+  .day-panel { display: none; }
+  .day-tabs:has(input[value="day-1"]:checked) .day-panel--1 { display: block; }
+  .day-tabs:has(input[value="day-2"]:checked) .day-panel--2 { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .day-tab { transition: none; }
+  }
 </style>

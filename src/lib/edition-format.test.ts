@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calendarDate, clockTime, eventDayLabel, weekdayName } from './edition-format';
+import { calendarDate, clockTime, eventDayLabel, shortCalendarDate, weekdayName } from './edition-format';
 
 describe('edition display formatting', () => {
   it('derives weekday labels from ISO dates', () => {
@@ -7,6 +7,12 @@ describe('edition display formatting', () => {
     expect(weekdayName('2026-09-13')).toBe('Sunday');
     expect(eventDayLabel('2026-09-12')).toBe('Saturday, Sep 12');
     expect(calendarDate('2026-09-12')).toBe('Sep 12, 2026');
+  });
+
+  it('drops the year for the short day label the schedule tabs use', () => {
+    expect(shortCalendarDate('2026-09-12')).toBe('Sep 12');
+    expect(shortCalendarDate('2026-01-01')).toBe('Jan 1');
+    expect(shortCalendarDate('not-a-date')).toBe('not-a-date');
   });
 
   it('formats edition times without relying on the browser timezone', () => {
