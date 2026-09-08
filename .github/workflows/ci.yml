@@ -1,0 +1,116 @@
+# Checks every pull request before it can be merged.
+#
+# Until this existed the only checks on a PR were the two Cloudflare Pages
+# builds, replay-website and replay-admin. Neither typechecks: `astro build`
+# strips types rather than checking them, so a red `astro check` merges green,
+# deploys green, and sits on main unnoticed. That is exactly what happened --
+# a generic written inside an Astro template expression, where the angle
+# brackets parse as less-than, put 11 errors on main and nothing said a word.
+#
+# The three jobs are the repo's three dependency trees. They are separate
+# because their lockfiles are: `npm ci` in one says nothing about the others,
+# which is how a test-only dependency missing from admin/package.json once
+# passed locally and failed the Pages build.
+name: CI
+
+on:
+  pull_request:
+  # Also on main, so the branch's own status is visible rather than inferred
+  # from whatever the last PR happened to run.
+  push:
+    branches: [main]
+
+# A new push to a PR supersedes the run in flight -- unlike the deploy
+# workflow, where a half-finished deploy is worse than a queued one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site + attendee app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # The gap this workflow was written to close. Needs no Supabase
+      # credentials: the sponsor-logo normaliser falls back to the committed
+      # folder when the project is not configured, so a fork's PR checks too.
+      - name: Typecheck the site
+        run: npx astro check
+
+      - run: npm test
+
+      # The attendee app shares this tree. deploy-app.yml already runs these
+      # before it ships, but that is after the merge -- by then a break is on
+      # main, and the only question left is how fast it can come off again.
+      - run: npm run test:app
+      - run: npm run check:app
+      - run: npm run build:app
+
+      # No `npm run build` here on purpose: the replay-website Pages check
+      # already builds the site on every PR, and building it twice buys
+      # nothing but minutes.
+
+  admin:
+    name: Admin console
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Install
+        working-directory: admin
+        run: npm ci
+
+      - name: Test
+        working-directory: admin
+        run: npm test
+
+      # `tsc -b` here typechecks the test files too, which is the whole reason
+      # this build catches things a passing test run does not: a package
+      # imported only by a test still has to be in admin/package.json, because
+      # Pages builds this directory with no repo-root node_modules to fall
+      # back on.
+      - name: Build
+        working-directory: admin
+        run: npm run build
+
+  worker:
+    name: Worker API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install
+        working-directory: worker
+        run: npm ci
+
+      - name: Test
+        working-directory: worker
+        run: npm test
+
+      # Nothing else typechecks the Worker. It is deployed by hand with
+      # wrangler, so there is no build step on the way to production that
+      # would notice.
+      - name: Typecheck
+        working-directory: worker
+        run: npx tsc --noEmit

@@ -59,9 +59,23 @@ const KIND_PILL: Record<ScheduleKind, string> = {
   special: 'pill-purple',
 };
 
-const SIGNUP_LABEL: Record<Exclude<ScheduleSignupMode, 'none'>, string> = {
+/**
+ * The modes that actually put a booking pill on a card. Named, rather than
+ * written inline as `Exclude<…>` at the use site: a generic's angle brackets
+ * inside a template expression are read as less-than, and the mis-parse
+ * surfaces as type errors elsewhere in the file rather than on the line at
+ * fault. Frontmatter is ordinary TypeScript, so the generic is fine up here.
+ */
+type BookableSignupMode = Exclude<ScheduleSignupMode, 'none'>;
+
+const SIGNUP_LABEL: Record<BookableSignupMode, string> = {
   app: 'Book on App',
 };
+
+/** Total over the mode, so the template needs no cast. `none` never reaches
+ *  this — the pill is behind `bookable()`. */
+const signupLabel = (mode: ScheduleSignupMode): string =>
+  mode === 'none' ? '' : SIGNUP_LABEL[mode];
 
 const hhmm = (time: string | null) => time ? time.slice(0, 5) : '';
 const timing = (item: ScheduleItemRow) => item.is_all_day
@@ -134,7 +148,7 @@ const bookable = (item: ScheduleItemRow) => item.signup_mode !== 'none' && item.
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        {SIGNUP_LABEL[item.signup_mode as Exclude<ScheduleSignupMode, 'none'>]}
+                        {signupLabel(item.signup_mode)}
                         <span aria-hidden="true">→</span>
                       </a>
                     )}
