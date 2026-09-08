@@ -44,7 +44,7 @@ metres (**1 artifact px = 0.039 m**), so the two stay visually identical.
 | Sheet | `#FFF8E7`, `border-radius: 3px`, `box-shadow: 0 18px 48px rgb(40 36 26 / 0.22)` on a `#E9E3D5` ground — a printed sheet on a table |
 | Floor / concourse | `#FFFDF7` / `#F7F3E9` |
 | Zone tints | `#FCF2DC` `#FBE4E0` `#FDEBD6` `#E6F5EC` `#EFE9FB` |
-| Room colours | Game Library `#A8E6CF`, Save Point `#FBDFC4`, Lifts `#FF6B6B`, snacks `#FFD166`, photo wall `#C3A6FF`, water `#4ECDC4`, campfire `#E2F4F2`, wet rooms `#EDE8DC` |
+| Room colours | Game Library `#A8E6CF`, Save Point `#FBDFC4`, Lifts `#FF6B6B`, snacks and beverages `#FFD166`, photo wall `#C3A6FF`, water `#4ECDC4`, campfire `#E2F4F2`, wet rooms `#EDE8DC` |
 | Strokes | frame `0.273`, room `0.117`, wall `0.14`, fixture `0.07` |
 | Type | zone `1.05` / 0.06em, feature `0.51` / 0.08em, concourse `0.47` / 0.2em at 0.6 opacity — all uppercase Space Grotesk |
 
@@ -93,6 +93,7 @@ Concourse, top to bottom exactly as the sketch stacks it:
 
 | | |
 |---|---|
+| **Snack machine** | stands across the head of the corridor, against the north wall |
 | **Wash basins** | room across the top, open to the corridor |
 | **Water dispenser** | slim unit fixed to the corridor wall |
 | **Toilet** | room hung off the wash basins and entered from them, so its door sits in that shared wall |
@@ -101,7 +102,7 @@ Concourse, top to bottom exactly as the sketch stacks it:
 | **Lifts** | beside Save Point, not inside it |
 | **Photo wall** | on the corridor wall, at the corner out of Save Point |
 | *(open concourse)* | **unassigned floor** — see below |
-| **Snack machine** | on the corridor wall, at the campfire corner |
+| **Beverage machine** | on the corridor wall, at the campfire corner |
 | **Campfire** | the community table. Reaches across the foot of the corridor to meet Spotlight, which is why the corridor stops where it does |
 
 The **Cassette Corridor** runs between the two sides.
@@ -144,7 +145,7 @@ name has to fit — Agatha's Cove uses the clear width inside its ring, so
 
 **The open concourse.** Between Save Point and the campfire the sketch shows
 plain floor with no room and no tint — only the corridor wall carrying the photo
-wall and the snack machine. `OPEN_CONCOURSE` exists to name that stretch so it
+wall and the beverage machine. `OPEN_CONCOURSE` exists to name that stretch so it
 does not get filled in, and a test asserts it stays between the two.
 
 **The alignments.** Save Point's north wall lines up with the Meeple Syrup's
@@ -162,7 +163,14 @@ the one mistake this map cannot make.
 
 - Room boxes (`WASH`, `TOILET`, `LIBRARY`, `LOBBY`, `LIFT_CORE`,
   `CAMPFIRE_ROOM`, `OPEN_CONCOURSE`) — in sketch pixels, converted by `boxRect()`.
-- `MOUNTED` — the slim units fixed to the corridor wall.
+- `MOUNTED` — the slim units fixed to a wall. Each carries its box in sketch
+  pixels and where its name goes: `beside` for the ones hanging down the
+  corridor wall, `below` for the snack machine, which runs along the north
+  wall across the head of the corridor. That one also sets `againstWall`,
+  which snaps its top edge to `WALL_FACE` — the frame is stroked centred on
+  the floor's edge, so the drawn wall's inner face is half a stroke inside
+  it, further out than any sketch coordinate goes. Anchor to `INSIDE.y0`
+  instead and the unit floats a visible gap off the wall.
 - `ZONES` — pale tints with a name.
 - `zoneFurniture()` — the illustrative line art, per zone.
 - `AREAS` — the named list the page legend and the text alternative read from.

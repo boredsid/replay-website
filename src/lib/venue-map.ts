@@ -98,13 +98,31 @@ const rectOf = (b: Box): Rect => ({
 // Bands and zones
 // ---------------------------------------------------------------------------
 
-/** Where the play-zone side meets the corridor. No wall. */
-export const HALL_EDGE = sx(428);
-/** The corridor's far side. The rooms' front wall, and what the wall-mounted
- *  water dispenser, photo wall and snack machine are fixed to. */
-export const SERVICE_EDGE = sx(518);
-/** How far a wall-mounted unit stands out into the corridor. */
-const MOUNT_X = sx(502);
+/** Where the play-zone side meets the corridor, in sketch pixels. No wall. */
+const HALL_EDGE_PX = 428;
+export const HALL_EDGE = sx(HALL_EDGE_PX);
+/** The corridor's far side, in sketch pixels. The rooms' front wall, and what
+ *  the wall-mounted water dispenser, photo wall and beverage machine are
+ *  fixed to. */
+const SERVICE_EDGE_PX = 518;
+export const SERVICE_EDGE = sx(SERVICE_EDGE_PX);
+/**
+ * How far a wall-mounted unit stands proud of the wall it is fixed to, in
+ * sketch pixels. Two numbers because the sketch's axes do not share a scale;
+ * both come out at roughly 0.4 m.
+ */
+const MOUNT_DEPTH_X = 16;
+const MOUNT_DEPTH_Y = 13;
+
+/**
+ * The perimeter is drawn as one stroke centred on the floor's outer edge, so
+ * half its width falls inside the floor. A unit pushed back against the wall
+ * stops at that inner face — which lies OUTSIDE `INSIDE.y0`, so no sketch
+ * coordinate can reach it. Anchoring to `INSIDE.y0` instead leaves the unit
+ * floating a visible gap off the wall.
+ */
+export const W_FRAME = 0.273;
+export const WALL_FACE = round(W_FRAME / 2);
 
 /**
  * The sketch lines Save Point's north wall up with the Sandbox / Garage
@@ -187,21 +205,67 @@ export const CAMPFIRE_ROOM: Box = { x0: 428, y0: 940, x1: 860, y1: 1115 };
 
 /**
  * The sketch leaves this stretch of the concourse unassigned: it is floor
- * between Save Point and the campfire, with the photo wall and the snack
+ * between Save Point and the campfire, with the photo wall and the beverage
  * machine fixed to the corridor wall along it. It carries no tint because it
  * is not a zone.
  */
 export const OPEN_CONCOURSE: Box = { x0: 518, y0: 645, x1: 860, y1: 940 };
 
-/** Units fixed to the corridor wall, standing proud of it into the corridor. */
+/**
+ * Units fixed to a wall, standing proud of it into the open floor.
+ *
+ * Most hang on the corridor wall and read as slim vertical strips, named
+ * beside themselves out in the concourse. The snack machine is the exception:
+ * it stands across the head of the corridor against the north perimeter wall,
+ * so it runs horizontally and is named below itself instead.
+ *
+ * Listed top to bottom, the way the sketch stacks them.
+ */
 export const MOUNTED = [
-  { id: 'water-dispenser', name: 'Water', y0: 198, y1: 260, fill: '#4ECDC4' },
-  { id: 'photo-wall', name: 'Photo wall', y0: 650, y1: 748, fill: '#C3A6FF' },
-  { id: 'snack-machine', name: 'Snacks', y0: 843, y1: 940, fill: '#FFD166' },
+  {
+    id: 'snack-machine',
+    name: 'Snacks',
+    fill: '#FFD166',
+    // Held off the wash basins' corner rather than tucked into it, so it does
+    // not read as part of that wall. It runs past the corridor into the
+    // Sandbox instead — the hall edge is a change of floor, not a wall, so
+    // there is nothing there to butt against.
+    box: { x0: HALL_EDGE_PX - 25, y0: 60, x1: SERVICE_EDGE_PX - 25, y1: 60 + MOUNT_DEPTH_Y },
+    label: 'below',
+    againstWall: true,
+  },
+  {
+    id: 'water-dispenser',
+    name: 'Water',
+    fill: '#4ECDC4',
+    box: { x0: SERVICE_EDGE_PX - MOUNT_DEPTH_X, y0: 198, x1: SERVICE_EDGE_PX, y1: 260 },
+    label: 'beside',
+  },
+  {
+    id: 'photo-wall',
+    name: 'Photo wall',
+    fill: '#C3A6FF',
+    box: { x0: SERVICE_EDGE_PX - MOUNT_DEPTH_X, y0: 650, x1: SERVICE_EDGE_PX, y1: 748 },
+    label: 'beside',
+  },
+  {
+    id: 'beverage-machine',
+    name: 'Beverages',
+    fill: '#FFD166',
+    box: { x0: SERVICE_EDGE_PX - MOUNT_DEPTH_X, y0: 843, x1: SERVICE_EDGE_PX, y1: 940 },
+    label: 'beside',
+  },
 ] as const;
 
-export const mountedRect = (m: { y0: number; y1: number }): Rect =>
-  rectOf({ x0: 502, y0: m.y0, x1: 518, y1: m.y1 });
+/**
+ * A unit's rect. `againstWall` slides the whole unit back until it touches the
+ * drawn wall's inner face — see `WALL_FACE`. It keeps the depth its box gives
+ * it, so the gap closes without the machine growing to fill it.
+ */
+export const mountedRect = (m: { box: Box; againstWall?: boolean }): Rect => {
+  const r = rectOf(m.box);
+  return m.againstWall ? { ...r, y: WALL_FACE } : r;
+};
 
 /** The Game Library's bar, facing the corridor. */
 export const LIBRARY_BAR: Box = { x0: 518, y0: 262, x1: 540, y1: 480 };
@@ -221,6 +285,7 @@ export const COVE_RING = { cx: 13.136, cy: 37.354, rSeats: 2.7, seats: 12 } as c
 
 /** The named spaces, for the page legend and the text alternative. */
 export const AREAS = [
+  { id: 'snack-machine', name: 'Snack machine', detail: 'across the head of the corridor' },
   { id: 'wash-basins', name: 'Wash basins', detail: 'open to the corridor' },
   { id: 'water-dispenser', name: 'Water dispenser', detail: 'on the corridor wall' },
   { id: 'toilet', name: 'Toilet', detail: null },
@@ -228,7 +293,7 @@ export const AREAS = [
   { id: 'save-point', name: 'Save Point', detail: 'entrance lobby + registration' },
   { id: 'lifts', name: 'Lifts', detail: 'you arrive here' },
   { id: 'photo-wall', name: 'Photo wall', detail: 'corner out of Save Point' },
-  { id: 'snack-machine', name: 'Snack machine', detail: 'corner of the campfire floor' },
+  { id: 'beverage-machine', name: 'Beverage machine', detail: 'corner of the campfire floor' },
   { id: 'campfire', name: 'Campfire', detail: 'the community table' },
 ] as const;
 
@@ -275,7 +340,7 @@ export function venueMapOutline(): { heading: string; items: string[] }[] {
         'The play side is one large room. The zones are separated by decor, not walls, so you can walk straight between them.',
         'The Cassette Corridor runs down the middle, with the play zones on one side and everything else on the other.',
         'The lifts open into Save Point, the entrance lobby, a little under halfway down. Check in there, then out onto the floor.',
-        'Below Save Point the concourse is open floor, with the photo wall and the snack machine on the corridor wall, before the campfire floor at the far end.',
+        'Below Save Point the concourse is open floor, with the photo wall and the beverage machine on the corridor wall, before the campfire floor at the far end.',
       ],
     },
     {
@@ -306,8 +371,8 @@ const C_REGISTRATION = '#FBDFC4';
 const C_LIFTS = '#FF6B6B';
 const C_COMMUNAL = '#E2F4F2';
 
-/** Stroke weights, in metres. */
-const W_FRAME = 0.273;
+/** Stroke weights, in metres. `W_FRAME` is up with the geometry: a unit
+ *  pushed against the wall has to know where the stroke's inner face lands. */
 const W_ROOM = 0.117;
 const W_WALL = 0.14;
 const W_FIXTURE = 0.07;
@@ -583,7 +648,7 @@ export function buildVenueMapSvg(options: VenueMapSvgOptions = {}): string {
 
   // --- walls ---------------------------------------------------------------
   // The corridor wall along the open stretch of concourse, which the photo
-  // wall and the snack machine are fixed to. The rooms carry their own.
+  // wall and the beverage machine are fixed to. The rooms carry their own.
   const openTop = sy(OPEN_CONCOURSE.y0);
   const openBottom = sy(OPEN_CONCOURSE.y1);
   parts.push(
@@ -608,7 +673,7 @@ export function buildVenueMapSvg(options: VenueMapSvgOptions = {}): string {
     '</g>',
   );
 
-  // --- units fixed to the corridor wall ------------------------------------
+  // --- units fixed to a wall -----------------------------------------------
   parts.push('<g class="venue-map__mounted">');
   for (const m of MOUNTED) {
     parts.push(
@@ -695,18 +760,25 @@ export function buildVenueMapSvg(options: VenueMapSvgOptions = {}): string {
     label(round(table.x + table.w / 2), round(table.y + table.h / 2 + 0.22), 'CAMPFIRE', 'fp-feature', FLOOR_FILL),
   );
 
-  // The wall-mounted units are slim, so their names sit beside them.
+  // The wall-mounted units are slim, so their names sit clear of them: out in
+  // the concourse beside the unit, or — for the one standing across the head
+  // of the corridor — on the corridor floor below it.
   for (const m of MOUNTED) {
     const r = mountedRect(m);
-    parts.push(
-      label(
-        round(SERVICE_EDGE + 0.4 + m.name.length * T_SMALL * ADVANCE * 0.5),
-        round(r.y + r.h / 2 + 0.18),
-        m.name.toUpperCase(),
-        'fp-small',
-        CONCOURSE,
-      ),
-    );
+    let lx: number;
+    let ly: number;
+    if (m.label === 'below') {
+      // Centred under the unit, and it follows the unit wherever that sits —
+      // a name that drifts off its own centre reads as labelling the floor.
+      // It can overhang onto the Sandbox tint: the knockout is the concourse
+      // cream, near enough to that tint to pass.
+      lx = round(r.x + r.w / 2);
+      ly = round(r.y + r.h + T_SMALL + 0.24);
+    } else {
+      lx = round(SERVICE_EDGE + 0.4 + m.name.length * T_SMALL * ADVANCE * 0.5);
+      ly = round(r.y + r.h / 2 + 0.18);
+    }
+    parts.push(label(lx, ly, m.name.toUpperCase(), 'fp-small', CONCOURSE));
   }
 
   // Game Library, turned along the room the way the artifact turns it.

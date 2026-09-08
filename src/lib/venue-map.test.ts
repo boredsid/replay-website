@@ -14,6 +14,7 @@ import {
   MOUNTED,
   OPEN_CONCOURSE,
   SERVICE_EDGE,
+  WALL_FACE,
   TOILET,
   WASH,
   ZONES,
@@ -140,19 +141,43 @@ describe('venue map geometry', () => {
     expect(sy(OPEN_CONCOURSE.y1) - sy(OPEN_CONCOURSE.y0)).toBeGreaterThan(5);
   });
 
-  it('hangs the water dispenser, photo wall and snack machine on the corridor wall', () => {
-    expect(MOUNTED.map((m) => m.id)).toEqual(['water-dispenser', 'photo-wall', 'snack-machine']);
-    for (const m of MOUNTED) {
+  it('hangs the water dispenser, photo wall and beverage machine on the corridor wall', () => {
+    const onWall = MOUNTED.filter((m) => m.label === 'beside');
+    expect(onWall.map((m) => m.id)).toEqual([
+      'water-dispenser',
+      'photo-wall',
+      'beverage-machine',
+    ]);
+    for (const m of onWall) {
       const r = mountedRect(m);
       // Slim units standing proud of the wall, not rooms.
       expect([m.id, r.w < 0.6]).toEqual([m.id, true]);
       expect([m.id, r.x + r.w]).toEqual([m.id, SERVICE_EDGE]);
     }
-    // The photo wall sits just out of Save Point; snacks at the campfire corner.
+    // The photo wall sits just out of Save Point; beverages at the campfire corner.
     const photo = MOUNTED.find((m) => m.id === 'photo-wall')!;
+    const drinks = MOUNTED.find((m) => m.id === 'beverage-machine')!;
+    expect(photo.box.y0).toBeGreaterThanOrEqual(LOBBY.y1);
+    expect(drinks.box.y1).toBe(CAMPFIRE_ROOM.y0);
+  });
+
+  it('stands the snack machine across the head of the corridor, on the north wall', () => {
     const snack = MOUNTED.find((m) => m.id === 'snack-machine')!;
-    expect(photo.y0).toBeGreaterThanOrEqual(LOBBY.y1);
-    expect(snack.y1).toBe(CAMPFIRE_ROOM.y0);
+    const r = mountedRect(snack);
+    // Runs along the wall rather than down it, so it is named below itself.
+    expect(snack.label).toBe('below');
+    expect(r.h < 0.6).toBe(true);
+    expect(r.w).toBeGreaterThan(r.h);
+    // Pushed back until it touches the drawn wall, not the floor's edge —
+    // anchoring to INSIDE.y0 leaves it floating clear of the wall.
+    expect(r.y).toBe(WALL_FACE);
+    expect(r.y).toBeLessThan(CORRIDOR.y);
+    // Held clear of the wash basins' corner, running into the Sandbox instead.
+    expect(r.x + r.w).toBeLessThan(SERVICE_EDGE - 0.4);
+    expect(r.x).toBeLessThan(HALL_EDGE);
+    // Well clear of the water dispenser further down the corridor.
+    const water = MOUNTED.find((m) => m.id === 'water-dispenser')!;
+    expect(mountedRect(water).y).toBeGreaterThan(r.y + r.h + 2);
   });
 
   it('lines Save Point and the campfire up with the play-zone divisions', () => {
