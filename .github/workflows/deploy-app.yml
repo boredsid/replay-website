@@ -17,9 +17,16 @@ on:
   push:
     branches: [main]
     # The app shares the root dependency tree, so a root lockfile change can
-    # alter the bundle without app/ being touched.
+    # alter the bundle without app/ being touched. It also imports modules
+    # straight out of the site's own tree -- `src/lib/venue-map` and
+    # `src/lib/game-library`, reached as `../../../src/lib/...` -- so an edit
+    # there rebuilds the app bundle while leaving `app/` untouched. That is the
+    # same silent drift this workflow was written to close, arriving through a
+    # different door: watch what the app reads, not just where it lives.
     paths:
       - 'app/**'
+      - 'src/lib/**'
+      - 'src/data/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/deploy-app.yml'
