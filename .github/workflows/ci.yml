@@ -98,7 +98,21 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: worker/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+
+      # The worker's tests need the ROOT tree installed as well as their own,
+      # and the reason is not obvious. worker/tsconfig.json excludes
+      # `src/**/*.test.ts`, so a test file has no owning tsconfig inside
+      # worker/ and the transform walks up to the repo-root tsconfig.json --
+      # which extends `astro/tsconfigs/strict`, resolvable only from the root
+      # node_modules, where astro lives. Install worker/ alone and all 53 test
+      # files fail to transform with "Tsconfig not found", before a single
+      # assertion runs. It passes locally only because the root tree happens
+      # to be installed. Drop this step and the job goes red, not slow.
+      - name: Install root deps (worker tests reach the root tsconfig)
+        run: npm ci
 
       - name: Install
         working-directory: worker
