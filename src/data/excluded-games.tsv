@@ -9,7 +9,11 @@
 # refreshed. Exclusions have to live outside the harvest to survive it.
 #
 # Excluding by BGG id removes the game entirely, including copies contributed
-# by other collections.
+# by other collections. To drop only one collection's copy — the owner is not
+# bringing theirs, but somebody else still is — scope the id to that
+# collection with `<bggId>@<collection>`, where the collection is the name of
+# its file in src/data/bgg/ without the .tsv. The game keeps its card and
+# loses a copy. A collection that does not exist is an error, not a no-op.
 
 439742	Dewan	not coming to the venue
 40628	Finca	not coming to the venue
@@ -17,3 +21,9 @@
 417224	Onstage	not coming to the venue
 311828	Sherwood Bandits	not coming to the venue
 313262	Shamans	not coming to the venue
+452817	Emberheart	not coming to the venue
+143884	Machi Koro	not coming to the venue
+431994	Propolis	not coming to the venue
+417505	Dabba Walla	not coming to the venue
+160784	Fidelitas	not coming to the venue
+155821@Kishore_Rubik	Inis	that copy is not coming; another collection still lends one

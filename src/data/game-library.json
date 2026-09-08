@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-08-28",
+  "generatedAt": "2026-09-08",
   "sources": [
     {
       "label": "Bangalore Games Club library",
       "detail": "The club collection, including members who lend their own copies",
-      "count": 192
+      "count": 196
     },
     {
       "label": "Personal collections",
@@ -2329,7 +2329,7 @@
       "minTime": 45,
       "maxTime": 90,
       "rating": 7.9,
-      "weight": 2.85,
+      "weight": 2.86,
       "bestWith": [
         5
       ],
@@ -2352,7 +2352,7 @@
         5
       ],
       "copies": 1,
-      "description": "A game of alien politics and deep space warfare."
+      "description": "Aliens bend the rules, negotiate, ally, betray, and wage war for foreign colonies."
     },
     {
       "key": "bgg-194100",
@@ -2517,24 +2517,6 @@
       "description": "Refresh your knowledge about cell biology while creating proteins and enzymes."
     },
     {
-      "key": "bgg-417505",
-      "bggId": 417505,
-      "title": "Dabba Walla",
-      "year": 2024,
-      "thumb": "https://cf.geekdo-images.com/nyly2kH2FKHwC5on7DJqXw__small/img/XQk6cXh2KGx5jh8bvDLBUaUmOe4=/fit-in/200x150/filters:strip_icc()/pic8101158.jpg",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 30,
-      "maxTime": 45,
-      "rating": 7,
-      "weight": 1.94,
-      "bestWith": [
-        4
-      ],
-      "copies": 1,
-      "description": "Join the Dabba Walla on their daily journey through Mumbai to deliver lunch boxes."
-    },
-    {
       "key": "bgg-444678",
       "bggId": 444678,
       "title": "Dare to Ding",
@@ -2673,8 +2655,8 @@
       "maxPlayers": 5,
       "minTime": 30,
       "maxTime": 150,
-      "rating": 7.4,
-      "weight": 2.36,
+      "rating": 7.3,
+      "weight": 2.34,
       "bestWith": [
         3
       ],
@@ -3214,24 +3196,6 @@
       "description": "Party High Command"
     },
     {
-      "key": "bgg-452817",
-      "bggId": 452817,
-      "title": "Emberheart",
-      "year": 2025,
-      "thumb": "https://cf.geekdo-images.com/jUlZOyHFX-T8WIrwJu-hqQ__small/img/pk9Wq1r7knag325VFmHTWlgHoIE=/fit-in/200x150/filters:strip_icc()/pic9081476.png",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 60,
-      "maxTime": 90,
-      "rating": 7.4,
-      "weight": 2.74,
-      "bestWith": [
-        4
-      ],
-      "copies": 1,
-      "description": "Rescue and train dragons, rally heroes, and make a stand against the dragon poachers."
-    },
-    {
       "key": "bgg-426513",
       "bggId": 426513,
       "title": "Emberleaf",
@@ -3528,24 +3492,6 @@
       "description": "Social deduction - Loyal sailors, ruthless pirates, crazy cultists and... The Kraken!"
     },
     {
-      "key": "bgg-160784",
-      "bggId": 160784,
-      "title": "Fidelitas",
-      "year": 2015,
-      "thumb": "https://cf.geekdo-images.com/bUbQeUAZ6-xWr6NNpQdxSQ__small/img/fdWSvu048aOtAt314ZVCDLOVzHM=/fit-in/200x150/filters:strip_icc()/pic2072852.jpg",
-      "minPlayers": 1,
-      "maxPlayers": 4,
-      "minTime": 30,
-      "maxTime": 30,
-      "rating": 6.2,
-      "weight": 1.79,
-      "bestWith": [
-        2
-      ],
-      "copies": 1,
-      "description": "In Fidelitas, players take on the role of faithful citizens in a medieval city who are exerting influence in order to gain the credibility needed to lead the charge against the corrupt crown."
-    },
-    {
       "key": "bgg-436126",
       "bggId": 436126,
       "title": "Finspan",
@@ -3561,7 +3507,7 @@
         2,
         3
       ],
-      "copies": 1,
+      "copies": 2,
       "description": "Dive into the watery depths to find and observe a vast array of aquatic life."
     },
     {
@@ -4051,6 +3997,21 @@
       "description": "Compete as one of six Roman Generals in charge of a milecastle along Hadrian's Wall."
     },
     {
+      "key": "title-hamlet",
+      "bggId": null,
+      "title": "Hamlet",
+      "year": null,
+      "thumb": null,
+      "minPlayers": 1,
+      "maxPlayers": 4,
+      "minTime": 25,
+      "maxTime": 100,
+      "rating": 6.8,
+      "weight": 2.95,
+      "bestWith": [],
+      "copies": 1
+    },
+    {
       "key": "bgg-329754",
       "bggId": 329754,
       "title": "Hampi & the Sun Jewel",
@@ -4524,7 +4485,7 @@
       "bestWith": [
         4
       ],
-      "copies": 2,
+      "copies": 1,
       "description": "Claim the crown through merit and wisdom in this Celtic island struggle."
     },
     {
@@ -4665,7 +4626,7 @@
       "maxPlayers": 2,
       "minTime": 45,
       "maxTime": 45,
-      "rating": 7,
+      "rating": 7.1,
       "weight": 2.58,
       "bestWith": [
         2
@@ -4780,6 +4741,21 @@
       ],
       "copies": 1,
       "description": "Now YOU can create a hilarious dirty three-panel comic with your friends!"
+    },
+    {
+      "key": "title-jungo",
+      "bggId": null,
+      "title": "Jungo",
+      "year": null,
+      "thumb": null,
+      "minPlayers": 2,
+      "maxPlayers": 5,
+      "minTime": 15,
+      "maxTime": 15,
+      "rating": 7.1,
+      "weight": 1.14,
+      "bestWith": [],
+      "copies": 1
     },
     {
       "key": "bgg-254640",
@@ -4940,7 +4916,7 @@
       "minTime": 15,
       "maxTime": 20,
       "rating": 7.2,
-      "weight": 1.64,
+      "weight": 1.67,
       "bestWith": [
         5
       ],
@@ -5369,24 +5345,6 @@
       "description": "Build the best settlement on the moon to become the moon's capital city."
     },
     {
-      "key": "bgg-143884",
-      "bggId": 143884,
-      "title": "Machi Koro",
-      "year": 2012,
-      "thumb": "https://cf.geekdo-images.com/_lI2eUDHfesfe5SswJiFAg__small/img/tCTP0XMMmsAfNqzb0iYmp0b-YUc=/fit-in/200x150/filters:strip_icc()/pic4783831.png",
-      "minPlayers": 2,
-      "maxPlayers": 4,
-      "minTime": 30,
-      "maxTime": 30,
-      "rating": 6.6,
-      "weight": 1.52,
-      "bestWith": [
-        4
-      ],
-      "copies": 1,
-      "description": "As a newly elected mayor, develop a city and populate it with impressive landmarks."
-    },
-    {
       "key": "bgg-131232",
       "bggId": 131232,
       "title": "Mafia City",
@@ -5433,7 +5391,7 @@
       "maxPlayers": 5,
       "minTime": 60,
       "maxTime": 120,
-      "rating": 8,
+      "rating": 7.9,
       "weight": 3.12,
       "bestWith": [
         4
@@ -5853,7 +5811,7 @@
       "maxPlayers": 5,
       "minTime": 45,
       "maxTime": 90,
-      "rating": 7.9,
+      "rating": 7.7,
       "weight": 2.85,
       "bestWith": [],
       "copies": 1,
@@ -5942,7 +5900,7 @@
       "maxPlayers": 4,
       "minTime": 60,
       "maxTime": 90,
-      "rating": 8.3,
+      "rating": 8,
       "weight": 2.67,
       "bestWith": [
         4
@@ -6016,7 +5974,7 @@
       "minTime": 30,
       "maxTime": 30,
       "rating": 7.7,
-      "weight": 2.33,
+      "weight": 2.17,
       "bestWith": [
         3
       ],
@@ -6201,7 +6159,7 @@
       "maxPlayers": 5,
       "minTime": 20,
       "maxTime": null,
-      "rating": 7,
+      "rating": 7.1,
       "weight": 1.33,
       "bestWith": [
         4
@@ -6539,6 +6497,21 @@
       "description": "Afghan Tribes play \"the Great Game\", riding timely events and agents to power."
     },
     {
+      "key": "title-pergola",
+      "bggId": null,
+      "title": "Pergola",
+      "year": null,
+      "thumb": null,
+      "minPlayers": 1,
+      "maxPlayers": 4,
+      "minTime": 45,
+      "maxTime": 60,
+      "rating": 7.3,
+      "weight": 2.03,
+      "bestWith": [],
+      "copies": 1
+    },
+    {
       "key": "bgg-1258",
       "bggId": 1258,
       "title": "Phase 10",
@@ -6686,7 +6659,7 @@
         4
       ],
       "copies": 1,
-      "description": "Hire ships and crew, complete missions, and conquer the dreaded Ares pirates."
+      "description": "Hire locals, fulfill contracts and become the most powerful trader in Port Royal."
     },
     {
       "key": "bgg-180974",
@@ -6796,24 +6769,6 @@
       ],
       "copies": 1,
       "description": "Match tiles to complete puzzles more efficiently than your opponents!"
-    },
-    {
-      "key": "bgg-431994",
-      "bggId": 431994,
-      "title": "Propolis",
-      "year": 2025,
-      "thumb": "https://cf.geekdo-images.com/UnNRtk6gbVsAI0kl_6pF6A__small/img/FO_BmC-71Jch0RDDcmlb9ZiHPks=/fit-in/200x150/filters:strip_icc()/pic8514363.png",
-      "minPlayers": 1,
-      "maxPlayers": 4,
-      "minTime": 15,
-      "maxTime": 30,
-      "rating": 7.1,
-      "weight": 2.08,
-      "bestWith": [
-        3
-      ],
-      "copies": 1,
-      "description": "Deploy worker bees, explore the realm, and build the most glorious hive."
     },
     {
       "key": "bgg-3076",
@@ -7097,7 +7052,7 @@
       "minTime": 45,
       "maxTime": 60,
       "rating": 7.8,
-      "weight": 1.99,
+      "weight": 1.98,
       "bestWith": [
         3
       ],
@@ -7734,8 +7689,8 @@
       "maxPlayers": 4,
       "minTime": 40,
       "maxTime": 160,
-      "rating": 8.8,
-      "weight": 3.75,
+      "rating": 8.9,
+      "weight": 3.74,
       "bestWith": [
         3
       ],
@@ -8681,7 +8636,7 @@
       "minTime": 30,
       "maxTime": 60,
       "rating": 7.6,
-      "weight": 2.14,
+      "weight": 2.15,
       "bestWith": [
         2,
         3
