@@ -69,12 +69,24 @@ count in the file must equal that total.
 
 ```bash
 BGC_SUPABASE_ANON_KEY=<bgc-website publishable key> npm run sync:library
+npm run sync:descriptions
 ```
+
+Both, in that order, every time. `sync:library` rebuilds the whole snapshot
+from its sources, and `description` is not one of the things it knows how to
+produce — so a bare `sync:library` run leaves every game blurb-less, and the
+diff quietly strips 44KB of text that took 576 requests to gather.
+`sync:descriptions` refills only the games missing one, so running it when
+nothing is missing costs nothing.
 
 This writes `src/data/game-library.json`, which **is committed** — the site
 reads it at build time and never calls BGG or the BGC database during a build.
 That keeps Cloudflare Pages deploys fast and immune to a third party's
 downtime.
+
+Because the sources are live, a sync also picks up whatever else has moved
+since the last one — new BGC rows, a rating nudged by a few votes. Read the
+diff rather than assuming it contains only what you set out to change.
 
 Per-game responses are cached in `scripts/data/bgg-cache/` (gitignored), so a
 re-run after editing one `.tsv` costs only the new ids. Delete the cache
@@ -83,6 +95,31 @@ directory to force fresh ratings and weights.
 The key is read from the environment and must never be committed. Get it from
 the Supabase dashboard for the `bgc-website` project, or via the Supabase MCP
 `get_publishable_keys`.
+
+## Taking a game off the shelf
+
+`src/data/excluded-games.tsv` keeps a game off the page even though a source
+still lists it — usually because the owner has decided not to bring it. It has
+to live outside the harvest: `src/data/bgg/*.tsv` is replaced wholesale when a
+collection is refreshed, so a row deleted there comes straight back.
+
+One key per line, with an optional human note after a second tab:
+
+| Key | Removes |
+|---|---|
+| `155821` | the game entirely, every copy, whatever source lent it |
+| `155821@Kishore_Rubik` | only that collection's copy — the card stays if anyone else lends one |
+| `Some Title` | a BGC game that has no BGG id, matched on its folded title |
+
+The collection in a scoped key is the name of its file in `src/data/bgg/`
+without the `.tsv`. A collection with no such file is an error rather than a
+silent no-op, and the sync prints any exclusion that matched nothing at the end
+of a run — an entry that has stopped doing anything is a lie the next person
+has to disprove.
+
+Scoping only works by BGG id, because only a collection lends a particular
+copy. A title-keyed game has no BGG id, which means it came from the BGC
+library, which has no collection to scope to.
 
 ## No lender names are published
 

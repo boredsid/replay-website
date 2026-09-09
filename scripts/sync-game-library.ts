@@ -270,13 +270,23 @@ interface Exclusions {
   ids: Set<number>;
   /** Folded titles, for games with no BGG id. */
   titles: Set<string>;
+  /** Collection name → the BGG ids that collection alone stops lending. */
+  perCollection: Map<string, Set<number>>;
 }
 
-/** Read `excluded-games.tsv`: one BGG id or title per line, `#` for comments. */
-function readExclusions(): Exclusions {
+/**
+ * Read `excluded-games.tsv`: one BGG id or title per line, `#` for comments.
+ *
+ * A key of `<bggId>@<collection>` drops only that collection's copy, leaving
+ * the game on the page if anyone else lends one. `known` is the set of
+ * collection names that exist, so a mistyped one fails the run rather than
+ * silently excluding nothing.
+ */
+function readExclusions(known: Set<string>): Exclusions {
   const ids = new Set<number>();
   const titles = new Set<string>();
-  if (!existsSync(exclusionsPath)) return { ids, titles };
+  const perCollection = new Map<string, Set<number>>();
+  if (!existsSync(exclusionsPath)) return { ids, titles, perCollection };
   readFileSync(exclusionsPath, 'utf8')
     .split('\n')
     .forEach((line, index) => {
@@ -284,10 +294,31 @@ function readExclusions(): Exclusions {
       if (!trimmed || trimmed.startsWith('#')) return;
       const key = line.split('\t')[0]?.trim();
       if (!key) throw new Error(`excluded-games.tsv:${index + 1} has an empty key: ${line}`);
+
+      const scoped = key.match(/^(.*)@([^@]+)$/);
+      if (scoped) {
+        const [, rawId, collection] = scoped;
+        // Only a collection lends a *particular* copy. A title-keyed game has
+        // no BGG id, which means it came from the BGC library, which has no
+        // collection to scope to.
+        if (!/^\d+$/.test(rawId)) {
+          throw new Error(`excluded-games.tsv:${index + 1} scopes a title to a collection; scope a BGG id: ${line}`);
+        }
+        if (!known.has(collection)) {
+          throw new Error(
+            `excluded-games.tsv:${index + 1} names collection "${collection}", which has no src/data/bgg/${collection}.tsv`,
+          );
+        }
+        const forCollection = perCollection.get(collection) ?? new Set<number>();
+        forCollection.add(Number(rawId));
+        perCollection.set(collection, forCollection);
+        return;
+      }
+
       if (/^\d+$/.test(key)) ids.add(Number(key));
       else titles.add(titleKey(key));
     });
-  return { ids, titles };
+  return { ids, titles, perCollection };
 }
 
 function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void {
@@ -299,19 +330,30 @@ function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void
 async function main(): Promise<void> {
   const collections = readCollections();
   const idOverrides = readIdOverrides();
-  const exclusions = readExclusions();
+  const exclusions = readExclusions(new Set(collections.map(({ username }) => username)));
   const bgcRows = await fetchBgcRows();
 
   const byKey = new Map<string, WorkingGame>();
   const sources: LibrarySourceSummary[] = [];
+  // Which exclusion entries actually matched something, so a typo in the file
+  // surfaces at the end instead of silently doing nothing.
+  const usedExclusions = new Set<string>();
+  /** Copies dropped by a collection-scoped exclusion, for the run summary. */
+  let droppedCopies = 0;
 
   // --- BGG collections first, because they carry the BGG ids that let the
   // --- BGC rows inherit real box data instead of hand-typed approximations.
   // Excluded ids are skipped here as well as filtered at the end, so a removed
   // game costs no requests on a cold run.
   const uniqueIds = new Set<number>();
-  for (const { entries } of collections) {
-    for (const entry of entries) if (!exclusions.ids.has(entry.bggId)) uniqueIds.add(entry.bggId);
+  for (const { username, entries } of collections) {
+    const dropped = exclusions.perCollection.get(username);
+    for (const entry of entries) {
+      // A collection-scoped exclusion only skips this collection's row. If
+      // another collection lends the same game, its row still asks for the id.
+      if (exclusions.ids.has(entry.bggId) || dropped?.has(entry.bggId)) continue;
+      uniqueIds.add(entry.bggId);
+    }
   }
   // Overridden BGC titles need the same box data, so enrich their ids too.
   for (const row of bgcRows) {
@@ -333,7 +375,13 @@ async function main(): Promise<void> {
   }
 
   for (const { username, entries } of collections) {
+    const dropped = exclusions.perCollection.get(username);
     for (const entry of entries) {
+      if (dropped?.has(entry.bggId)) {
+        usedExclusions.add(`${entry.bggId}@${username}`);
+        droppedCopies += 1;
+        continue;
+      }
       const detail = details.get(entry.bggId);
       const key = `bgg-${entry.bggId}`;
       let game = byKey.get(key);
@@ -453,9 +501,8 @@ async function main(): Promise<void> {
   // Collapse each game's per-lender copies to a bare count. This is the step
   // that keeps names out of the published file — nothing downstream of here
   // has them to leak.
-  // Drop excluded games, and record which exclusion entries actually matched
-  // so a typo in the file surfaces instead of silently doing nothing.
-  const usedExclusions = new Set<string>();
+  // Drop excluded games. Collection-scoped exclusions have already been
+  // applied above, where the copy would have been added.
   const kept = [...byKey.values()].filter((game) => {
     if (game.bggId !== null && exclusions.ids.has(game.bggId)) {
       usedExclusions.add(String(game.bggId));
@@ -490,11 +537,18 @@ async function main(): Promise<void> {
   console.log(`  ${games.length} distinct games from ${sources.length} sources`);
   console.log(`  ${withArt} with box art, ${withPlayers} with a player count`);
   const excludedCount = byKey.size - kept.length;
-  console.log(`  ${excludedCount} removed by excluded-games.tsv`);
+  console.log(`  ${excludedCount} removed by excluded-games.tsv, ${droppedCopies} single copies dropped`);
 
   // An exclusion that matches nothing is almost always a typo or a game that
   // has already left its source — either way the file is now lying.
-  const declared = [...exclusions.ids].map(String).concat([...exclusions.titles]);
+  const declared = [...exclusions.ids]
+    .map(String)
+    .concat([...exclusions.titles])
+    .concat(
+      [...exclusions.perCollection].flatMap(([collection, ids]) =>
+        [...ids].map((bggId) => `${bggId}@${collection}`),
+      ),
+    );
   const unused = declared.filter((key) => !usedExclusions.has(key));
   if (unused.length) {
     console.log(`  ! ${unused.length} exclusion(s) matched nothing — stale or mistyped:`);
