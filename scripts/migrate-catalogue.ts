@@ -20,6 +20,7 @@
 // a bare id nobody can act on.
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadEnv } from 'vite';
@@ -48,9 +49,31 @@ if (probe.error) {
   process.exit(1);
 }
 
-const snapshot = JSON.parse(
-  readFileSync(join(root, 'src/data/game-library.json'), 'utf8'),
-) as LibrarySnapshot;
+/**
+ * The three files this reads are deleted by the same change that adds this
+ * script — they are what it exists to replace — so on the merged tree they are
+ * only in git history. Reading them from there is what makes this runnable
+ * where somebody would actually run it, rather than only from the one commit
+ * before the deletion.
+ */
+function readRetired(path: string): string | null {
+  const onDisk = join(root, path);
+  if (existsSync(onDisk)) return readFileSync(onDisk, 'utf8');
+  for (const rev of ['HEAD', 'HEAD~1', 'origin/main']) {
+    try {
+      return execFileSync('git', ['show', `${rev}:${path}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch { /* try the next one */ }
+  }
+  return null;
+}
+
+const snapshotText = readRetired('src/data/game-library.json');
+if (!snapshotText) {
+  console.error('Cannot find src/data/game-library.json, on disk or in git history.');
+  console.error('It was deleted by the change that added this script; run this from a checkout that can see it.');
+  process.exit(1);
+}
+const snapshot = JSON.parse(snapshotText) as LibrarySnapshot;
 
 console.log(`${apply ? 'Applying' : 'Dry run'} — snapshot ${snapshot.generatedAt}, ${snapshot.games.length} games.`);
 
@@ -91,14 +114,17 @@ for (const game of snapshot.games) {
 }
 console.log(`  ${updated} rows given their metadata${missing ? `, ${missing} snapshot games had no row` : ''}`);
 if (missing) {
-  console.log('  (run npm run seed:library on the old code first if that number is not zero)');
+  // Every snapshot game should already have a row: seed:library made them, and
+  // it ran before this change removed it. A non-zero count means the two have
+  // drifted, and sync:library will create the missing rows on its next run.
+  console.log('  (those will be created by the next npm run sync:library)');
 }
 
 // --- 2. Id overrides become aliases.
-const overridesPath = join(root, 'src/data/bgc-bgg-ids.tsv');
+const overridesText = readRetired('src/data/bgc-bgg-ids.tsv');
 const aliases: Array<{ folded_title: string; bgg_id: number; note: string | null }> = [];
-if (existsSync(overridesPath)) {
-  for (const line of readFileSync(overridesPath, 'utf8').split('\n')) {
+if (overridesText) {
+  for (const line of overridesText.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const [title, id, note] = line.split('\t');
@@ -114,11 +140,11 @@ if (apply && aliases.length) {
 }
 
 // --- 3. Exclusions.
-const exclusionsPath = join(root, 'src/data/excluded-games.tsv');
+const exclusionsText = readRetired('src/data/excluded-games.tsv');
 const wholeGame: Array<{ key: string; note: string }> = [];
 const scoped: Array<{ bggId: number; note: string }> = [];
-if (existsSync(exclusionsPath)) {
-  for (const line of readFileSync(exclusionsPath, 'utf8').split('\n')) {
+if (exclusionsText) {
+  for (const line of exclusionsText.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const [rawKey, , note] = line.split('\t');
