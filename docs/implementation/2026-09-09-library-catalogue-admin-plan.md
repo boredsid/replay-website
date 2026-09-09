@@ -96,24 +96,26 @@ the admin, since `_headers` is invisible to `astro dev`.
 ## Status
 
 - [x] 1 database — applied to production 2026-09-09
-- [x] 2 backfill — script written; **shelf state applied, metadata still to run**
-- [x] 3 worker — deployed, `GET /api/catalogue` answering
+- [x] 2 backfill — loaded; 581 on the shelf, 11 off it, Inis pinned to one copy
+- [x] 3 worker — deployed, `GET /api/catalogue` serving 581 games
 - [x] 4 admin — built and tested, deploys on merge
-- [x] 5 site and app
+- [x] 5 site and app — both build against the live endpoint
 - [x] 6 delete
 - [x] 7 sync
-- [x] 8 verify — suites and admin build green; site and app builds pending the
-      metadata backfill, since both read `/api/catalogue`
+- [x] 8 verify
 
-### Where this stopped
+### What the numbers came out at
 
-`library_titles` has its columns, the 11 exclusions are off the shelf, Inis is
-pinned to one copy, and the 76 aliases are in. What is **not** loaded is the
-per-game metadata — art, player counts, minutes, ratings, blurbs — because
-`migrate-catalogue.ts` needs `SUPABASE_SERVICE_KEY`, which is not on this
-machine. Until it runs, `/api/catalogue` answers with titles and copy counts
-and nulls for the rest, so **the site must not be rebuilt yet**.
+581 games on the shelf, 863 copies, 576 with box art and a blurb. Five on-shelf
+titles have no art, and they are the same five the reference doc already named:
+club games BoardGameGeek does not list at all.
 
-One thing that run will report: 581 on-shelf rows against 584 games in the
-retired snapshot. Those three were added to a collection after the last
-`seed:library`, and `sync:library` creates them.
+Two things worth recording, both found by doing it rather than by planning it:
+
+- `plan-your-visit.astro` imported the snapshot too, for its "550+ games"
+  claim. Nothing pointed at it — an earlier grep for the filename had been
+  truncated by a `head` — and the site build was what found it.
+- `library_titles` held 586 rows against the retired snapshot's 584, because
+  five of the eleven excluded games still had rows from `seed:library` and two
+  more had left the collections since. The exclusions are now off the shelf
+  either way; `sync:library` reconciles the rest on its next run.
