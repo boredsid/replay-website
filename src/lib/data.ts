@@ -157,7 +157,16 @@ export async function getScheduleItems(editionId: string): Promise<ScheduleItemR
  * Throws rather than degrades, like the sponsor normaliser: a library page that
  * silently builds with no games is worse than a build that stops.
  */
+let catalogueOnce: Promise<LibrarySnapshot> | null = null;
+
 export async function getLibraryCatalogue(): Promise<LibrarySnapshot> {
+  // Two pages want it in one build — /library renders it, /plan-your-visit
+  // counts it — and it is a quarter of a megabyte. Fetch it once.
+  catalogueOnce ??= fetchLibraryCatalogue();
+  return catalogueOnce;
+}
+
+async function fetchLibraryCatalogue(): Promise<LibrarySnapshot> {
   const url = import.meta.env.PUBLIC_WORKER_URL;
   if (!url) throw new Error('getLibraryCatalogue failed: PUBLIC_WORKER_URL not set');
   const response = await fetch(`${String(url).trim().replace(/\/$/, '')}/api/catalogue`);

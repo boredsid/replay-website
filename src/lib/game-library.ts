@@ -1,9 +1,11 @@
 // src/lib/game-library.ts
 // Types and pure filtering helpers for the `/library` page.
 //
-// The data itself is a committed snapshot at `src/data/game-library.json`,
-// rebuilt on demand by `npm run sync:library` — see that script's header for
-// why the merge does not happen at build time.
+// The data itself lives in `library_titles` and reaches both readers through
+// `GET /api/catalogue` — the public site at build time, the attendee app
+// bundled into its own build. `npm run sync:library` refreshes it from
+// BoardGameGeek on demand; see that script's header for why that merge does
+// not happen at build time.
 //
 // Everything here is deliberately pure and framework-free: the Astro page
 // imports it for the server-rendered summary, and `GameLibrary.tsx` imports
