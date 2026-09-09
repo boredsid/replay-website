@@ -95,11 +95,25 @@ the admin, since `_headers` is invisible to `astro dev`.
 
 ## Status
 
-- [ ] 1 database
-- [ ] 2 backfill
-- [ ] 3 worker
-- [ ] 4 admin
-- [ ] 5 site and app
-- [ ] 6 delete
-- [ ] 7 sync
-- [ ] 8 verify
+- [x] 1 database — applied to production 2026-09-09
+- [x] 2 backfill — script written; **shelf state applied, metadata still to run**
+- [x] 3 worker — deployed, `GET /api/catalogue` answering
+- [x] 4 admin — built and tested, deploys on merge
+- [x] 5 site and app
+- [x] 6 delete
+- [x] 7 sync
+- [x] 8 verify — suites and admin build green; site and app builds pending the
+      metadata backfill, since both read `/api/catalogue`
+
+### Where this stopped
+
+`library_titles` has its columns, the 11 exclusions are off the shelf, Inis is
+pinned to one copy, and the 76 aliases are in. What is **not** loaded is the
+per-game metadata — art, player counts, minutes, ratings, blurbs — because
+`migrate-catalogue.ts` needs `SUPABASE_SERVICE_KEY`, which is not on this
+machine. Until it runs, `/api/catalogue` answers with titles and copy counts
+and nulls for the rest, so **the site must not be rebuilt yet**.
+
+One thing that run will report: 581 on-shelf rows against 584 games in the
+retired snapshot. Those three were added to a collection after the last
+`seed:library`, and `sync:library` creates them.
