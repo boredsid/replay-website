@@ -1,10 +1,11 @@
-import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, CalendarCheck, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library, ShieldCheck, Wallet } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, CalendarCheck, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library, BookMarked, ShieldCheck, Wallet } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard, end: true, mobile: 'primary', mobileOrder: 0, roles: ['check_in', 'library', 'programme'] },
   { to: '/editions', label: 'Editions', mobileLabel: 'Editions', icon: Calendar, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/check-in', label: 'Check in', mobileLabel: 'Check in', icon: UserCheck, end: false, mobile: 'primary', mobileOrder: 1, roles: ['check_in'] },
   { to: '/library', label: 'Game library', mobileLabel: 'Library', icon: Library, end: false, mobile: 'primary', mobileOrder: 2, roles: ['library'] },
+  { to: '/catalogue', label: 'Game catalogue', mobileLabel: 'Catalogue', icon: BookMarked, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'more', mobileOrder: 0, roles: ['programme'] },
   { to: '/events', label: 'Events', mobileLabel: 'Events', icon: CalendarCheck, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 4, roles: ['programme'] },

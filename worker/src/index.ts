@@ -10,6 +10,15 @@ import { verifyAccessJwt } from './access-auth';
 import { pickAdminOrigin, adminCorsHeaders, adminJson } from './admin/auth';
 import { serviceClient } from './supabase';
 import { handleWhoami } from './admin/whoami';
+import { handleCatalogue } from './catalogue';
+import {
+  handleCatalogueList,
+  handleCatalogueGet,
+  handleCatalogueCreate,
+  handleCataloguePatch,
+  handleCatalogueLink,
+  handleCatalogueLookup,
+} from './admin/catalogue';
 import { loadStaff, mayReach, hasFullAccess } from './admin/roles';
 import { handleStaffList, handleStaffCreate, handleStaffUpdate, handleStaffRemove } from './admin/staff';
 import { handleRebuild } from './admin/rebuild';
@@ -255,6 +264,20 @@ export default {
         if (sponsorMatch && req.method === 'PATCH') return await handleSponsorPatch(req, sb, sponsorMatch[1], email, origin);
         if (sponsorMatch && req.method === 'DELETE') return await handleSponsorDelete(sb, sponsorMatch[1], email, origin);
 
+        // The catalogue is what the shelf *is*; /api/admin/library above is the
+        // desk that lends from it. Deliberately not given to the `library`
+        // role: working the counter and changing what the public site
+        // advertises are different jobs. Unlisted in roles.ts RULES, so it is
+        // admin-only by omission.
+        if (path === '/api/admin/catalogue' && req.method === 'GET') return await handleCatalogueList(req, env, sb, origin);
+        if (path === '/api/admin/catalogue' && req.method === 'POST') return await handleCatalogueCreate(req, env, sb, email, origin);
+        if (path === '/api/admin/catalogue/lookup' && req.method === 'POST') return await handleCatalogueLookup(req, env, sb, origin);
+        const catalogueLinkMatch = path.match(/^\/api\/admin\/catalogue\/([^/]+)\/link$/);
+        if (catalogueLinkMatch && req.method === 'POST') return await handleCatalogueLink(req, env, sb, catalogueLinkMatch[1], email, origin);
+        const catalogueMatch = path.match(/^\/api\/admin\/catalogue\/([^/]+)$/);
+        if (catalogueMatch && req.method === 'GET') return await handleCatalogueGet(req, env, sb, catalogueMatch[1], origin);
+        if (catalogueMatch && req.method === 'PATCH') return await handleCataloguePatch(req, env, sb, catalogueMatch[1], email, origin);
+
         if (path === '/api/admin/schedule' && req.method === 'GET') return await handleScheduleList(req, env, sb, origin);
         if (path === '/api/admin/schedule' && req.method === 'POST') return await handleScheduleCreate(req, sb, email, origin);
         const scheduleMatch = path.match(/^\/api\/admin\/schedule\/([^/]+)$/);
@@ -285,6 +308,15 @@ export default {
 
       if (path === '/api/health') {
         return jsonResponse({ ok: true, env: env.ENVIRONMENT });
+      }
+      // The published game catalogue. Read by two *builds*, not by browsers:
+      // `astro build` for the public /library page, and the attendee app's Vite
+      // build, which bundles it so the shelf still lists on venue wifi. Public
+      // because it carries nothing private and because giving the app build a
+      // database key would be a worse trade than an open read of what is
+      // already on a public page.
+      if (path === '/api/catalogue' && req.method === 'GET') {
+        return await handleCatalogue(env);
       }
       if (path === '/api/app/pair' && req.method === 'POST') {
         return await handleAppPair(req, env);

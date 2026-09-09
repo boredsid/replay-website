@@ -1,12 +1,12 @@
-// Rebuilds `src/data/game-library.json` — the committed snapshot behind
-// `/library` — from the five sources REPLAY's shelf is drawn from:
+// Rebuilds the game catalogue in `library_titles` from the five sources
+// REPLAY's shelf is drawn from:
 //
 //   1. `public.games` on the bgc-website Supabase project (the club library)
 //   2..5. Four BoardGameGeek collections, harvested into `src/data/bgg/*.tsv`
 //
 // Run with `npm run sync:library`. Deliberately NOT wired into `astro build`.
 //
-// Why the snapshot is committed rather than fetched at build time:
+// Why the merge is not run at build time:
 //
 //   * BoardGameGeek closed its public APIs. `xmlapi2` now answers 401 with
 //     `WWW-Authenticate: Bearer realm="xml api"`, and the HTML collection
@@ -18,43 +18,33 @@
 //     third party's downtime able to fail a deploy that has nothing to do with
 //     the library.
 //
-// So the network work happens here, on demand, and git holds the result.
+// So the network work happens here, on demand, and the database holds the
+// result. It used to be a committed JSON file; it moved into Postgres so the
+// admin console could edit it, because taking six games off the shelf on
+// 2026-09-09 took a pull request. See
+// docs/specs/2026-09-09-library-catalogue-admin-design.md.
+//
+// What this run may and may not touch is the one rule that matters. It writes
+// BoardGameGeek metadata and reconciles physical copies. It never writes
+// `shelf_status`, `off_shelf_*` or `copies_override` — those belong to whoever
+// is using the admin console — and it skips rows whose `source` is 'manual'
+// entirely. Nothing here deletes anything.
 //
 // Refreshing the BGG side: the `.tsv` files are the harvest, one row per game
 // as `bggId<TAB>title<TAB>year`. They come from the collection page's table
 // and have to be re-harvested through a real browser when a collection
 // changes — see docs/reference/GAME_LIBRARY.md. Everything downstream of them, and the
 // whole BGC side, is automatic.
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { titleKey, titleSlug, type LibraryGame, type LibrarySnapshot, type LibrarySourceSummary } from '../src/lib/game-library.ts';
+import { loadEnv } from 'vite';
+import { titleKey, titleSlug, type LibraryGame, type LibrarySourceSummary } from '../src/lib/game-library.ts';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const collectionsDir = join(repoRoot, 'src/data/bgg');
-const outputPath = join(repoRoot, 'src/data/game-library.json');
-/**
- * Hand-resolved `BGC title <TAB> bggId` pairs.
- *
- * `public.games` has no BGG id column, so a BGC row normally finds its game by
- * folded title. When BGG spells the game differently — the sheet's "Vallamkali"
- * is BGG's "Vallamkali: Boat Races of Alappuzha" — the match fails, and the row
- * becomes a second card for a game already on the shelf, with no box art. This
- * file is the override that repairs those, and it is also what gives BGC-only
- * titles their art. See docs/reference/GAME_LIBRARY.md for how to extend it.
- */
-const idOverridesPath = join(repoRoot, 'src/data/bgc-bgg-ids.tsv');
-/**
- * Games to keep off the page even though a source still lists them — usually
- * because the owner is no longer bringing them.
- *
- * Kept separate from the harvest because `src/data/bgg/*.tsv` is replaced
- * wholesale whenever a collection is refreshed, so a row deleted there comes
- * straight back. Excluding by BGG id drops the game entirely, including copies
- * contributed by other collections.
- */
-const exclusionsPath = join(repoRoot, 'src/data/excluded-games.tsv');
+
 /** Gitignored (all of `scripts/data/` is). Makes a re-run cost no requests. */
 const cacheDir = join(repoRoot, 'scripts/data/bgg-cache');
 
@@ -64,6 +54,14 @@ const cacheDir = join(repoRoot, 'scripts/data/bgg-cache');
  * `anon`, so the publishable key is all this needs — and the key is only ever
  * read from the environment, never committed.
  */
+/**
+ * REPLAY's own project, where the catalogue now lives. The service key is
+ * exported for the command and never written to a file, same as seed scripts.
+ */
+const replayEnv = { ...loadEnv('production', repoRoot, ''), ...process.env };
+const REPLAY_URL = replayEnv.PUBLIC_SUPABASE_URL?.trim();
+const REPLAY_SERVICE_KEY = replayEnv.SUPABASE_SERVICE_KEY?.trim();
+
 const BGC_SUPABASE_URL = process.env.BGC_SUPABASE_URL ?? 'https://yhgtwqdsnrslcgdvmunz.supabase.co';
 const BGC_SUPABASE_ANON_KEY = process.env.BGC_SUPABASE_ANON_KEY;
 
@@ -93,7 +91,7 @@ interface BggDetail {
  * A game mid-merge. Identical to the published `LibraryGame` except that it
  * still knows who lends each copy — needed to count duplicates correctly, and
  * dropped to a bare number before anything is written. Lender names must not
- * reach `src/data/game-library.json`; the site serves that file verbatim.
+ * reach `library_titles`; GET /api/catalogue serves it straight through.
  */
 type WorkingGame = Omit<LibraryGame, 'copies'> & {
   copies: { lender: string; source: 'bgc' | 'bgg'; count: number }[];
@@ -248,77 +246,74 @@ function plausibleWeight(value: string | number | null): number | null {
   return parsed !== null && parsed <= 5 ? round2(parsed) : null;
 }
 
-/** Read the `title <TAB> bggId` overrides, keyed by folded title. */
-function readIdOverrides(): Map<string, number> {
-  const overrides = new Map<string, number>();
-  if (!existsSync(idOverridesPath)) return overrides;
-  readFileSync(idOverridesPath, 'utf8')
-    .split('\n')
-    .forEach((line, index) => {
-      if (!line.trim() || line.startsWith('#')) return;
-      const [title, rawId] = line.split('\t');
-      const bggId = Number(rawId);
-      if (!title?.trim() || !Number.isInteger(bggId) || bggId <= 0) {
-        throw new Error(`bgc-bgg-ids.tsv:${index + 1} is not "<title>\\t<bggId>": ${line}`);
-      }
-      overrides.set(titleKey(title), bggId);
-    });
-  return overrides;
+/**
+ * Title aliases, keyed by folded title.
+ *
+ * Was `src/data/bgc-bgg-ids.tsv`; now a table the admin console writes to, so
+ * fixing "the club sheet spells this differently" no longer needs a commit.
+ * The fold has to match `foldTitle` in worker/src/admin/catalogue.ts, which is
+ * why both are `titleKey` from src/lib/game-library.ts.
+ */
+async function loadAliases(sb: SupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await sb.from('library_title_aliases').select('folded_title, bgg_id').limit(5000);
+  if (error) throw new Error(`could not read library_title_aliases: ${error.message}`);
+  return new Map((data ?? []).map((row: { folded_title: string; bgg_id: number }) => [row.folded_title, row.bgg_id]));
 }
 
-interface Exclusions {
-  ids: Set<number>;
-  /** Folded titles, for games with no BGG id. */
-  titles: Set<string>;
-  /** Collection name → the BGG ids that collection alone stops lending. */
-  perCollection: Map<string, Set<number>>;
+interface Curation {
+  /** BGG ids an admin has taken off the shelf. Not enriched, not published. */
+  offShelfIds: Set<number>;
+  /** Folded titles of off-shelf games that have no BGG id. */
+  offShelfTitles: Set<string>;
+  /** Title key → the copy count an admin pinned by hand. */
+  overrides: Map<string, number>;
+  /** Title key → what the row already says, so a sync can leave it alone. */
+  existing: Map<string, CatalogueRow>;
+  byBggId: Map<number, CatalogueRow>;
+}
+
+interface CatalogueRow {
+  id: string;
+  key: string;
+  bgg_id: number | null;
+  title: string;
+  source: string;
+  shelf_status: string;
+  copies_override: number | null;
 }
 
 /**
- * Read `excluded-games.tsv`: one BGG id or title per line, `#` for comments.
+ * What the admin console has decided, which this run must not undo.
  *
- * A key of `<bggId>@<collection>` drops only that collection's copy, leaving
- * the game on the page if anyone else lends one. `known` is the set of
- * collection names that exist, so a mistyped one fails the run rather than
- * silently excluding nothing.
+ * Replaces `src/data/excluded-games.tsv` entirely. A game taken off the shelf
+ * keeps its row — that is what lets somebody put it back — so unlike the old
+ * file, nothing here removes anything. It only says what not to touch.
  */
-function readExclusions(known: Set<string>): Exclusions {
-  const ids = new Set<number>();
-  const titles = new Set<string>();
-  const perCollection = new Map<string, Set<number>>();
-  if (!existsSync(exclusionsPath)) return { ids, titles, perCollection };
-  readFileSync(exclusionsPath, 'utf8')
-    .split('\n')
-    .forEach((line, index) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) return;
-      const key = line.split('\t')[0]?.trim();
-      if (!key) throw new Error(`excluded-games.tsv:${index + 1} has an empty key: ${line}`);
+async function loadCuration(sb: SupabaseClient): Promise<Curation> {
+  const { data, error } = await sb
+    .from('library_titles')
+    .select('id, key, bgg_id, title, source, shelf_status, copies_override')
+    .limit(5000);
+  if (error) throw new Error(`could not read library_titles: ${error.message}`);
+  const rows = (data ?? []) as CatalogueRow[];
 
-      const scoped = key.match(/^(.*)@([^@]+)$/);
-      if (scoped) {
-        const [, rawId, collection] = scoped;
-        // Only a collection lends a *particular* copy. A title-keyed game has
-        // no BGG id, which means it came from the BGC library, which has no
-        // collection to scope to.
-        if (!/^\d+$/.test(rawId)) {
-          throw new Error(`excluded-games.tsv:${index + 1} scopes a title to a collection; scope a BGG id: ${line}`);
-        }
-        if (!known.has(collection)) {
-          throw new Error(
-            `excluded-games.tsv:${index + 1} names collection "${collection}", which has no src/data/bgg/${collection}.tsv`,
-          );
-        }
-        const forCollection = perCollection.get(collection) ?? new Set<number>();
-        forCollection.add(Number(rawId));
-        perCollection.set(collection, forCollection);
-        return;
-      }
-
-      if (/^\d+$/.test(key)) ids.add(Number(key));
-      else titles.add(titleKey(key));
-    });
-  return { ids, titles, perCollection };
+  const curation: Curation = {
+    offShelfIds: new Set(),
+    offShelfTitles: new Set(),
+    overrides: new Map(),
+    existing: new Map(),
+    byBggId: new Map(),
+  };
+  for (const row of rows) {
+    curation.existing.set(row.key, row);
+    if (row.bgg_id) curation.byBggId.set(row.bgg_id, row);
+    if (row.copies_override !== null) curation.overrides.set(row.key, row.copies_override);
+    if (row.shelf_status === 'off_shelf') {
+      if (row.bgg_id) curation.offShelfIds.add(row.bgg_id);
+      else curation.offShelfTitles.add(titleKey(row.title));
+    }
+  }
+  return curation;
 }
 
 function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void {
@@ -328,37 +323,36 @@ function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void
 }
 
 async function main(): Promise<void> {
+  if (!REPLAY_URL || !REPLAY_SERVICE_KEY) {
+    console.error('PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY must be set — the catalogue lives in the database now.');
+    console.error('  SUPABASE_SERVICE_KEY=... BGC_SUPABASE_ANON_KEY=... npm run sync:library');
+    process.exit(1);
+  }
+  const replay = createClient(REPLAY_URL, REPLAY_SERVICE_KEY, { auth: { persistSession: false } });
+
   const collections = readCollections();
-  const idOverrides = readIdOverrides();
-  const exclusions = readExclusions(new Set(collections.map(({ username }) => username)));
+  const idOverrides = await loadAliases(replay);
+  const curation = await loadCuration(replay);
   const bgcRows = await fetchBgcRows();
 
   const byKey = new Map<string, WorkingGame>();
   const sources: LibrarySourceSummary[] = [];
-  // Which exclusion entries actually matched something, so a typo in the file
-  // surfaces at the end instead of silently doing nothing.
-  const usedExclusions = new Set<string>();
-  /** Copies dropped by a collection-scoped exclusion, for the run summary. */
-  let droppedCopies = 0;
 
   // --- BGG collections first, because they carry the BGG ids that let the
   // --- BGC rows inherit real box data instead of hand-typed approximations.
-  // Excluded ids are skipped here as well as filtered at the end, so a removed
-  // game costs no requests on a cold run.
+  // A game somebody took off the shelf is skipped here, so it costs no
+  // requests on a cold run — the same saving the exclusion file used to make.
   const uniqueIds = new Set<number>();
-  for (const { username, entries } of collections) {
-    const dropped = exclusions.perCollection.get(username);
+  for (const { entries } of collections) {
     for (const entry of entries) {
-      // A collection-scoped exclusion only skips this collection's row. If
-      // another collection lends the same game, its row still asks for the id.
-      if (exclusions.ids.has(entry.bggId) || dropped?.has(entry.bggId)) continue;
+      if (curation.offShelfIds.has(entry.bggId)) continue;
       uniqueIds.add(entry.bggId);
     }
   }
-  // Overridden BGC titles need the same box data, so enrich their ids too.
+  // Aliased BGC titles need the same box data, so enrich their ids too.
   for (const row of bgcRows) {
     const bggId = idOverrides.get(titleKey(row.title ?? ''));
-    if (bggId && !exclusions.ids.has(bggId)) uniqueIds.add(bggId);
+    if (bggId && !curation.offShelfIds.has(bggId)) uniqueIds.add(bggId);
   }
   console.log(`Enriching ${uniqueIds.size} unique BGG ids (cached: ${existsSync(cacheDir) ? readdirSync(cacheDir).length : 0})…`);
 
@@ -375,13 +369,7 @@ async function main(): Promise<void> {
   }
 
   for (const { username, entries } of collections) {
-    const dropped = exclusions.perCollection.get(username);
     for (const entry of entries) {
-      if (dropped?.has(entry.bggId)) {
-        usedExclusions.add(`${entry.bggId}@${username}`);
-        droppedCopies += 1;
-        continue;
-      }
       const detail = details.get(entry.bggId);
       const key = `bgg-${entry.bggId}`;
       let game = byKey.get(key);
@@ -503,56 +491,38 @@ async function main(): Promise<void> {
   // has them to leak.
   // Drop excluded games. Collection-scoped exclusions have already been
   // applied above, where the copy would have been added.
-  const kept = [...byKey.values()].filter((game) => {
-    if (game.bggId !== null && exclusions.ids.has(game.bggId)) {
-      usedExclusions.add(String(game.bggId));
-      return false;
-    }
-    const folded = titleKey(game.title);
-    if (exclusions.titles.has(folded)) {
-      usedExclusions.add(folded);
-      return false;
-    }
-    return true;
-  });
-
-  const games: LibraryGame[] = kept
+  const games: LibraryGame[] = [...byKey.values()]
     .sort((a, b) => a.title.localeCompare(b.title, 'en'))
     .map(({ copies, ...game }) => ({
       ...game,
       copies: copies.reduce((total, copy) => total + copy.count, 0),
     }));
 
-  const snapshot: LibrarySnapshot = {
-    generatedAt: new Date().toISOString().slice(0, 10),
-    sources,
-    games,
-  };
-
-  writeFileSync(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`);
+  const report = await writeCatalogue(replay, games, sources, curation);
 
   const withArt = games.filter((game) => game.thumb).length;
   const withPlayers = games.filter((game) => game.minPlayers !== null).length;
-  console.log(`\nWrote ${outputPath}`);
-  console.log(`  ${games.length} distinct games from ${sources.length} sources`);
+  console.log(`\nWrote ${games.length} games to library_titles`);
+  console.log(`  ${report.inserted} new, ${report.updated} refreshed, ${report.skipped} left alone`);
+  console.log(`  ${report.copiesAdded} copies added, ${report.copiesWithdrawn} withdrawn, ${report.copiesRestored} restored`);
   console.log(`  ${withArt} with box art, ${withPlayers} with a player count`);
-  const excludedCount = byKey.size - kept.length;
-  console.log(`  ${excludedCount} removed by excluded-games.tsv, ${droppedCopies} single copies dropped`);
+  console.log(`  ${curation.offShelfIds.size + curation.offShelfTitles.size} off the shelf (unchanged by this run)`);
 
-  // An exclusion that matches nothing is almost always a typo or a game that
-  // has already left its source — either way the file is now lying.
-  const declared = [...exclusions.ids]
-    .map(String)
-    .concat([...exclusions.titles])
-    .concat(
-      [...exclusions.perCollection].flatMap(([collection, ids]) =>
-        [...ids].map((bggId) => `${bggId}@${collection}`),
-      ),
-    );
-  const unused = declared.filter((key) => !usedExclusions.has(key));
-  if (unused.length) {
-    console.log(`  ! ${unused.length} exclusion(s) matched nothing — stale or mistyped:`);
-    for (const key of unused) console.log(`      ${key}`);
+  // An alias that matches nothing is almost always a typo or a club title that
+  // has since been renamed — either way the row is now lying.
+  const foldedTitles = new Set(bgcRows.map((row) => titleKey(row.title ?? '')));
+  const unusedAliases = [...idOverrides.keys()].filter((folded) => !foldedTitles.has(folded));
+  if (unusedAliases.length) {
+    console.log(`  ! ${unusedAliases.length} alias(es) matched no club title — stale or mistyped:`);
+    for (const folded of unusedAliases) console.log(`      ${folded}`);
+  }
+
+  // An override that equals what the collections actually lend is doing
+  // nothing, and will keep doing nothing silently until somebody checks.
+  const redundant = games.filter((game) => curation.overrides.get(game.key) === game.copies);
+  if (redundant.length) {
+    console.log(`  ! ${redundant.length} pinned copy count(s) now match the shelf and could be cleared:`);
+    for (const game of redundant) console.log(`      ${game.title} (${game.copies})`);
   }
 
   const orphans = games.filter((game) => !game.bggId);
@@ -560,6 +530,170 @@ async function main(): Promise<void> {
     console.log(`  ${orphans.length} BGC titles with no BGG match (no art, sheet data only):`);
     for (const game of orphans) console.log(`    - ${game.title}`);
   }
+}
+
+interface WriteReport {
+  inserted: number;
+  updated: number;
+  skipped: number;
+  copiesAdded: number;
+  copiesWithdrawn: number;
+  copiesRestored: number;
+}
+
+/** Marks a copy that left the pooled collections rather than one the desk pulled. */
+const SYNC_ACTOR = 'sync:library';
+
+/**
+ * Push the merge into `library_titles`, without treading on the admin.
+ *
+ * One owner per column is the whole contract. This writes BoardGameGeek
+ * metadata and reconciles physical copies; it never writes `shelf_status`,
+ * `off_shelf_*` or `copies_override`, and it skips rows whose `source` is
+ * 'manual' outright — those were typed in by a person for a game no harvest
+ * knows about, and a sync that "tidied" them would delete somebody's work.
+ *
+ * Games are identified by `bgg_id` where there is one, falling back to `key`.
+ * That is what lets an admin link a differently-spelled club title to its BGG
+ * entry and have this run agree with them instead of making a second card.
+ */
+async function writeCatalogue(
+  sb: SupabaseClient,
+  games: LibraryGame[],
+  sources: LibrarySourceSummary[],
+  curation: Curation,
+): Promise<WriteReport> {
+  const report: WriteReport = { inserted: 0, updated: 0, skipped: 0, copiesAdded: 0, copiesWithdrawn: 0, copiesRestored: 0 };
+
+  for (const game of games) {
+    const row = (game.bggId ? curation.byBggId.get(game.bggId) : undefined) ?? curation.existing.get(game.key);
+
+    if (row?.source === 'manual') { report.skipped += 1; continue; }
+
+    const metadata = {
+      bgg_id: game.bggId,
+      title: game.title,
+      year: game.year,
+      thumb: game.thumb,
+      min_players: game.minPlayers,
+      max_players: game.maxPlayers,
+      min_time: game.minTime,
+      max_time: game.maxTime,
+      rating: game.rating,
+      weight: game.weight,
+      best_with: game.bestWith ?? [],
+      source: game.bggId ? 'bgg' : 'bgc',
+      updated_at: new Date().toISOString(),
+    };
+
+    let titleId = row?.id;
+    if (row) {
+      const { error } = await sb.from('library_titles').update(metadata).eq('id', row.id);
+      if (error) throw new Error(`${game.key}: ${error.message}`);
+      report.updated += 1;
+    } else {
+      const inserted = await sb.from('library_titles').insert({ key: game.key, ...metadata }).select('id').single();
+      if (inserted.error || !inserted.data) throw new Error(`${game.key}: ${inserted.error?.message}`);
+      titleId = (inserted.data as { id: string }).id;
+      report.inserted += 1;
+    }
+
+    // A copy an admin pinned by hand is theirs, not this run's, so the shelf is
+    // only reconciled where they have not said otherwise.
+    if (row && curation.overrides.has(row.key)) continue;
+    if (!titleId) continue;
+    const moved = await reconcileCopies(sb, titleId, game.copies);
+    report.copiesAdded += moved.added;
+    report.copiesWithdrawn += moved.withdrawn;
+    report.copiesRestored += moved.restored;
+  }
+
+  const { error } = await sb
+    .from('library_catalogue_meta')
+    .upsert({ id: true, sources, synced_at: new Date().toISOString() });
+  if (error) throw new Error(`library_catalogue_meta: ${error.message}`);
+
+  return report;
+}
+
+/**
+ * Make the number of lendable boxes match what the collections lend.
+ *
+ * Nothing is ever deleted — `service_role` has no `delete` on `library_copies`,
+ * and a loan pointing at a vanished copy would destroy the only record of who
+ * had it. A copy that has left the pool is *withdrawn*, attributed to the sync
+ * so the desk can tell it apart from a box somebody pulled for a missing piece,
+ * and a copy that comes back is restored before any new row is made.
+ *
+ * A copy currently out on loan is never withdrawn: somebody is holding it, and
+ * the shelf can be corrected when it comes back.
+ */
+async function reconcileCopies(
+  sb: SupabaseClient,
+  titleId: string,
+  wanted: number,
+): Promise<{ added: number; withdrawn: number; restored: number }> {
+  const { data, error } = await sb
+    .from('library_copies')
+    .select('id, copy_number, status, withdrawn_by')
+    .eq('title_id', titleId)
+    .order('copy_number');
+  if (error) throw new Error(`copies for ${titleId}: ${error.message}`);
+  const copies = (data ?? []) as Array<{ id: string; copy_number: number; status: string; withdrawn_by: string | null }>;
+
+  const live = copies.filter((copy) => copy.status === 'available');
+  const mine = copies.filter((copy) => copy.status === 'withdrawn' && copy.withdrawn_by === SYNC_ACTOR);
+  let added = 0;
+  let withdrawn = 0;
+  let restored = 0;
+
+  if (live.length > wanted) {
+    const open = await sb
+      .from('library_loans')
+      .select('copy_id')
+      .in('status', ['requested', 'checked_out'])
+      .in('copy_id', live.map((copy) => copy.id));
+    const busy = new Set(((open.data ?? []) as Array<{ copy_id: string }>).map((row) => row.copy_id));
+    const spare = live.filter((copy) => !busy.has(copy.id)).reverse();
+    for (const copy of spare.slice(0, live.length - wanted)) {
+      const { error: failed } = await sb
+        .from('library_copies')
+        .update({
+          status: 'withdrawn',
+          withdrawn_at: new Date().toISOString(),
+          withdrawn_by: SYNC_ACTOR,
+          withdrawn_note: 'No longer lent by any of the pooled collections',
+        })
+        .eq('id', copy.id);
+      if (failed) throw new Error(`withdraw ${copy.id}: ${failed.message}`);
+      withdrawn += 1;
+    }
+    return { added, withdrawn, restored };
+  }
+
+  let short = wanted - live.length;
+  for (const copy of mine.slice(0, short)) {
+    const { error: failed } = await sb
+      .from('library_copies')
+      .update({ status: 'available', withdrawn_at: null, withdrawn_by: null, withdrawn_note: null })
+      .eq('id', copy.id);
+    if (failed) throw new Error(`restore ${copy.id}: ${failed.message}`);
+    restored += 1;
+    short -= 1;
+  }
+
+  if (short > 0) {
+    const highest = copies.reduce((top, copy) => Math.max(top, copy.copy_number), 0);
+    const rows = Array.from({ length: short }, (_, index) => ({
+      title_id: titleId,
+      copy_number: highest + index + 1,
+    }));
+    const { error: failed } = await sb.from('library_copies').insert(rows);
+    if (failed) throw new Error(`add copies to ${titleId}: ${failed.message}`);
+    added += short;
+  }
+
+  return { added, withdrawn, restored };
 }
 
 main().catch((error) => {

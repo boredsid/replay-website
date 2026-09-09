@@ -4,6 +4,7 @@
 import { supabase } from './supabase';
 import type { EditionPricing, EditionRow, SponsorRow, ScheduleItemRow } from './types';
 import { readPartnerPricing } from './partner-packages';
+import type { LibrarySnapshot } from './game-library';
 import { SPONSOR_TIER_ORDER } from './sponsor-wall';
 
 export function readEditionPricing(input: unknown): EditionPricing {
@@ -142,4 +143,37 @@ export async function getScheduleItems(editionId: string): Promise<ScheduleItemR
     || a.display_order - b.display_order
     || (a.start_time ?? '').localeCompare(b.start_time ?? '')
   );
+}
+
+/**
+ * The game catalogue, from the Worker rather than from Supabase directly.
+ *
+ * `library_titles` sits with `library_copies` and `library_loans` behind
+ * "nothing reaches these except the Worker", and the catalogue is the only part
+ * of that group anybody outside is allowed to see. `GET /api/catalogue` is that
+ * one projection, and it is what the attendee app's build reads too — so the
+ * page and the phone cannot disagree about what is on the shelf.
+ *
+ * Throws rather than degrades, like the sponsor normaliser: a library page that
+ * silently builds with no games is worse than a build that stops.
+ */
+let catalogueOnce: Promise<LibrarySnapshot> | null = null;
+
+export async function getLibraryCatalogue(): Promise<LibrarySnapshot> {
+  // Two pages want it in one build — /library renders it, /plan-your-visit
+  // counts it — and it is a quarter of a megabyte. Fetch it once.
+  catalogueOnce ??= fetchLibraryCatalogue();
+  return catalogueOnce;
+}
+
+async function fetchLibraryCatalogue(): Promise<LibrarySnapshot> {
+  const url = import.meta.env.PUBLIC_WORKER_URL;
+  if (!url) throw new Error('getLibraryCatalogue failed: PUBLIC_WORKER_URL not set');
+  const response = await fetch(`${String(url).trim().replace(/\/$/, '')}/api/catalogue`);
+  if (!response.ok) {
+    throw new Error(`getLibraryCatalogue failed: ${response.status} ${response.statusText}`);
+  }
+  const snapshot = (await response.json()) as LibrarySnapshot;
+  if (!Array.isArray(snapshot.games)) throw new Error('getLibraryCatalogue failed: no games in the response');
+  return snapshot;
 }

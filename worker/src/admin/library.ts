@@ -312,9 +312,14 @@ export async function handleLibraryTitleSearch(
   const query = (url.searchParams.get('q') ?? '').trim();
   if (query.length < 2) return adminJson({ titles: [] }, 200, origin);
 
+  // Games taken off the shelf are not in the building, so offering one at the
+  // counter can only end in somebody hunting for a box that was never brought.
+  // request_library_copy refuses them too; this keeps them out of sight as well
+  // as out of reach.
   const titles = await sb
     .from('library_titles')
     .select('id, key, title')
+    .eq('shelf_status', 'on_shelf')
     .ilike('title', `%${query}%`)
     .order('title')
     .limit(20);

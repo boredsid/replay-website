@@ -443,7 +443,7 @@ export default function App() {
   useEffect(() => {
     if (tab !== 'library' || catalogue || catalogueError) return;
     let cancelled = false;
-    void import('../../src/data/game-library.json')
+    void import('virtual:game-catalogue')
       .then((module) => {
         if (cancelled) return;
         const snapshot = (module.default ?? module) as { games: CatalogueGame[] };

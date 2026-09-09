@@ -2,15 +2,15 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import VenueMap from '../components/VenueMap.astro';
-import { getCurrentEdition, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getLibraryCatalogue, publicDateRange } from '../lib/data';
 import { clockTime, eventDayLabel } from '../lib/edition-format';
-import librarySnapshot from '../data/game-library.json';
 
 /**
- * Rounded down to the nearest 50 from the same snapshot `/library` renders, so
- * the headline claim on this page can never outrun the shelf behind it.
+ * Rounded down to the nearest 50 from the same catalogue `/library` renders, so
+ * the headline claim on this page can never outrun the shelf behind it. Taking
+ * a game off the shelf in the console lowers both at the next rebuild.
  */
-const libraryCount = Math.floor(librarySnapshot.games.length / 50) * 50;
+const libraryCount = Math.floor((await getLibraryCatalogue()).games.length / 50) * 50;
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';

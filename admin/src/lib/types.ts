@@ -459,3 +459,54 @@ export interface LibraryWithdrawnCopy {
   withdrawn_by: string | null;
   note: string | null;
 }
+
+/**
+ * A game on (or off) the shelf.
+ *
+ * The catalogue, as opposed to `LibraryTitle` above, which is the desk's view
+ * of the same table — what can be lent right now. This is what the game *is*,
+ * and whether it is coming at all.
+ */
+export interface CatalogueGameRow {
+  id: string;
+  key: string;
+  bgg_id: number | null;
+  title: string;
+  year: number | null;
+  thumb: string | null;
+  description?: string | null;
+  min_players: number | null;
+  max_players: number | null;
+  min_time: number | null;
+  max_time: number | null;
+  rating: number | string | null;
+  weight: number | string | null;
+  best_with: number[] | null;
+  /** Who may overwrite it: a sync, or only a person. */
+  source: 'bgg' | 'bgc' | 'manual';
+  shelf_status: 'on_shelf' | 'off_shelf';
+  off_shelf_note: string | null;
+  off_shelf_at: string | null;
+  off_shelf_by: string | null;
+  /** What an admin says is coming, when it differs from the boxes on record. */
+  copies_override: number | null;
+  /** Rows in library_copies — what the shelf actually has. */
+  copies_actual: number;
+  /** The published number: the override if there is one, else copies_actual. */
+  copies: number;
+  updated_at?: string;
+}
+
+/** A BoardGameGeek box, fetched for confirmation before anything is saved. */
+export interface BggPreview {
+  name: string;
+  year: number | null;
+  thumb: string | null;
+  minPlayers: number | null;
+  maxPlayers: number | null;
+  minTime: number | null;
+  maxTime: number | null;
+  rating: number | null;
+  weight: number | null;
+  bestWith: number[];
+}
