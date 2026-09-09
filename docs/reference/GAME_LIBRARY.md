@@ -3,11 +3,21 @@
 `replaycon.in/library` lists every game on REPLAY's shared shelf, pooled from
 five sources, with filters for player count, length and complexity.
 
+**The catalogue lives in `library_titles`, and the admin console edits it.**
+Adding a game, taking one off the shelf, correcting a copy count or linking an
+art-less title to its BoardGameGeek entry are all done at
+`admin.replaycon.in/catalogue` — no checkout, no commit. `npm run sync:library`
+still does the heavy BoardGameGeek merge on demand, but it writes to that table
+rather than to a committed file, and it is careful never to overwrite a decision
+made in the console. See
+`docs/specs/2026-09-09-library-catalogue-admin-design.md` for why it moved.
+
 ## The five sources
 
 | Source | Where it lives | Refresh |
 |---|---|---|
 | Bangalore Games Club library | `public.games` on the **bgc-website** Supabase project | Automatic — the sync script reads it every run |
+| Added in the console | typed straight into `library_titles`, `source = 'manual'` | Never touched by a sync |
 | `Kishore_Rubik` | boardgamegeek.com collection | Manual harvest into `src/data/bgg/Kishore_Rubik.tsv` |
 | `Vinto100` | boardgamegeek.com collection | `src/data/bgg/Vinto100.tsv` |
 | `DeadlyEvilDevil` | boardgamegeek.com collection | `src/data/bgg/DeadlyEvilDevil.tsv` |
@@ -65,61 +75,97 @@ The page shows 300 rows at a time. Check the `N to M of TOTAL` counter above the
 table and append `&page=2` (and so on) until you have all of them — the row
 count in the file must equal that total.
 
-## Rebuilding the snapshot
+## Refreshing from the sources
 
 ```bash
-BGC_SUPABASE_ANON_KEY=<bgc-website publishable key> npm run sync:library
-npm run sync:descriptions
+SUPABASE_SERVICE_KEY=<replay service key> \
+BGC_SUPABASE_ANON_KEY=<bgc-website publishable key> \
+  npm run sync:library
+SUPABASE_SERVICE_KEY=<replay service key> npm run sync:descriptions
 ```
 
-Both, in that order, every time. `sync:library` rebuilds the whole snapshot
-from its sources, and `description` is not one of the things it knows how to
-produce — so a bare `sync:library` run leaves every game blurb-less, and the
-diff quietly strips 44KB of text that took 576 requests to gather.
-`sync:descriptions` refills only the games missing one, so running it when
-nothing is missing costs nothing.
+Both, in that order, every time. `sync:library` re-merges the five sources, and
+`description` is not one of the things it knows how to produce — so a bare
+`sync:library` run leaves new games blurb-less. `sync:descriptions` fills only
+the rows missing one, so running it when nothing is missing costs nothing.
 
-This writes `src/data/game-library.json`, which **is committed** — the site
-reads it at build time and never calls BGG or the BGC database during a build.
-That keeps Cloudflare Pages deploys fast and immune to a third party's
-downtime.
+**What a sync may and may not touch** is the rule the whole design rests on,
+because the console is now editing the same rows:
+
+| Owner | Columns |
+|---|---|
+| `sync:library` | `title`, `year`, `thumb`, players, minutes, `rating`, `weight`, `best_with` — and only on rows whose `source` is `bgg` or `bgc` |
+| the console | `shelf_status`, `off_shelf_*`, `copies_override`, and **every** column of a `source = 'manual'` row |
+| `sync:descriptions` | `description` |
+
+A game is identified by `bgg_id` where it has one, falling back to `key`. That
+is what lets somebody link a differently-spelled club title to its BGG entry in
+the console and have the next sync agree with them rather than making a second
+card for it.
+
+Copies are reconciled, never deleted: `service_role` has no `delete` on
+`library_copies`, and a loan pointing at a vanished copy would destroy the only
+record of who had it. A copy that has left the pooled collections is
+**withdrawn** and attributed to `sync:library`, so the desk can tell it from a
+box somebody pulled for a missing piece; one that comes back is restored before
+any new row is made. A copy out on loan is never withdrawn.
 
 Because the sources are live, a sync also picks up whatever else has moved
-since the last one — new BGC rows, a rating nudged by a few votes. Read the
-diff rather than assuming it contains only what you set out to change.
+since the last one — new BGC rows, a rating nudged by a few votes.
 
 Per-game responses are cached in `scripts/data/bgg-cache/` (gitignored), so a
 re-run after editing one `.tsv` costs only the new ids. Delete the cache
 directory to force fresh ratings and weights.
 
-The key is read from the environment and must never be committed. Get it from
-the Supabase dashboard for the `bgc-website` project, or via the Supabase MCP
-`get_publishable_keys`.
+Neither key is ever committed. The BGC one comes from the Supabase dashboard
+for the `bgc-website` project (or the Supabase MCP `get_publishable_keys`); the
+REPLAY service key from REPLAY's own project.
+
+## How the page and the app read it
+
+Neither reads the database. Both read `GET /api/catalogue`, the Worker's one
+public projection of `library_titles` — the table sits with `library_copies` and
+`library_loans` behind "nothing reaches these except the Worker", and the
+catalogue is the only part of that group anybody outside may see.
+
+- The **site** fetches it during `astro build` (`getLibraryCatalogue` in
+  `src/lib/data.ts`) and throws rather than building an empty library page.
+- The **attendee app** fetches it during its Vite build and bundles the result
+  as the virtual module `virtual:game-catalogue`, so the shelf still lists on
+  venue wifi and offline.
+
+Both are therefore **stale until they are rebuilt**, which is why removing a
+game also makes it *safe* to be stale: `library_unavailable_keys` reports
+off-shelf titles, so a phone running last week's bundle shows the game greyed
+out rather than offering a box that is not in the building, and
+`request_library_copy` refuses it outright.
+
+Changing the shelf does **not** redeploy the app — `src/data/**` is no longer in
+`deploy-app.yml`'s watched paths, because the catalogue is not there any more.
+Run that workflow by hand to put a changed shelf on people's phones.
 
 ## Taking a game off the shelf
 
-`src/data/excluded-games.tsv` keeps a game off the page even though a source
-still lists it — usually because the owner has decided not to bring it. It has
-to live outside the harvest: `src/data/bgg/*.tsv` is replaced wholesale when a
-collection is refreshed, so a row deleted there comes straight back.
+In the console: open the game at `admin.replaycon.in/catalogue`, and take it off
+the shelf with a reason. The reason is required for the same purpose as the one
+on a withdrawn copy — a removal nobody can explain is a removal nobody can
+confidently undo — and the row stays visible under the "Off the shelf" filter so
+it can be put back with one click.
 
-One key per line, with an optional human note after a second tab:
+What that does, immediately: the desk stops offering it and
+`request_library_copy` refuses it. What it does at the next rebuild: it leaves
+the public page.
 
-| Key | Removes |
-|---|---|
-| `155821` | the game entirely, every copy, whatever source lent it |
-| `155821@Kishore_Rubik` | only that collection's copy — the card stays if anyone else lends one |
-| `Some Title` | a BGC game that has no BGG id, matched on its folded title |
+The row is kept rather than deleted. That is deliberate and is the main thing
+this replaced — `src/data/excluded-games.tsv` listed bare ids that were dropped
+before the snapshot was written, so an excluded game had no row anywhere and
+putting one back meant remembering it existed.
 
-The collection in a scoped key is the name of its file in `src/data/bgg/`
-without the `.tsv`. A collection with no such file is an error rather than a
-silent no-op, and the sync prints any exclusion that matched nothing at the end
-of a run — an entry that has stopped doing anything is a lie the next person
-has to disprove.
-
-Scoping only works by BGG id, because only a collection lends a particular
-copy. A title-keyed game has no BGG id, which means it came from the BGC
-library, which has no collection to scope to.
+**"That owner is not bringing theirs, but somebody else still is"** is a copy
+count, not a removal. Set the count by hand on the game instead; it survives the
+next sync. This replaces the old `<bggId>@<collection>` scoped exclusion, which
+could not have been shown in the console anyway — lender names are deliberately
+never stored.
 
 ## No lender names are published
 
@@ -129,11 +175,11 @@ browser.
 
 Lenders are tracked *inside* `scripts/sync-game-library.ts` (as `WorkingGame`)
 purely so duplicate copies can be counted, then collapsed to a bare
-`copies: number` before the snapshot is written. The script throws if a
-`lender` key survives into the published shape, and `src/lib/game-library.ts`
-has no type that can carry one — so the page cannot render a name even by
-mistake. `src/data/game-library.json` is served verbatim, so a leak there is a
-leak in public.
+`copies: number` before anything is written. The script throws if a `lender`
+key survives into the published shape, `src/lib/game-library.ts` has no type
+that can carry one, and `library_titles` has no column for one — so the page
+cannot render a name even by mistake. `GET /api/catalogue` serves that table
+straight through, so a leak there is a leak in public.
 
 The "Where this list comes from" section credits sources without naming them
 ("Personal collections — 4 collectors pooling their shelves"). If REPLAY ever
@@ -166,29 +212,32 @@ id. Every entry from a BGG collection has one by definition. BGC rows do not —
 `public.games` has no id column — so they get one of:
 
 1. a folded-title match against a game already on the shelf, or
-2. an entry in `src/data/bgc-bgg-ids.tsv`, or
+2. a row in `library_title_aliases`, or
 3. nothing, and the card draws a monogram tile instead.
 
-As of the current snapshot, 5 of 586 games are in case 3, and all five are
-titles BoardGameGeek does not list at all.
+Five of ~586 games are in case 3, and all five are titles BoardGameGeek does
+not list at all. The console's **No box art** filter is the working list.
 
 **Expansions and RPG items work here, despite not being board games.** The
 enrichment endpoints take any BGG thing id: `objecttype=thing&subtype=boardgame`
 returns full data for `boardgameexpansion` ids (`Kingdomino: Age of Giants`,
 `Scythe: The Wind Gambit`) and even `rpgitem` ids (`Alice is Missing`). The
 `subtype` parameter is effectively ignored for lookup, so no special handling
-is needed — just put the id in the override file.
+is needed — just paste the expansion's URL.
 
-This matters because the *search* recipe below is not so forgiving. Searching
-with `objecttype=boardgame` silently omits expansions, which is how several of
-them sat art-less for a while looking like BGG had never heard of them. Search
-the matching object type, or take the id straight out of a BGG URL:
-`boardgamegeek.com/boardgameexpansion/240909/kingdomino-age-of-giants` → `240909`.
+**To give a game art:** open it in the console and paste its BoardGameGeek
+link. That fills in the box, writes a `library_title_aliases` row so the next
+harvest reaches the same conclusion, and — if the game is already on the list
+under its BGG id — moves this card's copies onto that one and steps this row
+aside. Both halves matter: `src/data/bgg/*.tsv` is replaced wholesale when a
+collection is refreshed, so a fix made only to a row comes straight back undone.
 
-To give a game art, add a `title <TAB> bggId` row to
-`src/data/bgc-bgg-ids.tsv` and re-run the sync. To find an id by name, search
-from a browser console (the search page is Cloudflare-gated to scripts, same as
-everything else) — and set `objecttype` to match what you are looking for:
+**There is no search by name, and there cannot be.** `geeksearch.php` answers
+403 to anything that is not a browser (re-checked 2026-09-09; per-id lookup
+still answers 200), so the console asks for a link instead. To find one, search
+from a browser console — and set `objecttype` to match what you are looking
+for, because `objecttype=boardgame` silently omits expansions, which is how
+several of them sat art-less looking like BGG had never heard of them:
 
 ```js
 // objecttype: boardgame | boardgameexpansion | rpgitem
@@ -203,8 +252,9 @@ fetch('https://boardgamegeek.com/geeksearch.php?action=search&q=' + encodeURICom
 ```
 
 **Check the match before adding it.** Common titles return several games —
-"Scout" returns four, and only one is the 2019 card game. A wrong id silently
-merges two different games into one card.
+"Scout" returns four, and only one is the 2019 card game. A wrong id merges two
+different games onto one card. The console shows you the box it fetched, with
+its art and player counts, before anything is saved; read it.
 
 ## How the merge works
 
@@ -214,25 +264,31 @@ merges two different games into one card.
 2. Enriches each id from the two geekdo endpoints (cached).
 3. Builds one card per BGG id, adding a copy per collection that owns it.
 4. Reads `public.games` from bgc-website and joins each row onto a card, first
-   by an explicit `src/data/bgc-bgg-ids.tsv` override, otherwise by folded
-   title (`titleKey` in `src/lib/game-library.ts` — case, punctuation, accents,
-   spaces and leading articles all removed, so `Q.E.` meets `QE`).
+   by a `library_title_aliases` row, otherwise by folded title (`titleKey` in
+   `src/lib/game-library.ts` — case, punctuation, accents, spaces and leading
+   articles all removed, so `Q.E.` meets `QE`). The console folds with the same
+   function, and a test asserts the two agree — if they ever diverged, an alias
+   written there would silently never match here.
 5. Where a BGC row matches a BGG card, **BGG's numbers win** and BGC only fills
    gaps. The BGC sheet is hand-entered and has known transpositions in it (one
    row records a 3.41 rating against a 7.80 weight), so the script also
    discards any rating above 10 or weight above 5 as miskeyed.
 6. BGC rows with no BGG match become their own card with a `title-` key. They
    have no box art; the page draws a monogram tile instead. The script prints
-   the list of these on every run — add an id override to fix one.
-7. Per-lender copies are collapsed to a bare `copies` count, and the script
-   throws if any lender data survives into the published shape.
+   the list of these on every run — link one in the console to fix it.
+7. Per-lender copies are collapsed to a bare count, and the script throws if any
+   lender data survives into the published shape.
+8. Writes the result to `library_titles`, skipping `source = 'manual'` rows and
+   never touching a column the console owns.
 
 **Deduplication is by BGG id.** Every copy of a game — whichever collection it
 came from — lands on one card carrying a copy count, so the headline number
 counts games rather than boxes. The failure mode is not a false merge but a
 *missed* one: a BGC title BGG spells differently becomes a second card. That is
-what the override file exists to repair, and why the "no BGG match" list at the
-end of every sync is worth reading.
+what linking in the console repairs, and why the "no BGG match" list at the end
+of every sync is worth reading. A partial unique index on
+`(bgg_id) where shelf_status = 'on_shelf'` stops the opposite mistake: two
+on-shelf rows can never claim the same game.
 
 ## Editing the copy on the page
 

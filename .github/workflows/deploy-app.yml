@@ -23,10 +23,16 @@ on:
     # there rebuilds the app bundle while leaving `app/` untouched. That is the
     # same silent drift this workflow was written to close, arriving through a
     # different door: watch what the app reads, not just where it lives.
+    #
+    # The game catalogue is no longer among these paths: it lives in the
+    # database and the build fetches it from /api/catalogue. Curating the shelf
+    # therefore does NOT redeploy the app -- run this workflow by hand
+    # (workflow_dispatch) to put a changed shelf on people's phones. Until then
+    # a removed game still shows, greyed out, because library_unavailable_keys
+    # reports off-shelf titles as unavailable.
     paths:
       - 'app/**'
       - 'src/lib/**'
-      - 'src/data/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/deploy-app.yml'

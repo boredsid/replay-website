@@ -2,16 +2,15 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import GameLibrary from '../components/GameLibrary';
-import { getCurrentEdition } from '../lib/data';
-import type { LibrarySnapshot } from '../lib/game-library';
-import snapshotJson from '../data/game-library.json';
+import { getCurrentEdition, getLibraryCatalogue } from '../lib/data';
 
 /**
- * A committed snapshot, not a live read. `npm run sync:library` rebuilds it
- * from the BGC Supabase library and the four BoardGameGeek collections — see
- * `scripts/sync-game-library.ts` for why that merge cannot run at build time.
+ * Read at build time from the catalogue the admin console edits, so taking a
+ * game off the shelf is a click and a rebuild rather than a pull request. The
+ * ~1,000-request BoardGameGeek merge that fills in box art still happens on
+ * demand in `npm run sync:library`; this only reads its result.
  */
-const snapshot = snapshotJson as LibrarySnapshot;
+const snapshot = await getLibraryCatalogue();
 const games = snapshot.games;
 
 const edition = await getCurrentEdition();

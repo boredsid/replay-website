@@ -1,4 +1,4 @@
-// Adds a short blurb to each game in `src/data/game-library.json`.
+// Adds a short blurb to each game in `library_titles`.
 //
 // Separate from `sync:library` on purpose. That script does a five-source merge
 // and rebuilds the whole snapshot; this one only fills in a single field, so it
@@ -13,13 +13,22 @@
 //
 //   npm run sync:descriptions
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { LibrarySnapshot } from '../src/lib/game-library';
+import { loadEnv } from 'vite';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SNAPSHOT = join(root, 'src/data/game-library.json');
+
+const env = { ...loadEnv('production', root, ''), ...process.env };
+const url = env.PUBLIC_SUPABASE_URL?.trim();
+const key = env.SUPABASE_SERVICE_KEY?.trim();
+if (!url || !key) {
+  console.error('PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY must be set:');
+  console.error('  SUPABASE_SERVICE_KEY=... npm run sync:descriptions');
+  process.exit(1);
+}
+const sb = createClient(url, key, { auth: { persistSession: false } });
 
 const MAX_CHARS = 300;
 /** Politeness, not throughput: this is somebody else's server. */
@@ -65,35 +74,39 @@ async function describe(bggId: number): Promise<string | null> {
   }
 }
 
-const snapshot = JSON.parse(readFileSync(SNAPSHOT, 'utf8')) as LibrarySnapshot;
-const games = snapshot.games;
+const { data, error } = await sb
+  .from('library_titles')
+  .select('id, title, bgg_id, description')
+  .not('bgg_id', 'is', null)
+  .limit(5000);
+if (error) { console.error(error); process.exit(1); }
+const games = (data ?? []) as Array<{ id: string; title: string; bgg_id: number; description: string | null }>;
 
 // Only the ones still missing one, so a re-run after a network wobble picks up
 // where it stopped rather than starting the whole shelf again.
-const todo = games.filter((game) => game.bggId !== null && !game.description);
-console.log(`${games.length} games, ${todo.length} without a blurb.`);
+const todo = games.filter((game) => !game.description);
+console.log(`${games.length} games with a BGG id, ${todo.length} without a blurb.`);
 
 let done = 0;
 let found = 0;
 for (let i = 0; i < todo.length; i += CONCURRENCY) {
   const batch = todo.slice(i, i + CONCURRENCY);
-  const results = await Promise.all(batch.map((game) => describe(game.bggId as number)));
-  results.forEach((text, index) => {
-    if (text) { batch[index].description = text; found += 1; }
-  });
-  done += batch.length;
+  const results = await Promise.all(batch.map((game) => describe(game.bgg_id)));
 
-  // Written as we go: 586 requests is several minutes, and losing all of it to
-  // one failure at game 500 would be its own reason not to run this again.
-  if (i % 40 === 0 || done === todo.length) {
-    writeFileSync(SNAPSHOT, `${JSON.stringify(snapshot, null, 2)}\n`);
-    console.log(`  ${done}/${todo.length} (${found} found)`);
+  // Written as we go, one row at a time: 586 requests is several minutes, and
+  // losing all of it to one failure at game 500 would be its own reason not to
+  // run this again. Rows are independent, so a partial run is simply a shorter
+  // one rather than an inconsistent state.
+  for (const [index, text] of results.entries()) {
+    if (!text) continue;
+    const failed = await sb.from('library_titles').update({ description: text }).eq('id', batch[index].id);
+    if (failed.error) { console.error(failed.error); process.exit(1); }
+    found += 1;
   }
+
+  done += batch.length;
+  if (i % 40 === 0 || done === todo.length) console.log(`  ${done}/${todo.length} (${found} found)`);
   await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
 }
 
-writeFileSync(SNAPSHOT, `${JSON.stringify(snapshot, null, 2)}\n`);
-
-const withText = games.filter((game) => game.description).length;
-const chars = games.reduce((sum, game) => sum + (game.description?.length ?? 0), 0);
-console.log(`Done: ${withText}/${games.length} have a blurb, ${(chars / 1024).toFixed(0)}KB of text.`);
+console.log(`Done: ${found} blurbs added.`);

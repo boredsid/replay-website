@@ -234,7 +234,11 @@ describe('finding a title at the counter', () => {
     return {
       from: (table: string) => {
         if (table === 'library_titles') return {
-          select: () => ({ ilike: () => ({ order: () => ({ limit: async () => ({ data: opts.titles ?? [], error: null }) }) }) }),
+          // `.eq('shelf_status', 'on_shelf')`: a game taken off the shelf is
+          // not in the building, so the counter must not offer it.
+          select: () => ({
+            eq: () => ({ ilike: () => ({ order: () => ({ limit: async () => ({ data: opts.titles ?? [], error: null }) }) }) }),
+          }),
         };
         if (table === 'library_copies') return {
           select: () => ({ in: () => ({ eq: async () => ({ data: opts.copies ?? [], error: null }) }) }),

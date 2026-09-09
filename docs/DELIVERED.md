@@ -47,16 +47,28 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   dependencies, shared with the attendee app. The organiser's sketch is the
   source of truth for layout; the CAD sets the outer envelope only. See
   `docs/reference/VENUE_MAP.md`.
-- **Game library page** — 586 titles from `src/data/game-library.json`, a
-  committed snapshot rebuilt on demand by `npm run sync:library`. BoardGameGeek
-  has closed every scriptable read path except per-game enrichment, so the
-  collection list is harvested through a real browser and committed. See
+- **Game library page** — ~586 titles read at build time from
+  `GET /api/catalogue`, the Worker's public projection of `library_titles`. The
+  attendee app bundles the same payload so the shelf lists offline.
+  BoardGameGeek has closed every scriptable read path except per-game
+  enrichment, so the collection list is still harvested through a real browser
+  into `src/data/bgg/*.tsv` and merged on demand by `npm run sync:library`. See
   `docs/reference/GAME_LIBRARY.md`.
 
 ## Admin
 
 Behind Cloudflare Access. Registrations, editions, users, promo codes,
 partners, sponsors, leads, audit log, plus the three event-day screens below.
+
+- **Game catalogue** (`/catalogue`) — what is on the shelf at all, as opposed to
+  the library desk, which lends from it. Take a game off the shelf with a
+  reason and put it back; add one by pasting a BoardGameGeek link, or by hand
+  for a box BGG has never listed; pin a copy count; link an art-less club title
+  to its BGG entry, which also merges the duplicate card it was making. Every
+  column has exactly one owner, so `sync:library` can never quietly undo a
+  decision made here. Admin-only: the `library` role works the counter, which is
+  a different job. Changes reach the public page on the next rebuild and the
+  desk immediately.
 
 ### Roles and staff (P6, 2026-09-05; `read_only` 2026-09-07)
 
