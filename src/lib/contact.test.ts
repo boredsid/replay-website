@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUSINESS_WHATSAPP_NUMBER, whatsappContactUrl } from './contact';
+import { BUSINESS_WHATSAPP_DISPLAY, BUSINESS_WHATSAPP_NUMBER, whatsappContactUrl } from './contact';
 
 describe('whatsappContactUrl', () => {
   it('uses the REPLAY business number and encodes the message', () => {
@@ -7,5 +7,9 @@ describe('whatsappContactUrl', () => {
     expect(whatsappContactUrl('Hi, I have a question about REPLAY.')).toBe(
       'https://wa.me/919606598024?text=Hi%2C%20I%20have%20a%20question%20about%20REPLAY.',
     );
+  });
+
+  it('displays the same number it dials', () => {
+    expect(BUSINESS_WHATSAPP_DISPLAY.replace(/\D/g, '')).toBe(BUSINESS_WHATSAPP_NUMBER);
   });
 });

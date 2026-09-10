@@ -19,6 +19,7 @@ import PushPrompt from './components/PushPrompt';
 import { isStandalone, watchInstallPrompt } from './lib/pwa';
 import { loadWizard, resolveWizard, saveWizard, type WizardState, type WizardStep } from './lib/wizard';
 import { filterSchedule, uniqueValues } from './lib/schedule';
+import { BUSINESS_WHATSAPP_DISPLAY, whatsappContactUrl } from '../../src/lib/contact';
 import { formatClock, formatDate, getEventStatus, nowAndNext } from './lib/event-time';
 import type { AppTab, BootstrapData, EditionData, ScheduleFilters, ScheduleItem } from './types';
 
@@ -347,9 +348,16 @@ function HelpCard({ data }: { data: BootstrapData }) {
   return (
     <section className="help-card">
       <span className="eyebrow">Need help?</span>
-      <h2>{edition?.help_on_the_day ? 'Find us on the day.' : 'Email the REPLAY team.'}</h2>
+      <h2>{edition?.help_on_the_day ? 'Find us on the day.' : 'Message the REPLAY team.'}</h2>
       <p>{edition?.help_on_the_day || 'The same-day escalation route will be added once an owner is assigned.'}</p>
-      <a className="button button--light" href="mailto:hello@replaycon.in">hello@replaycon.in</a>
+      <a
+        className="button button--light"
+        href={whatsappContactUrl('Hi, I need help at REPLAY.')}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {BUSINESS_WHATSAPP_DISPLAY}
+      </a>
     </section>
   );
 }
