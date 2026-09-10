@@ -75,6 +75,7 @@ const statusCopy = edition?.registration_status === 'open'
       <div>
         <h2 class="section-heading">Before you buy</h2>
         <p class="section-copy">Read the arrival guidance and current answers before committing to the weekend.</p>
+        <p class="ticket-fineprint">Cancel up to 24 hours before the event starts for a full refund. Tickets are not transferable. <a href="/contact#faq-tickets">Read the full policy</a>.</p>
       </div>
       <div class="button-row">
         <a href="/plan-your-visit" class="btn btn-secondary">Plan your visit →</a>
@@ -149,6 +150,25 @@ const statusCopy = edition?.registration_status === 'open'
     box-shadow: var(--shadow-md);
   }
   .availability-card > p { margin: 8px 0 22px; }
+
+  /* Deliberately quiet: the refund terms belong on the page, but they sit
+     below the form rather than beside the buy button, and read as fine print
+     rather than as a warning. */
+  .ticket-fineprint {
+    margin-top: 18px;
+    max-width: 46ch;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: rgba(26, 26, 26, 0.7);
+  }
+
+  .ticket-fineprint a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .ticket-fineprint a:hover { color: var(--color-ink); }
 
   @media (min-width: 760px) {
     .ticket-action { padding: 72px 24px 88px; }
