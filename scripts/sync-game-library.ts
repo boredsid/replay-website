@@ -319,6 +319,19 @@ async function loadCuration(sb: SupabaseClient): Promise<Curation> {
   return curation;
 }
 
+/**
+ * Source name → what people call them, from `library_owner_names`. Lives only
+ * in the database: the repo is public, and a committed handle-to-name map would
+ * publish the link the library page is built never to make.
+ */
+async function loadOwnerNames(sb: SupabaseClient): Promise<Map<string, string>> {
+  const { data, error } = await sb.from('library_owner_names').select('source_name, display_name').limit(1000);
+  if (error) throw new Error(`could not read library_owner_names: ${error.message}`);
+  return new Map(
+    (data ?? []).map((row: { source_name: string; display_name: string }) => [row.source_name, row.display_name]),
+  );
+}
+
 function addCopy(game: WorkingGame, lender: string, source: 'bgc' | 'bgg'): void {
   const existing = game.copies.find((copy) => copy.lender === lender && copy.source === source);
   if (existing) existing.count += 1;
@@ -336,6 +349,7 @@ async function main(): Promise<void> {
   const collections = readCollections();
   const idOverrides = await loadAliases(replay);
   const curation = await loadCuration(replay);
+  const ownerNames = await loadOwnerNames(replay);
   const bgcRows = await fetchBgcRows();
 
   const byKey = new Map<string, WorkingGame>();
@@ -492,7 +506,7 @@ async function main(): Promise<void> {
   // Who lends what, kept apart from the game shape so it can only ever be
   // written to the private owners table.
   const owners = new Map<string, OwnerRow[]>();
-  for (const game of byKey.values()) owners.set(game.key, ownerRows(game.copies));
+  for (const game of byKey.values()) owners.set(game.key, ownerRows(game.copies, ownerNames));
 
   // Collapse each game's per-lender copies to a bare count. This is the step
   // that keeps names out of `library_titles` — nothing downstream of here
