@@ -49,7 +49,7 @@ export async function sendRegistrationConfirmation(
       calendar_google_url: buildGoogleCalendarUrl(edition),
       calendar_ics_url: `https://api.replaycon.in/api/ics/${edition.slug}.ics`,
       schedule_url: 'https://replaycon.in/schedule',
-      instagram_url: 'https://instagram.com/replaycon',
+      instagram_url: 'https://replaycon.in/instagram',
       whatsapp_share_url: buildWhatsAppShareUrl(edition),
       whatsapp_community_url: WHATSAPP_COMMUNITY_URL,
     },
