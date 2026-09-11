@@ -296,7 +296,7 @@ describe('handleRegister', () => {
     expect(call.variables.calendar_google_url).toContain('text=REPLAY%203rd%20edition');
     expect(call.variables.calendar_ics_url).toBe('https://api.replaycon.in/api/ics/replay-3.ics');
     expect(call.variables.schedule_url).toBe('https://replaycon.in/schedule');
-    expect(call.variables.instagram_url).toBe('https://instagram.com/replaycon');
+    expect(call.variables.instagram_url).toBe('https://replaycon.in/instagram');
     expect(call.variables.whatsapp_share_url).toMatch(/^https:\/\/wa\.me\/\?text=/);
     expect(call.variables.whatsapp_community_url).toMatch(/^https:\/\/chat\.whatsapp\.com\//);
     expect(call.variables.seats).toBe(1);
