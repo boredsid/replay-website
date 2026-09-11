@@ -1,0 +1,98 @@
+---
+/**
+ * The venue projector. Not linked from anywhere and kept out of search: open
+ * replaycon.in/floor-display?key=<DISPLAY_KEY> on the projector laptop and
+ * click once to go full screen.
+ *
+ * Deliberately not wrapped in Layout.astro — no nav, no footer, just the
+ * stage. The programme and the partner logos are baked in at build time so
+ * the screen has something true to show even if the venue wifi is down when
+ * the laptop wakes; the live feed (`/api/display/feed`) then takes over and
+ * keeps it current without a rebuild.
+ *
+ * URL options:
+ *   ?key=…                 unlocks first names for the arrival banners (remembered)
+ *   ?at=2026-09-12T14:30   pretend it is that moment in Bengaluru (clock keeps running)
+ *   ?demo=1                fake arrivals, stats and a notice, for rehearsing
+ *                          (?demo=urgent / ?demo=incident add those notice types)
+ *   ?api=http://localhost:8787   read the feed from `wrangler dev`
+ */
+import '../styles/global.css';
+import '@fontsource-variable/inter/wght.css';
+import '@fontsource-variable/space-grotesk/wght.css';
+import FloorDisplay from '../components/FloorDisplay';
+import { getCurrentEdition, getScheduleItems } from '../lib/data';
+import { partnerLogos } from '../lib/partner-logos';
+import { SPONSOR_TIERS } from '../lib/sponsor-tiers';
+import type { DisplayFeed } from '../lib/floor-display';
+
+const edition = await getCurrentEdition();
+const schedule = edition ? await getScheduleItems(edition.id) : [];
+
+const fallback: DisplayFeed = {
+  generated_at: new Date().toISOString(),
+  names_enabled: false,
+  edition: edition
+    ? {
+        slug: edition.slug,
+        name: edition.name,
+        start_date: edition.start_date,
+        end_date: edition.end_date,
+        daily_start_time: edition.daily_start_time ?? null,
+        daily_end_time: edition.daily_end_time ?? null,
+      }
+    : null,
+  schedule: schedule
+    .filter((item) => item.public_status === 'published' || item.public_status === 'cancelled')
+    .map((item) => ({
+      id: item.id,
+      day: item.day,
+      start_time: item.start_time,
+      end_time: item.end_time,
+      title: item.title,
+      location: item.location,
+      kind: item.kind,
+      section: item.section,
+      is_all_day: item.is_all_day,
+      host_name: item.host_name,
+      public_status: item.public_status as 'published' | 'cancelled',
+      display_order: item.display_order,
+    })),
+  announcements: [],
+  arrivals: [],
+  stats: null,
+};
+
+const tierName = new Map(SPONSOR_TIERS.map((tier) => [tier.key as string, tier.name]));
+// Each tile is the mark centred on a padded 3:2 canvas. The display crops to
+// the mark's own box (the same trick as the site header), so a slim wordmark
+// fills the card instead of floating in padding.
+const partners = partnerLogos.map((logo) => ({
+  name: logo.name,
+  src: logo.image.src,
+  tier: logo.tier,
+  tierLabel: tierName.get(logo.tier) ?? 'Community partner',
+  tile: { width: logo.image.width, height: logo.image.height },
+  mark: logo.mark,
+}));
+
+const workerUrl = import.meta.env.PUBLIC_WORKER_URL ?? 'https://api.replaycon.in';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#1A0088" />
+    <link rel="icon" type="image/png" href="/replay-icon.png" />
+    <title>REPLAY · Floor display</title>
+    <style is:global>
+      html, body { margin: 0; height: 100%; background: #1A0088; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <FloorDisplay client:only="react" fallback={fallback} partners={partners} workerUrl={workerUrl} />
+  </body>
+</html>

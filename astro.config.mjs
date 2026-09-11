@@ -58,6 +58,6 @@ export default defineConfig({
   site: "https://replaycon.in",
   // `/partner/` is only reachable through a link an admin sends; it has nothing
   // to say to a crawler.
-  integrations: [sponsorLogos(), react(), mdx(), sitemap({ filter: (page) => !page.includes('/partner/') })],
+  integrations: [sponsorLogos(), react(), mdx(), sitemap({ filter: (page) => !page.includes('/partner/') && !page.includes('/floor-display') })],
   vite: { plugins: [tailwindcss()] },
 });

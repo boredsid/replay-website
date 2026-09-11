@@ -54,6 +54,21 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   enrichment, so the collection list is still harvested through a real browser
   into `src/data/bgg/*.tsv` and merged on demand by `npm run sync:library`. See
   `docs/reference/GAME_LIBRARY.md`.
+- **Floor display** (`/floor-display`, 2026-09-11) — the venue projector.
+  Unlinked and `noindex`, drawn on a fixed 1920x1080 stage scaled to whatever
+  the projector reports. It shows what is on now and what starts in the next two
+  hours (paged every 10s, because up to ~14 sessions overlap), rotating partner
+  logos, organiser announcements, floor stats, and a "<Name> is in da house!"
+  banner for each person's first check-in of the day. Before doors, overnight
+  and after the event it switches to a countdown or a sign-off. Rules and copy
+  live in `src/lib/floor-display.ts` and are unit-tested; the screen polls
+  `GET /api/display/feed` every 15s (`worker/src/display-feed.ts`). The
+  programme and logos are also baked in at build time, so a laptop waking onto
+  dead wifi still shows the day. **Names are private:** the feed includes first
+  names only when the page presents the Worker secret `DISPLAY_KEY`
+  (`/floor-display?key=…`, remembered by the browser), so a stranger polling the
+  public endpoint cannot watch who arrives. With no key the banners are simply
+  skipped. Rehearse with `?at=2026-09-12T14:30&demo=1`.
 
 ## Admin
 
