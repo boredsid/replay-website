@@ -134,4 +134,21 @@ describe('the published catalogue', () => {
     }));
     expect(without.sources.map((source) => source.label)).not.toContain('Added by the REPLAY team');
   });
+
+  /**
+   * Lenders' names live in `library_title_owners` for the admin console's owner
+   * filter. This snapshot is served to the public page and the attendee app,
+   * so it must never so much as read that table.
+   */
+  it('never reads who lends the games', async () => {
+    const touched: string[] = [];
+    const inner = client({ titles: [row], copies: [{ title_id: 't1' }] }) as unknown as {
+      from: (table: string) => unknown;
+    };
+    const snapshot = await loadCatalogue({
+      from: (table: string) => { touched.push(table); return inner.from(table); },
+    } as never);
+    expect(touched).not.toContain('library_title_owners');
+    expect(JSON.stringify(snapshot)).not.toMatch(/owner/i);
+  });
 });

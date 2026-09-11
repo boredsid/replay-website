@@ -494,7 +494,18 @@ export interface CatalogueGameRow {
   copies_actual: number;
   /** The published number: the override if there is one, else copies_actual. */
   copies: number;
+  /**
+   * Who lends it, as the sources name them — a BoardGameGeek username or the
+   * BGC sheet's owner. Admin-only; the public catalogue never carries it.
+   * Empty for a game added by hand; absent from a Worker that predates it.
+   */
+  owners?: CatalogueOwner[];
   updated_at?: string;
+}
+
+export interface CatalogueOwner {
+  owner: string;
+  copies: number;
 }
 
 /** A BoardGameGeek box, fetched for confirmation before anything is saved. */

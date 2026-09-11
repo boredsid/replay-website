@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import RebuildSiteButton from '@/components/RebuildSiteButton';
 import { fetchAdmin, showApiError } from '@/lib/api';
+import { formatOwners } from '@/lib/catalogue-owners';
 import { onRevalidate } from '@/lib/revalidate';
 import type { CatalogueGameRow } from '@/lib/types';
 
@@ -28,6 +29,9 @@ function fold(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
+/** The owner-filter value for games no source names an owner for. */
+const NO_OWNER = '__none__';
+
 function players(game: CatalogueGameRow): string {
   if (!game.min_players && !game.max_players) return '—';
   if (game.min_players && game.max_players && game.min_players !== game.max_players) {
@@ -41,6 +45,7 @@ export default function Catalogue() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [owner, setOwner] = useState('');
 
   async function load() {
     try {
@@ -65,10 +70,27 @@ export default function Catalogue() {
     noArt: games.filter((game) => game.shelf_status === 'on_shelf' && !game.thumb).length,
   }), [games]);
 
+  // Every owner any game names, with how many games they lend — counted across
+  // the whole list, so the numbers do not shift as the other filters change.
+  const owners = useMemo(() => {
+    const tally = new Map<string, number>();
+    let unowned = 0;
+    for (const game of games) {
+      if (!game.owners?.length) unowned += 1;
+      for (const entry of game.owners ?? []) tally.set(entry.owner, (tally.get(entry.owner) ?? 0) + 1);
+    }
+    const named = [...tally]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+    return { named, unowned };
+  }, [games]);
+
   const shown = useMemo(() => {
     const needle = fold(query.trim());
     return games.filter((game) => {
       if (needle && !fold(game.title).includes(needle)) return false;
+      if (owner === NO_OWNER && game.owners?.length) return false;
+      if (owner && owner !== NO_OWNER && !game.owners?.some((entry) => entry.owner === owner)) return false;
       switch (filter) {
         case 'on_shelf': return game.shelf_status === 'on_shelf';
         case 'off_shelf': return game.shelf_status === 'off_shelf';
@@ -79,7 +101,17 @@ export default function Catalogue() {
         default: return true;
       }
     });
-  }, [games, query, filter]);
+  }, [games, query, filter, owner]);
+
+  // The boxes behind the selection, which is what "how much is X bringing"
+  // is actually asking.
+  const ownerCopies = useMemo(() => {
+    if (!owner || owner === NO_OWNER) return 0;
+    return shown.reduce(
+      (total, game) => total + (game.owners?.find((entry) => entry.owner === owner)?.copies ?? 0),
+      0,
+    );
+  }, [shown, owner]);
 
   return (
     <div className="p-4 md:p-6">
@@ -119,6 +151,18 @@ export default function Catalogue() {
             className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
           />
         </label>
+        <select
+          aria-label="Filter by owner"
+          value={owner}
+          onChange={(event) => setOwner(event.target.value)}
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+        >
+          <option value="">Every owner</option>
+          {owners.named.map(({ name, count }) => (
+            <option key={name} value={name}>{name} ({count})</option>
+          ))}
+          {owners.unowned > 0 && <option value={NO_OWNER}>No owner recorded ({owners.unowned})</option>}
+        </select>
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((option) => (
             <button
@@ -139,6 +183,10 @@ export default function Catalogue() {
       <p className="mb-4 text-sm text-muted-foreground">
         {counts.on} on the shelf · {counts.off} taken off
         {counts.noArt > 0 && <> · {counts.noArt} with no box art</>}
+        {owner && owner !== NO_OWNER && (
+          <> · showing {shown.length} {shown.length === 1 ? 'game' : 'games'} from {owner}, {ownerCopies}{' '}
+            {ownerCopies === 1 ? 'copy' : 'copies'}</>
+        )}
       </p>
 
       {loading ? (
@@ -147,7 +195,7 @@ export default function Catalogue() {
         <div className="rounded-md border bg-background p-6">
           <h2 className="font-semibold">Nothing matches</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {query ? 'No game with that in its title.' : 'No game in this group.'}
+            {query ? 'No game with that in its title.' : owner ? 'No game from this owner in this group.' : 'No game in this group.'}
           </p>
         </div>
       ) : (
@@ -178,6 +226,7 @@ export default function Catalogue() {
                   <p className="truncate text-sm text-muted-foreground">
                     {players(game)} players · {game.copies} {game.copies === 1 ? 'copy' : 'copies'}
                     {game.copies_override !== null && <> (set by hand)</>}
+                    {game.owners?.length ? <> · {formatOwners(game.owners)}</> : null}
                     {game.shelf_status === 'off_shelf' && game.off_shelf_note && <> · {game.off_shelf_note}</>}
                   </p>
                 </div>

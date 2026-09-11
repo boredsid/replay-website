@@ -97,6 +97,7 @@ because the console is now editing the same rows:
 | `sync:library` | `title`, `year`, `thumb`, players, minutes, `rating`, `weight`, `best_with` — and only on rows whose `source` is `bgg` or `bgc` |
 | the console | `shelf_status`, `off_shelf_*`, `copies_override`, and **every** column of a `source = 'manual'` row |
 | `sync:descriptions` | `description` |
+| `sync:library` | every row of `library_title_owners`, rewritten wholesale each run |
 
 A game is identified by `bgg_id` where it has one, falling back to `key`. That
 is what lets somebody link a differently-spelled club title to its BGG entry in
@@ -163,9 +164,9 @@ putting one back meant remembering it existed.
 
 **"That owner is not bringing theirs, but somebody else still is"** is a copy
 count, not a removal. Set the count by hand on the game instead; it survives the
-next sync. This replaces the old `<bggId>@<collection>` scoped exclusion, which
-could not have been shown in the console anyway — lender names are deliberately
-never stored.
+next sync. This replaces the old `<bggId>@<collection>` scoped exclusion. The
+console's owner filter shows who lends what, so the count can be set knowing
+whose box is missing.
 
 ## No lender names are published
 
@@ -174,12 +175,20 @@ first names and the BGG sources are personal handles; neither reaches the
 browser.
 
 Lenders are tracked *inside* `scripts/sync-game-library.ts` (as `WorkingGame`)
-purely so duplicate copies can be counted, then collapsed to a bare
-`copies: number` before anything is written. The script throws if a `lender`
-key survives into the published shape, `src/lib/game-library.ts` has no type
-that can carry one, and `library_titles` has no column for one — so the page
-cannot render a name even by mistake. `GET /api/catalogue` serves that table
-straight through, so a leak there is a leak in public.
+so duplicate copies can be counted, then collapsed to a bare `copies: number`
+before the game is written. The script throws if a `lender` key survives into
+the published shape, `src/lib/game-library.ts` has no type that can carry one,
+and `library_titles` has no column for one — so the page cannot render a name
+even by mistake.
+
+The names *are* stored, since 2026-09-11, for the admin console's owner filter —
+but only in `library_title_owners` (title, owner, copies), a separate table
+that `anon`/`authenticated` cannot read and that no public endpoint touches.
+`worker/src/catalogue.test.ts` fails if `loadCatalogue` so much as reads it. It
+is per title rather than per copy because the boxes are not labelled: "copy 2
+is Siddhant's" would be invented, "Siddhant lends one" is what the sources say.
+Keep it a separate table; a column on `library_titles` would be one careless
+`select('*')` away from the public page.
 
 The "Where this list comes from" section credits sources without naming them
 ("Personal collections — 4 collectors pooling their shelves"). If REPLAY ever

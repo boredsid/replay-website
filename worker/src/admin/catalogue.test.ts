@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { foldTitle, handleCataloguePatch, handleCatalogueCreate } from './catalogue';
+import { foldTitle, handleCataloguePatch, handleCatalogueCreate, handleCatalogueList } from './catalogue';
 import { titleKey } from '../../../src/lib/game-library';
 
 vi.mock('./audit', () => ({
@@ -140,6 +140,60 @@ describe('what a sync owns', () => {
     const row = { id: 'x', key: 'manual-x', title: 'Prototype', source: 'manual', shelf_status: 'on_shelf', copies_override: null };
     await handleCataloguePatch(body({ title: 'Prototype v2', max_players: 6 }), env, client(row, sink), 'x', 'a@b.c', origin);
     expect(sink).toMatchObject({ title: 'Prototype v2', max_players: 6 });
+  });
+});
+
+describe('the list', () => {
+  function listClient() {
+    const tables: Record<string, unknown> = {
+      library_titles: {
+        select: () => ({
+          order: () => ({
+            limit: async () => ({
+              data: [
+                { id: 't1', key: 'bgg-1', title: 'Catan', source: 'bgg', shelf_status: 'on_shelf', copies_override: null },
+                { id: 't2', key: 'manual-x', title: 'Prototype', source: 'manual', shelf_status: 'on_shelf', copies_override: null },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      },
+      library_copies: {
+        select: () => ({ limit: async () => ({ data: [{ title_id: 't1' }, { title_id: 't1' }, { title_id: 't2' }], error: null }) }),
+      },
+      library_title_owners: {
+        select: () => ({
+          order: () => ({
+            limit: async () => ({
+              data: [
+                { title_id: 't1', owner: 'Siddhant', copies: 1 },
+                { title_id: 't1', owner: 'Vinto100', copies: 1 },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      },
+    };
+    return { from: (table: string) => tables[table] } as never;
+  }
+
+  /** What the owner filter runs on. */
+  it('says who lends each game', async () => {
+    const response = await handleCatalogueList(new Request('https://api/api/admin/catalogue'), env, listClient(), origin);
+    const { games } = (await response.json()) as { games: Array<{ id: string; owners: unknown[] }> };
+    expect(games.find((g) => g.id === 't1')?.owners).toEqual([
+      { owner: 'Siddhant', copies: 1 },
+      { owner: 'Vinto100', copies: 1 },
+    ]);
+  });
+
+  /** A hand-added game has no source to name an owner, and must still list. */
+  it('gives a game with no recorded owner an empty list, not a gap', async () => {
+    const response = await handleCatalogueList(new Request('https://api/api/admin/catalogue'), env, listClient(), origin);
+    const { games } = (await response.json()) as { games: Array<{ id: string; owners: unknown[] }> };
+    expect(games.find((g) => g.id === 't2')?.owners).toEqual([]);
   });
 });
 
