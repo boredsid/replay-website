@@ -65,9 +65,11 @@ partners, sponsors, leads, audit log, plus the three event-day screens below.
   reason and put it back; add one by pasting a BoardGameGeek link, or by hand
   for a box BGG has never listed; pin a copy count; link an art-less club title
   to its BGG entry, which also merges the duplicate card it was making. Filter
-  by owner — each BoardGameGeek collection and each name on the BGC sheet —
-  to see what one person is bringing and how many boxes; owners come from the
-  private `library_title_owners`, which the public page never reads. Every
+  by owner — each BoardGameGeek collection, shown by the owner's name rather
+  than their username, and each name on the BGC sheet — to see what one person
+  is bringing and how many boxes; owners come from the private
+  `library_title_owners` and `library_owner_names`, which the public page never
+  reads. Every
   column has exactly one owner, so `sync:library` can never quietly undo a
   decision made here. Admin-only: the `library` role works the counter, which is
   a different job. Changes reach the public page on the next rebuild and the

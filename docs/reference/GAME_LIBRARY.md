@@ -190,6 +190,15 @@ is Siddhant's" would be invented, "Siddhant lends one" is what the sources say.
 Keep it a separate table; a column on `library_titles` would be one careless
 `select('*')` away from the public page.
 
+Owners are shown by the name people use, not their BGG username.
+`library_owner_names` (source name → display name) is applied by the sync
+before it writes, so a person lending through both a collection and the club
+sheet is one owner. Its rows exist **only in the database** — the repository is
+public, and a committed handle-to-name map would publish exactly the link this
+section exists to prevent. A new collection therefore needs a row added by SQL
+(the migration `20260911140000_library_owner_names.sql` has the statement);
+without one, its owner shows as the username until somebody adds it.
+
 The "Where this list comes from" section credits sources without naming them
 ("Personal collections — 4 collectors pooling their shelves"). If REPLAY ever
 wants to credit lenders by name, that is a deliberate change in both the sync
