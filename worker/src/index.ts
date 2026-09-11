@@ -31,6 +31,7 @@ import { handleLeadsList } from './admin/leads';
 import { handleAuditList } from './admin/audit';
 import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSchedulePatch, handleScheduleDelete } from './admin/schedule';
 import { handleAppBootstrap } from './app-bootstrap';
+import { handleDisplayFeed } from './display-feed';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch, handleAnnouncementDelete } from './admin/announcements';
 import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
@@ -104,6 +105,11 @@ export interface Env {
   VAPID_SUBJECT: string;
   /** Worker secret. Absent locally, which disables sending rather than crashing. */
   VAPID_PRIVATE_KEY?: string;
+  /**
+   * Worker secret shared with the venue projector. Unlocks first names in
+   * `/api/display/feed`; absent means the display never receives any.
+   */
+  DISPLAY_KEY?: string;
   PUBLIC_RATE_LIMITER?: RateLimit;
   SUBJECT_RATE_LIMITER?: RateLimit;
 }
@@ -370,6 +376,11 @@ export default {
       }
       if (path === '/api/app/bootstrap' && req.method === 'GET') {
         return await handleAppBootstrap(serviceClient(env));
+      }
+      // The venue projector at replaycon.in/floor-display. Arrival names are
+      // gated on DISPLAY_KEY inside the handler; everything else is public.
+      if (path === '/api/display/feed' && req.method === 'GET') {
+        return await handleDisplayFeed(req, env);
       }
       if (path === '/api/pass-status' && req.method === 'POST') {
         return await handlePassStatus(req, env);
