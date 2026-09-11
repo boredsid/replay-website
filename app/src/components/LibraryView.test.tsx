@@ -256,6 +256,23 @@ describe('before setup', () => {
     expect(onFinishSetup).toHaveBeenCalled();
   });
 
+  it('lets an unpaired device browse the shelf without reserving', async () => {
+    renderView({ device: null, state: null });
+    expect(screen.getByText('Catan')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reserve/ })).not.toBeInTheDocument();
+    // Nothing to say about availability without asking the server, so say nothing.
+    expect(screen.queryByText('Available')).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox'), 'hive');
+    expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Hive/ }));
+    expect(screen.getByText('On the shelf')).toBeInTheDocument();
+  });
+
+  it('counts the copies from the catalogue, not a typed number', () => {
+    renderView({ device: null, state: null, catalogue: [...CATALOGUE, game({ key: 'bgg-4', title: 'Azul', copies: 3 })] });
+    expect(screen.getByRole('heading', { name: '6 copies on the shelf' })).toBeInTheDocument();
+  });
+
   it('says browsing works even when borrowing does not', () => {
     renderView({ state: state({ can_borrow: false }) });
     expect(screen.getByText(/Browsing works either way/)).toBeInTheDocument();

@@ -127,40 +127,48 @@ export default function LibraryView({
     onChanged();
   };
 
-  if (!device) {
-    return (
-      <>
-        <header className="screen-header">
-          <span className="eyebrow">Game library</span>
-          <h1>869 copies on the shelf</h1>
-          <p>
-            Check in at the desk and finish setup, then you can reserve a game
-            from here and collect it at {COUNTER}.
-          </p>
-        </header>
-        <section className="screen-section">
-          <button type="button" className="button button--dark" onClick={onFinishSetup}>
-            Finish setup
-          </button>
-          <button type="button" className="text-button" onClick={onShowMap}>
-            Where is it?
-          </button>
-        </section>
-      </>
-    );
-  }
+  // Counted from the snapshot rather than typed, because the shelf is curated
+  // from the console now and a number in the source is wrong by the next edit.
+  const copies = useMemo(
+    () => catalogue?.reduce((sum, game) => sum + game.copies, 0) ?? null,
+    [catalogue],
+  );
 
   return (
     <>
-      <header className="screen-header">
-        <span className="eyebrow">Game library</span>
-        <h1>Borrow a game</h1>
-        <p>
-          Reserve one here, then show your ID at {COUNTER}.
-          {' '}
-          <button type="button" className="text-button" onClick={onShowMap}>Find it on the map</button>
-        </p>
-      </header>
+      {device ? (
+        <header className="screen-header">
+          <span className="eyebrow">Game library</span>
+          <h1>Borrow a game</h1>
+          <p>
+            Reserve one here, then show your ID at {COUNTER}.
+            {' '}
+            <button type="button" className="text-button" onClick={onShowMap}>Find it on the map</button>
+          </p>
+        </header>
+      ) : (
+        // Pairing needs a check-in, so an unpaired phone is somebody who has
+        // not been to the desk yet -- often somebody planning from home. The
+        // shelf is worth reading before you arrive; only reserving waits.
+        <>
+          <header className="screen-header">
+            <span className="eyebrow">Game library</span>
+            <h1>{copies ? `${copies} copies on the shelf` : 'The shelf'}</h1>
+            <p>
+              Browse everything here. To reserve a game, check in at the desk
+              and finish setup, then collect it at {COUNTER}.
+            </p>
+          </header>
+          <section className="screen-section">
+            <button type="button" className="button button--dark" onClick={onFinishSetup}>
+              Finish setup
+            </button>
+            <button type="button" className="text-button" onClick={onShowMap}>
+              Where is it?
+            </button>
+          </section>
+        </>
+      )}
 
       {process && <p className="library-process">{process}</p>}
 
@@ -333,7 +341,10 @@ export default function LibraryView({
                       aria-hidden="true"
                     />
                   </button>
-                  {out ? (
+                  {/* Without a device there is no availability to report --
+                      "Available" would be a guess, and a wrong one for
+                      whatever is out. */}
+                  {!device ? null : out ? (
                     <span className="library-item__status">All out</span>
                   ) : blocked ? (
                     <span className="library-item__status">Available</span>
