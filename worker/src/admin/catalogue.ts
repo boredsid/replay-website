@@ -68,6 +68,32 @@ async function copyCounts(sb: SupabaseClient): Promise<Map<string, number>> {
   return counts;
 }
 
+export interface TitleOwner {
+  owner: string;
+  copies: number;
+}
+
+/**
+ * Who lends each title, from `library_title_owners`.
+ *
+ * Admin-only by construction: GET /api/catalogue never reads that table, so
+ * these names cannot reach the public page or the attendee app. A title with
+ * no rows — anything added by hand — comes back with an empty list.
+ */
+async function titleOwners(sb: SupabaseClient, titleId?: string): Promise<Map<string, TitleOwner[]>> {
+  let query = sb.from('library_title_owners').select('title_id, owner, copies');
+  if (titleId) query = query.eq('title_id', titleId);
+  const { data, error } = await query.order('owner').limit(20000);
+  if (error) throw new Error('owners_query_failed');
+  const owners = new Map<string, TitleOwner[]>();
+  for (const row of (data ?? []) as { title_id: string; owner: string; copies: number }[]) {
+    const list = owners.get(row.title_id) ?? [];
+    list.push({ owner: row.owner, copies: row.copies });
+    owners.set(row.title_id, list);
+  }
+  return owners;
+}
+
 /**
  * GET /api/admin/catalogue
  *
@@ -90,8 +116,9 @@ export async function handleCatalogueList(
   if (titles.error) return adminJson({ error: 'query_failed' }, 500, origin);
 
   let counts: Map<string, number>;
+  let owners: Map<string, TitleOwner[]>;
   try {
-    counts = await copyCounts(sb);
+    [counts, owners] = await Promise.all([copyCounts(sb), titleOwners(sb)]);
   } catch {
     return adminJson({ error: 'query_failed' }, 500, origin);
   }
@@ -101,6 +128,7 @@ export async function handleCatalogueList(
     ...row,
     copies_actual: counts.get(row.id) ?? 0,
     copies: row.copies_override ?? counts.get(row.id) ?? 0,
+    owners: owners.get(row.id) ?? [],
   }));
 
   return adminJson(
@@ -133,6 +161,7 @@ export async function handleCatalogueGet(
 
   const row = data as unknown as Row;
   const counts = await copyCounts(sb).catch(() => new Map<string, number>());
+  const owners = await titleOwners(sb, row.id).catch(() => new Map<string, TitleOwner[]>());
 
   // Aliases pointing at this game explain why a differently-spelled club title
   // lands here, which is otherwise invisible and looks like a bug.
@@ -146,6 +175,7 @@ export async function handleCatalogueGet(
         ...row,
         copies_actual: counts.get(row.id) ?? 0,
         copies: row.copies_override ?? counts.get(row.id) ?? 0,
+        owners: owners.get(row.id) ?? [],
       },
       aliases: aliases.data ?? [],
     },

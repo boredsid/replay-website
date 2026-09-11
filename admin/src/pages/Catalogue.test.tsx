@@ -25,10 +25,13 @@ function game(overrides: Partial<CatalogueGameRow> = {}): CatalogueGameRow {
 }
 
 const GAMES = [
-  game(),
-  game({ id: 'b', key: 'bgg-2', bgg_id: 2, title: 'Inis', shelf_status: 'off_shelf', off_shelf_note: 'not coming', copies: 1, copies_actual: 1 }),
-  game({ id: 'c', key: 'title-shasn', bgg_id: null, title: 'Shasn', thumb: null, source: 'bgc' }),
-  game({ id: 'd', key: 'manual-proto', bgg_id: null, title: 'Studio Prototype', thumb: null, source: 'manual' }),
+  game({ owners: [{ owner: 'Siddhant', copies: 1 }, { owner: 'Vinto100', copies: 1 }] }),
+  game({
+    id: 'b', key: 'bgg-2', bgg_id: 2, title: 'Inis', shelf_status: 'off_shelf', off_shelf_note: 'not coming', copies: 1, copies_actual: 1,
+    owners: [{ owner: 'Vinto100', copies: 1 }],
+  }),
+  game({ id: 'c', key: 'title-shasn', bgg_id: null, title: 'Shasn', thumb: null, source: 'bgc', owners: [{ owner: 'BGC', copies: 2 }] }),
+  game({ id: 'd', key: 'manual-proto', bgg_id: null, title: 'Studio Prototype', thumb: null, source: 'manual', owners: [] }),
 ];
 
 beforeEach(() => {
@@ -84,6 +87,49 @@ describe('the catalogue list', () => {
     await userEvent.type(screen.getByLabelText('Search the catalogue'), 'shas');
     expect(screen.getByText('Shasn')).toBeInTheDocument();
     expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+  });
+
+  it('narrows to one owner’s games', async () => {
+    show();
+    await waitFor(() => expect(screen.getByText('Catan')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Filter by owner'), 'Siddhant');
+    expect(screen.getByText('Catan')).toBeInTheDocument();
+    expect(screen.queryByText('Inis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shasn')).not.toBeInTheDocument();
+  });
+
+  /** "What is Vinto bringing" — and whether any of it has been taken off. */
+  it('combines the owner with the shelf filters', async () => {
+    show();
+    await waitFor(() => expect(screen.getByText('Catan')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Filter by owner'), 'Vinto100');
+    await userEvent.click(screen.getByRole('button', { name: 'Off the shelf' }));
+    expect(screen.getByText('Inis')).toBeInTheDocument();
+    expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+  });
+
+  it('counts each owner’s games in the picker, and the boxes behind a selection', async () => {
+    show();
+    await waitFor(() => expect(screen.getByText('Catan')).toBeInTheDocument());
+    expect(screen.getByRole('option', { name: 'Vinto100 (2)' })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Filter by owner'), 'BGC');
+    expect(screen.getByText(/showing 1 game from BGC, 2 copies/)).toBeInTheDocument();
+  });
+
+  /** A game added by hand has no source to name an owner; it must stay findable. */
+  it('finds the games nobody is recorded as lending', async () => {
+    show();
+    await waitFor(() => expect(screen.getByText('Catan')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Filter by owner'), 'No owner recorded (1)');
+    expect(screen.getByText('Studio Prototype')).toBeInTheDocument();
+    expect(screen.queryByText('Catan')).not.toBeInTheDocument();
+  });
+
+  it('names who lends each game on its row', async () => {
+    show();
+    await waitFor(() => expect(screen.getByText('Shasn')).toBeInTheDocument());
+    const row = screen.getByText('Shasn').closest('li') as HTMLElement;
+    expect(within(row).getByText(/BGC ×2/)).toBeInTheDocument();
   });
 
   it('marks the games a sync will never touch', async () => {

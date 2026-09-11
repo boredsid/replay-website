@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { fetchAdmin, showApiError } from '@/lib/api';
+import { formatOwners } from '@/lib/catalogue-owners';
 import type { CatalogueGameRow } from '@/lib/types';
 
 /**
@@ -206,6 +207,11 @@ export default function CatalogueDrawer() {
               <p className="text-sm text-muted-foreground">
                 {game.copies_actual} {game.copies_actual === 1 ? 'box is' : 'boxes are'} on record.
                 {game.copies_override !== null && <> The page shows {game.copies_override}, set here.</>}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {game.owners?.length
+                  ? <>Lent by {formatOwners(game.owners)}.</>
+                  : <>No owner recorded{game.source === 'manual' ? ' — it was added by hand, not from a collection' : ''}.</>}
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <label className="block">

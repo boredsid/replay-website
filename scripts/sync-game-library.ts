@@ -25,7 +25,8 @@
 // docs/specs/2026-09-09-library-catalogue-admin-design.md.
 //
 // What this run may and may not touch is the one rule that matters. It writes
-// BoardGameGeek metadata and reconciles physical copies. It never writes
+// BoardGameGeek metadata, reconciles physical copies, and records who lends
+// each game in the private `library_title_owners`. It never writes
 // `shelf_status`, `off_shelf_*` or `copies_override` — those belong to whoever
 // is using the admin console — and it skips rows whose `source` is 'manual'
 // entirely. Nothing here deletes anything.
@@ -41,6 +42,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
 import { titleKey, titleSlug, type LibraryGame, type LibrarySourceSummary } from '../src/lib/game-library.ts';
+import { ownerRows, type OwnerRow } from './lib/library-owners.ts';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const collectionsDir = join(repoRoot, 'src/data/bgg');
@@ -90,8 +92,9 @@ interface BggDetail {
 /**
  * A game mid-merge. Identical to the published `LibraryGame` except that it
  * still knows who lends each copy — needed to count duplicates correctly, and
- * dropped to a bare number before anything is written. Lender names must not
- * reach `library_titles`; GET /api/catalogue serves it straight through.
+ * dropped to a bare number before the game is written. Lender names must not
+ * reach `library_titles`, which GET /api/catalogue publishes; they go to
+ * `library_title_owners` instead, which only the admin console reads.
  */
 type WorkingGame = Omit<LibraryGame, 'copies'> & {
   copies: { lender: string; source: 'bgc' | 'bgg'; count: number }[];
@@ -486,8 +489,13 @@ async function main(): Promise<void> {
   const leaked = JSON.stringify([...byKey.values()].map(({ copies, ...rest }) => rest));
   if (/lender/i.test(leaked)) throw new Error('lender data reached the published game shape');
 
+  // Who lends what, kept apart from the game shape so it can only ever be
+  // written to the private owners table.
+  const owners = new Map<string, OwnerRow[]>();
+  for (const game of byKey.values()) owners.set(game.key, ownerRows(game.copies));
+
   // Collapse each game's per-lender copies to a bare count. This is the step
-  // that keeps names out of the published file — nothing downstream of here
+  // that keeps names out of `library_titles` — nothing downstream of here
   // has them to leak.
   // Drop excluded games. Collection-scoped exclusions have already been
   // applied above, where the copy would have been added.
@@ -498,13 +506,14 @@ async function main(): Promise<void> {
       copies: copies.reduce((total, copy) => total + copy.count, 0),
     }));
 
-  const report = await writeCatalogue(replay, games, sources, curation);
+  const report = await writeCatalogue(replay, games, sources, curation, owners);
 
   const withArt = games.filter((game) => game.thumb).length;
   const withPlayers = games.filter((game) => game.minPlayers !== null).length;
   console.log(`\nWrote ${games.length} games to library_titles`);
   console.log(`  ${report.inserted} new, ${report.updated} refreshed, ${report.skipped} left alone`);
   console.log(`  ${report.copiesAdded} copies added, ${report.copiesWithdrawn} withdrawn, ${report.copiesRestored} restored`);
+  console.log(`  ${report.ownerRows} owner attributions across ${report.owners} owners`);
   console.log(`  ${withArt} with box art, ${withPlayers} with a player count`);
   console.log(`  ${curation.offShelfIds.size + curation.offShelfTitles.size} off the shelf (unchanged by this run)`);
 
@@ -539,6 +548,8 @@ interface WriteReport {
   copiesAdded: number;
   copiesWithdrawn: number;
   copiesRestored: number;
+  ownerRows: number;
+  owners: number;
 }
 
 /** Marks a copy that left the pooled collections rather than one the desk pulled. */
@@ -562,8 +573,14 @@ async function writeCatalogue(
   games: LibraryGame[],
   sources: LibrarySourceSummary[],
   curation: Curation,
+  owners: Map<string, OwnerRow[]>,
 ): Promise<WriteReport> {
-  const report: WriteReport = { inserted: 0, updated: 0, skipped: 0, copiesAdded: 0, copiesWithdrawn: 0, copiesRestored: 0 };
+  const report: WriteReport = {
+    inserted: 0, updated: 0, skipped: 0, copiesAdded: 0, copiesWithdrawn: 0, copiesRestored: 0, ownerRows: 0, owners: 0,
+  };
+  // title id → owner → copies. Keyed by the row, not the merge key, because a
+  // linked club title is found by BGG id under a key of its own.
+  const attributions = new Map<string, Map<string, number>>();
 
   for (const game of games) {
     const row = (game.bggId ? curation.byBggId.get(game.bggId) : undefined) ?? curation.existing.get(game.key);
@@ -598,6 +615,16 @@ async function writeCatalogue(
       report.inserted += 1;
     }
 
+    // Recorded even where an admin pinned the count: who lends a game is a
+    // fact about the sources, not about how many boxes the page advertises.
+    if (titleId) {
+      const byOwner = attributions.get(titleId) ?? new Map<string, number>();
+      for (const { owner, copies } of owners.get(game.key) ?? []) {
+        byOwner.set(owner, (byOwner.get(owner) ?? 0) + copies);
+      }
+      attributions.set(titleId, byOwner);
+    }
+
     // A copy an admin pinned by hand is theirs, not this run's, so the shelf is
     // only reconciled where they have not said otherwise.
     if (row && curation.overrides.has(row.key)) continue;
@@ -613,7 +640,37 @@ async function writeCatalogue(
     .upsert({ id: true, sources, synced_at: new Date().toISOString() });
   if (error) throw new Error(`library_catalogue_meta: ${error.message}`);
 
+  const moved = await replaceOwners(sb, attributions);
+  report.ownerRows = moved.rows;
+  report.owners = moved.owners;
+
   return report;
+}
+
+/**
+ * Rewrite `library_title_owners` from this run's merge.
+ *
+ * Wholesale rather than per title, so a game that has left every source loses
+ * its attribution too, and so the whole thing is two statements instead of
+ * ~600 round trips. Manual rows never had any, so there is nothing of an
+ * admin's here to preserve.
+ */
+async function replaceOwners(
+  sb: SupabaseClient,
+  attributions: Map<string, Map<string, number>>,
+): Promise<{ rows: number; owners: number }> {
+  const rows = [...attributions].flatMap(([titleId, byOwner]) =>
+    [...byOwner].map(([owner, copies]) => ({ title_id: titleId, owner, copies })),
+  );
+
+  const cleared = await sb.from('library_title_owners').delete().not('title_id', 'is', null);
+  if (cleared.error) throw new Error(`library_title_owners: ${cleared.error.message}`);
+  for (let start = 0; start < rows.length; start += 500) {
+    const { error } = await sb.from('library_title_owners').insert(rows.slice(start, start + 500));
+    if (error) throw new Error(`library_title_owners: ${error.message}`);
+  }
+
+  return { rows: rows.length, owners: new Set(rows.map((row) => row.owner)).size };
 }
 
 /**
