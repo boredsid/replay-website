@@ -71,10 +71,14 @@ async function getEdition(sb: SupabaseClient, id: string): Promise<EditionRow | 
   return (result.data as EditionRow) ?? null;
 }
 
-/** The price the edition carries, for the four self-serve packages only. */
-function pricedAmounts(edition: EditionRow, offerKey: PartnerOfferKey) {
+/**
+ * The price the edition carries, for the four self-serve packages only. An
+ * engagement is priced per day, so one sold for both days costs two days.
+ */
+function pricedBase(edition: EditionRow, offerKey: PartnerOfferKey, days: Day[]): number | null {
   if (!PARTNER_OFFERS[offerKey].priced) return null;
-  return partnerAmounts(readPartnerPricing(edition.partner_pricing), offerKey as PartnerPackageKey);
+  const { base } = partnerAmounts(readPartnerPricing(edition.partner_pricing), offerKey as PartnerPackageKey);
+  return partnerOfferDays(offerKey) === 'single' && days.length === 2 ? base * 2 : base;
 }
 
 function withInviteUrl(env: Env, partner: any) {
@@ -121,14 +125,16 @@ function parsePartnerRow(body: any, edition: EditionRow, previous?: any) {
     : null;
   if (!paymentStatus) throw new Error('invalid_payment_status');
 
-  const canonical = pricedAmounts(edition, offerKey);
+  const canonical = pricedBase(edition, offerKey, days);
   const priceContextChanged = Boolean(previous)
-    && (previous.package_key !== offerKey || previous.edition_id !== editionId);
+    && (previous.package_key !== offerKey
+      || previous.edition_id !== editionId
+      || ((previous.days ?? []).length === 2) !== (days.length === 2));
   const inheritPrevious = Boolean(previous) && !priceContextChanged;
   let baseAmount: number;
   if (body?.base_amount !== undefined) baseAmount = money(body.base_amount, 'base_amount');
   else if (inheritPrevious) baseAmount = money(previous.base_amount, 'base_amount');
-  else if (canonical) baseAmount = canonical.base;
+  else if (canonical !== null) baseAmount = canonical;
   else throw new Error('invalid_base_amount');
 
   const gstRate = readPartnerPricing(edition.partner_pricing).gst_rate;
@@ -218,20 +224,23 @@ export async function handlePartnerInviteCreate(req: Request, env: Env, sb: Supa
     const offerKey = parsePartnerOffer(body.package_key);
     if (!offerKey) throw new Error('invalid_package');
     const organizationName = requiredText(body.organization_name, 160, 'organization_name');
-    const canonical = pricedAmounts(edition, offerKey);
-    if (body.base_amount === undefined && !canonical) throw new Error('invalid_base_amount');
-    const baseAmount = body.base_amount === undefined ? (canonical as { base: number }).base : money(body.base_amount, 'base_amount');
+    // Booths and sponsorships are always the full weekend, so the days are
+    // known up front. A one-day engagement's day is the partner's to pick; an
+    // engagement sold for both days arrives as `days` and is fixed.
+    let days: Day[];
+    if (partnerOfferDays(offerKey) === 'weekend') days = ['day1', 'day2'];
+    else if (body.days !== undefined) {
+      const parsed = parseDays(body.days);
+      if (!parsed || !validOfferDays(offerKey, parsed)) throw new Error('invalid_days');
+      days = parsed;
+    } else days = body.day === 'day1' || body.day === 'day2' ? [body.day as Day] : [];
+    const canonical = pricedBase(edition, offerKey, days);
+    if (body.base_amount === undefined && canonical === null) throw new Error('invalid_base_amount');
+    const baseAmount = body.base_amount === undefined ? canonical as number : money(body.base_amount, 'base_amount');
     const gstRate = readPartnerPricing(edition.partner_pricing).gst_rate;
     const gstAmount = body.gst_amount === undefined
       ? Math.round(baseAmount * gstRate * 100) / 100
       : money(body.gst_amount, 'gst_amount');
-    // Booths and sponsorships are always the full weekend, so the days are
-    // known up front. A community engagement's day is the partner's to pick.
-    const days = partnerOfferDays(offerKey) === 'weekend'
-      ? (['day1', 'day2'] as Day[])
-      : body.day === 'day1' || body.day === 'day2'
-        ? [body.day as Day]
-        : [];
     expiresAt = optionalTimestamp(body.expires_at, 'expires_at');
 
     row = {

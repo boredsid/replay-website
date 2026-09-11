@@ -178,6 +178,28 @@ describe('partner invite link', () => {
     expect(updated().days).toEqual(['day2']);
   });
 
+  it('keeps an engagement sold for both days on both, whatever day the form sends', async () => {
+    const engagement = lead({ package_key: 'standard_engagement', kind: 'community_engagement', days: ['day1', 'day2'], base_amount: 6000, gst_amount: 1080, total_amount: 7080 });
+
+    const updated = mockDatabase(engagement);
+    const res = await handlePartnerInviteSubmit(submitRequest({ day: 'day2' }), {} as any, TOKEN);
+    const body: any = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(updated().days).toEqual(['day1', 'day2']);
+    expect(body.invite).toMatchObject({ days_rule: 'single', days: ['day1', 'day2'], total_amount: 7080 });
+  });
+
+  it('will not let a partner turn a one-day engagement into two', async () => {
+    const engagement = lead({ package_key: 'standard_engagement', kind: 'community_engagement', days: ['day1'], base_amount: 3000, gst_amount: 540, total_amount: 3540 });
+
+    const updated = mockDatabase(engagement);
+    const res = await handlePartnerInviteSubmit(submitRequest({ day: 'day2', days: ['day1', 'day2'] }), {} as any, TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(updated().days).toEqual(['day2']);
+  });
+
   it('refuses a link that is already confirmed or cancelled', async () => {
     mockDatabase(lead({ payment_status: 'confirmed', stage: 'confirmed', submitted_at: '2026-08-01T00:00:00Z', contact_name: 'Nikhil', phone: '9876543210', email: 'n@x.example' }));
     const confirmed = await handlePartnerInviteSubmit(submitRequest(), {} as any, TOKEN);

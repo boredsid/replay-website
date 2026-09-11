@@ -58,7 +58,7 @@ it('suggests the edition price for a self-serve package and asks for its day', a
   await userEvent.type(await screen.findByLabelText('Partner name'), 'Dice Cafe');
   await userEvent.selectOptions(screen.getByLabelText('Partner type'), 'standard_engagement');
   expect(screen.getByLabelText('Amount before GST')).toHaveValue(3000);
-  await userEvent.selectOptions(screen.getByLabelText('Activity day'), 'day2');
+  await userEvent.selectOptions(screen.getByLabelText('Activity days'), 'day2');
   await userEvent.click(screen.getByRole('button', { name: /create link/i }));
 
   const call = await waitFor(() => {
@@ -67,4 +67,23 @@ it('suggests the edition price for a self-serve package and asks for its day', a
     return found;
   });
   expect(JSON.parse(call[1].body)).toMatchObject({ package_key: 'standard_engagement', day: 'day2', base_amount: 3000, gst_amount: 540 });
+});
+
+it('sells an engagement for both days at twice the one-day price', async () => {
+  renderDrawer();
+
+  await userEvent.type(await screen.findByLabelText('Partner name'), 'Dice Cafe');
+  await userEvent.selectOptions(screen.getByLabelText('Partner type'), 'patron_engagement');
+  await userEvent.selectOptions(screen.getByLabelText('Activity days'), 'both');
+  expect(screen.getByLabelText('Amount before GST')).toHaveValue(7000);
+  await userEvent.click(screen.getByRole('button', { name: /create link/i }));
+
+  const call = await waitFor(() => {
+    const found = (fetchAdmin as any).mock.calls.find((entry: any[]) => entry[0] === '/api/admin/partners/invites');
+    expect(found).toBeTruthy();
+    return found;
+  });
+  const body = JSON.parse(call[1].body);
+  expect(body).toMatchObject({ package_key: 'patron_engagement', days: ['day1', 'day2'], base_amount: 7000, gst_amount: 1260 });
+  expect(body.day).toBeUndefined();
 });

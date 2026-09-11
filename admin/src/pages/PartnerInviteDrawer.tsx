@@ -3,14 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { fetchAdmin, showApiError } from '@/lib/api';
-import { PARTNER_OFFERS, isSingleDay, offerAmounts } from '@/lib/partner-offers';
-import type { Day, EditionRow, PartnerOfferKey, PartnerRow } from '@/lib/types';
+import { PARTNER_OFFERS, choiceDays, isSingleDay, offerAmounts, type DayChoice } from '@/lib/partner-offers';
+import type { EditionRow, PartnerOfferKey, PartnerRow } from '@/lib/types';
 
 type Form = {
   edition_id: string;
   organization_name: string;
   package_key: PartnerOfferKey;
-  day: Day;
+  day: DayChoice;
   base_amount: string;
   gst_amount: string;
   expires_at: string;
@@ -66,15 +66,23 @@ export default function PartnerInviteDrawer() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function resetPrice(editionId: string, packageKey: PartnerOfferKey) {
-    const amounts = offerAmounts(editions.find((item) => item.id === editionId), packageKey);
+  function resetPrice(editionId: string, packageKey: PartnerOfferKey, day: DayChoice = form.day) {
+    const amounts = offerAmounts(editions.find((item) => item.id === editionId), packageKey, day);
     setForm((current) => ({
       ...current,
       edition_id: editionId,
       package_key: packageKey,
+      day,
       base_amount: String(amounts.base),
       gst_amount: String(amounts.gst),
     }));
+  }
+
+  // Moving a one-day engagement between days keeps its price; going from one
+  // day to both (or back) is a different sale, so the price starts over.
+  function changeDay(day: DayChoice) {
+    if ((day === 'both') !== (form.day === 'both')) resetPrice(form.edition_id, form.package_key, day);
+    else set('day', day);
   }
 
   async function createLink() {
@@ -95,7 +103,11 @@ export default function PartnerInviteDrawer() {
           edition_id: form.edition_id,
           organization_name: form.organization_name.trim(),
           package_key: form.package_key,
-          ...(isSingleDay(form.package_key) ? { day: form.day } : {}),
+          // A single day is only a suggestion the partner can change; both days
+          // is part of the sale and is fixed on the link.
+          ...(isSingleDay(form.package_key)
+            ? form.day === 'both' ? { days: choiceDays('both') } : { day: form.day }
+            : {}),
           base_amount: Number(form.base_amount),
           gst_amount: Number(form.gst_amount),
           internal_notes: form.internal_notes.trim() || null,
@@ -170,10 +182,11 @@ export default function PartnerInviteDrawer() {
               </select>
             </Field>
             {isSingleDay(form.package_key) ? (
-              <Field label="Activity day (the partner can change this)">
-                <select aria-label="Activity day" value={form.day} onChange={(event) => set('day', event.target.value as Day)} className="w-full rounded-md border px-3 py-2">
+              <Field label={form.day === 'both' ? 'Activity days (fixed on the link)' : 'Activity days (the partner can move a single day)'}>
+                <select aria-label="Activity days" value={form.day} onChange={(event) => changeDay(event.target.value as DayChoice)} className="w-full rounded-md border px-3 py-2">
                   <option value="day1">day1</option>
                   <option value="day2">day2</option>
+                  <option value="both">Both days · day1 + day2</option>
                 </select>
               </Field>
             ) : (

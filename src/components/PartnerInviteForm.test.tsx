@@ -109,6 +109,29 @@ describe('PartnerInviteForm', () => {
     expect(JSON.parse((global.fetch as any).mock.calls[1][1].body)).toMatchObject({ day: 'day2' });
   });
 
+  it('shows an engagement sold for both days as fixed, with no day to pick', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ invite: invite({
+        offer_key: 'standard_engagement', offer_label: 'Standard engagement', kind: 'community_engagement',
+        days_rule: 'single', days: ['day1', 'day2'], base_amount: 6000, gst_amount: 1080, total_amount: 7080,
+      }) }))
+      .mockResolvedValueOnce(jsonResponse({ invite: invite({ stage: 'prospective', days: ['day1', 'day2'] }) }));
+
+    render(<PartnerInviteForm token={TOKEN} upiId="test@upi" />);
+    await waitFor(() => expect(screen.getByText(/both days \(Saturday \+ Sunday\)/)).toBeInTheDocument());
+    expect(screen.queryByLabelText('Sunday')).toBeNull();
+
+    await user.type(screen.getByLabelText('Primary contact'), 'Asha');
+    await user.type(screen.getByLabelText('Partner phone'), '9876543210');
+    await user.type(screen.getByLabelText('Partner email'), 'asha@example.com');
+    await user.type(screen.getByLabelText('Partner activity details'), 'Both afternoons.');
+    await user.click(screen.getByRole('button', { name: /continue to upi/i }));
+
+    await waitFor(() => expect((global.fetch as any).mock.calls.length).toBe(2));
+    expect(JSON.parse((global.fetch as any).mock.calls[1][1].body).day).toBeUndefined();
+  });
+
   it('explains an expired link instead of showing a form', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce(jsonResponse({ error: 'invite_expired' }, 410));
 

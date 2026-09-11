@@ -80,6 +80,10 @@ export function PartnerInviteForm({ upiId, token: tokenProp }: PartnerInviteForm
     return () => { live = false; };
   }, [token]);
 
+  // An engagement the team sold for both days is not the partner's to narrow
+  // to one: the price on the link covers both.
+  const bothDaysSold = invite?.days.length === 2;
+
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!invite) return;
@@ -99,7 +103,7 @@ export function PartnerInviteForm({ upiId, token: tokenProp }: PartnerInviteForm
         website_url: websiteUrl.trim() || null,
         gstin: gstin.trim() || null,
         details: details.trim(),
-        ...(invite.days_rule === 'single' ? { day } : {}),
+        ...(invite.days_rule === 'single' && !bothDaysSold ? { day } : {}),
       });
       setInvite(result.invite);
       if (result.invite.payment_required) {
@@ -216,7 +220,7 @@ export function PartnerInviteForm({ upiId, token: tokenProp }: PartnerInviteForm
       )}
 
       <form onSubmit={submit} className="space-y-5">
-        {invite.days_rule === 'single' && (
+        {invite.days_rule === 'single' && !bothDaysSold && (
           <fieldset>
             <legend className="label-brutal mb-2">Activity day</legend>
             <div className="grid grid-cols-2 gap-3">
@@ -231,6 +235,9 @@ export function PartnerInviteForm({ upiId, token: tokenProp }: PartnerInviteForm
         )}
         {invite.days_rule === 'weekend' && (
           <div className="card-flat p-4 text-sm"><strong>Event days:</strong> full weekend ({day1Name} + {day2Name})</div>
+        )}
+        {invite.days_rule === 'single' && bothDaysSold && (
+          <div className="card-flat p-4 text-sm"><strong>Activity days:</strong> both days ({day1Name} + {day2Name})</div>
         )}
 
         <div className="grid gap-4 md:grid-cols-2">

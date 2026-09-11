@@ -165,6 +165,54 @@ describe('partner invite links', () => {
     expect(captured.inserted).toMatchObject({ base_amount: 3000, gst_amount: 540, days: ['day2'] });
   });
 
+  it('sells an engagement for both days at two days’ price', async () => {
+    const { sb, captured } = db();
+    const req = new Request('https://api.x/api/admin/partners/invites', { method: 'POST', body: JSON.stringify({
+      edition_id: 'e1', organization_name: 'Dice Cafe', package_key: 'patron_engagement', days: ['day1', 'day2'],
+    }) });
+    const res = await handlePartnerInviteCreate(req, env, sb, 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(200);
+    expect(captured.inserted).toMatchObject({ base_amount: 7000, gst_amount: 1260, days: ['day1', 'day2'] });
+  });
+
+  it('refuses days an engagement cannot run on', async () => {
+    const { sb } = db();
+    const req = new Request('https://api.x/api/admin/partners/invites', { method: 'POST', body: JSON.stringify({
+      edition_id: 'e1', organization_name: 'Dice Cafe', package_key: 'standard_engagement', days: ['day1', 'day1'],
+    }) });
+    const res = await handlePartnerInviteCreate(req, env, sb, 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_days' });
+  });
+
+  it('reprices an engagement moved from one day to both, but not one moved between days', async () => {
+    const existing = {
+      id: 'p1', ...valid, kind: 'community_engagement', website_url: null, gstin: null, internal_notes: null,
+      base_amount: 2500, gst_amount: 450, total_amount: 2950, submitted_at: '2026-09-01T00:00:00Z',
+    };
+    const moved = db(existing);
+    await handlePartnerPatch(new Request('https://api.x/', { method: 'PATCH', body: JSON.stringify({ days: ['day2'] }) }), env, moved.sb, 'p1', 'sid@example.com', ORIGIN);
+    expect(moved.captured.updated).toMatchObject({ days: ['day2'], base_amount: 2500, gst_amount: 450 });
+
+    const widened = db(existing);
+    const res = await handlePartnerPatch(new Request('https://api.x/', { method: 'PATCH', body: JSON.stringify({ days: ['day1', 'day2'] }) }), env, widened.sb, 'p1', 'sid@example.com', ORIGIN);
+    expect(res.status).toBe(200);
+    expect(widened.captured.updated).toMatchObject({ days: ['day1', 'day2'], base_amount: 6000, gst_amount: 1080 });
+  });
+
+  it('keeps booths on the full weekend', async () => {
+    const { sb } = db();
+    const req = new Request('https://api.x/api/admin/partners', { method: 'POST', body: JSON.stringify({
+      ...valid, package_key: 'standard_booth', days: ['day1'],
+    }) });
+    const res = await handlePartnerCreate(req, env, sb, 'sid@example.com', ORIGIN);
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_days' });
+  });
+
   it('needs an amount for a negotiated sponsorship', async () => {
     const { sb } = db();
     const req = new Request('https://api.x/api/admin/partners/invites', { method: 'POST', body: JSON.stringify({

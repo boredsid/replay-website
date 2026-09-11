@@ -33,6 +33,54 @@ it('adds a partner with the package pricing snapshot', async () => {
   expect(JSON.parse(call[1].body)).toMatchObject({ package_key: 'community_booth', days: ['day1', 'day2'], base_amount: 6500, gst_amount: 1170 });
 });
 
+it('moves an engagement to both days and doubles its price, keeping it when only the day moves', async () => {
+  const partner = {
+    id: 'p3', edition_id: 'e1', organization_name: 'Story Circle', contact_name: 'Asha', phone: '9876543210',
+    email: 'asha@example.com', website_url: null, gstin: null, kind: 'community_engagement',
+    package_key: 'standard_engagement', days: ['day2'], details: null, internal_notes: null,
+    base_amount: 2500, gst_amount: 450, total_amount: 2950, payment_status: 'pending', stage: 'prospective',
+    submitted_at: '2026-09-01T00:00:00Z', payment_claimed_at: null, invite_url: null, invite_expires_at: null,
+  };
+  (fetchAdmin as any).mockImplementation((path: string) => path === '/api/admin/editions'
+    ? Promise.resolve({ editions: [edition] })
+    : path === '/api/admin/partners/p3' ? Promise.resolve({ partner, ok: true }) : Promise.resolve({ ok: true }));
+
+  render(<MemoryRouter initialEntries={['/partners/p3']}><Routes><Route path="/partners/:id" element={<PartnerDrawer />} /><Route path="/partners" element={<div>Partners list</div>} /></Routes></MemoryRouter>);
+  const days = await screen.findByLabelText('Activity days');
+  expect(days).toHaveValue('day2');
+  await userEvent.selectOptions(days, 'day1');
+  expect(screen.getByLabelText('Package amount before GST')).toHaveValue(2500);
+  await userEvent.selectOptions(days, 'both');
+  expect(screen.getByLabelText('Package amount before GST')).toHaveValue(6000);
+  await userEvent.click(screen.getByRole('button', { name: /save partner/i }));
+
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/partners/p3', expect.objectContaining({ method: 'PATCH' })));
+  const call = (fetchAdmin as any).mock.calls.find((entry: any[]) => entry[0] === '/api/admin/partners/p3' && entry[1]?.method === 'PATCH');
+  expect(JSON.parse(call[1].body)).toMatchObject({ days: ['day1', 'day2'], base_amount: 6000, gst_amount: 1080 });
+});
+
+it('loads an engagement sold for both days with both selected', async () => {
+  const partner = {
+    id: 'p4', edition_id: 'e1', organization_name: 'Story Circle', contact_name: null, phone: null,
+    email: null, website_url: null, gstin: null, kind: 'community_engagement',
+    package_key: 'standard_engagement', days: ['day1', 'day2'], details: null, internal_notes: null,
+    base_amount: 6000, gst_amount: 1080, total_amount: 7080, payment_status: 'pending', stage: 'lead',
+    submitted_at: null, payment_claimed_at: null, invite_url: null, invite_expires_at: null,
+  };
+  (fetchAdmin as any).mockImplementation((path: string) => path === '/api/admin/editions'
+    ? Promise.resolve({ editions: [edition] })
+    : path === '/api/admin/partners/p4' ? Promise.resolve({ partner, ok: true }) : Promise.resolve({ ok: true }));
+
+  render(<MemoryRouter initialEntries={['/partners/p4']}><Routes><Route path="/partners/:id" element={<PartnerDrawer />} /><Route path="/partners" element={<div>Partners list</div>} /></Routes></MemoryRouter>);
+  expect(await screen.findByLabelText('Activity days')).toHaveValue('both');
+  await userEvent.click(screen.getByRole('button', { name: /save partner/i }));
+
+  // Unlike a lead's single day, both days is part of the sale and survives a save.
+  await waitFor(() => expect(fetchAdmin).toHaveBeenCalledWith('/api/admin/partners/p4', expect.objectContaining({ method: 'PATCH' })));
+  const call = (fetchAdmin as any).mock.calls.find((entry: any[]) => entry[0] === '/api/admin/partners/p4' && entry[1]?.method === 'PATCH');
+  expect(JSON.parse(call[1].body)).toMatchObject({ days: ['day1', 'day2'], base_amount: 6000 });
+});
+
 it('deletes a partner after the confirmation dialog', async () => {
   const partner = {
     id: 'p1', edition_id: 'e1', organization_name: 'Tabletop Club', contact_name: 'Asha', phone: '9876543210',
