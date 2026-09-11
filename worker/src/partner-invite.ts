@@ -180,7 +180,11 @@ export async function handlePartnerInviteSubmit(req: Request, env: Env, token: s
   if (invite.stage === 'confirmed') return jsonResponse({ error: 'invite_already_confirmed' }, 409);
   if (expired(invite) && invite.stage === 'lead') return jsonResponse({ error: 'invite_expired' }, 410);
 
-  const days = partnerOfferDays(invite.package_key) === 'weekend'
+  // An engagement the admin sold for both days keeps both: the link's price is
+  // for two days, so the partner can move a one-day slot but never shrink or
+  // grow what was sold.
+  const soldBothDays = (invite.days ?? []).length === 2;
+  const days = partnerOfferDays(invite.package_key) === 'weekend' || soldBothDays
     ? (['day1', 'day2'] as Day[])
     : body.day === 'day1' || body.day === 'day2'
       ? [body.day as Day]

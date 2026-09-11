@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { fetchAdmin, showApiError } from '@/lib/api';
-import { PARTNER_OFFERS, isSingleDay, offerAmounts } from '@/lib/partner-offers';
-import type { Day, EditionRow, PartnerOfferKey, PartnerRow, PartnerStage, PaymentStatus } from '@/lib/types';
+import { PARTNER_OFFERS, choiceDays, dayChoiceOf, isSingleDay, offerAmounts, type DayChoice } from '@/lib/partner-offers';
+import type { EditionRow, PartnerOfferKey, PartnerRow, PartnerStage, PaymentStatus } from '@/lib/types';
 
 type Form = {
   edition_id: string;
@@ -24,7 +24,7 @@ type Form = {
   website_url: string;
   gstin: string;
   package_key: PartnerOfferKey;
-  day: Day;
+  day: DayChoice;
   details: string;
   internal_notes: string;
   base_amount: string;
@@ -79,7 +79,7 @@ export default function PartnerDrawer() {
             website_url: loadedPartner.website_url ?? '',
             gstin: loadedPartner.gstin ?? '',
             package_key: loadedPartner.package_key,
-            day: loadedPartner.days[0] ?? 'day1',
+            day: dayChoiceOf(loadedPartner.days),
             details: loadedPartner.details ?? '',
             internal_notes: loadedPartner.internal_notes ?? '',
             base_amount: String(loadedPartner.base_amount),
@@ -106,9 +106,16 @@ export default function PartnerDrawer() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function resetPrice(editionId: string, packageKey: PartnerOfferKey) {
-    const amount = offerAmounts(editions.find((item) => item.id === editionId), packageKey);
-    setForm((current) => ({ ...current, edition_id: editionId, package_key: packageKey, base_amount: String(amount.base), gst_amount: String(amount.gst) }));
+  function resetPrice(editionId: string, packageKey: PartnerOfferKey, day: DayChoice = form.day) {
+    const amount = offerAmounts(editions.find((item) => item.id === editionId), packageKey, day);
+    setForm((current) => ({ ...current, edition_id: editionId, package_key: packageKey, day, base_amount: String(amount.base), gst_amount: String(amount.gst) }));
+  }
+
+  // Moving a one-day engagement between days keeps its price; going from one
+  // day to both (or back) is a different sale, so the price starts over.
+  function changeDay(day: DayChoice) {
+    if ((day === 'both') !== (form.day === 'both')) resetPrice(form.edition_id, form.package_key, day);
+    else set('day', day);
   }
 
   async function copyLink() {
@@ -149,9 +156,10 @@ export default function PartnerDrawer() {
       website_url: form.website_url.trim() || null,
       gstin: form.gstin.trim() || null,
       package_key: form.package_key,
-      // A lead's days stay empty until it has a partner behind it, so the row
-      // never claims a day nobody has agreed to.
-      days: singleDay ? (isLead && !hasContact ? [] : [form.day]) : ['day1', 'day2'],
+      // A lead's single day stays empty until it has a partner behind it, so
+      // the row never claims a day nobody has agreed to. Both days is part of
+      // what is being sold, so it is kept from the start.
+      days: !singleDay || form.day === 'both' ? choiceDays('both') : isLead && !hasContact ? [] : choiceDays(form.day),
       details: form.details.trim() || null,
       internal_notes: form.internal_notes.trim() || null,
       base_amount: Number(form.base_amount),
@@ -232,7 +240,7 @@ export default function PartnerDrawer() {
 
           <Field label="Partner type"><select aria-label="Partner type" value={form.package_key} onChange={(event) => resetPrice(form.edition_id, event.target.value as PartnerOfferKey)} className="w-full rounded-md border px-3 py-2">{PARTNER_OFFERS.map((offer) => <option key={offer.key} value={offer.key}>{offer.label}</option>)}</select></Field>
           {isSingleDay(form.package_key) ? (
-            <Field label="Activity day"><select aria-label="Activity day" value={form.day} onChange={(event) => set('day', event.target.value as Day)} className="w-full rounded-md border px-3 py-2"><option value="day1">day1</option><option value="day2">day2</option></select></Field>
+            <Field label="Activity days"><select aria-label="Activity days" value={form.day} onChange={(event) => changeDay(event.target.value as DayChoice)} className="w-full rounded-md border px-3 py-2"><option value="day1">day1</option><option value="day2">day2</option><option value="both">Both days · day1 + day2</option></select></Field>
           ) : (
             <div className="rounded-md border bg-muted p-3 text-sm">Full weekend · day1 + day2</div>
           )}

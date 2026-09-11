@@ -19,7 +19,11 @@ export type PartnerOfferKey =
   | 'gaming_sponsor'
   | 'venue_sponsor';
 
-/** How many event days the offer covers. Booths and sponsorships run the whole weekend. */
+/**
+ * How many event days the offer covers. Booths and sponsorships run the whole
+ * weekend. An engagement is sold per day: usually one, which the partner may
+ * pick, or both when an admin sells it that way.
+ */
 export type PartnerOfferDays = 'weekend' | 'single';
 
 export interface PartnerOffer {
@@ -68,9 +72,11 @@ export function defaultOfferDays(key: PartnerOfferKey): Array<'day1' | 'day2'> {
   return PARTNER_OFFERS[key].days === 'weekend' ? ['day1', 'day2'] : [];
 }
 
+function bothDays(days: Array<'day1' | 'day2'>): boolean {
+  return days.length === 2 && days.includes('day1') && days.includes('day2');
+}
+
 export function validOfferDays(key: PartnerOfferKey, days: Array<'day1' | 'day2'>): boolean {
-  if (PARTNER_OFFERS[key].days === 'weekend') {
-    return days.length === 2 && days.includes('day1') && days.includes('day2');
-  }
-  return days.length === 1;
+  if (PARTNER_OFFERS[key].days === 'weekend') return bothDays(days);
+  return days.length === 1 || bothDays(days);
 }

@@ -1,4 +1,4 @@
-import type { EditionRow, PartnerKind, PartnerOfferKey, PartnerPricing } from './types';
+import type { Day, EditionRow, PartnerKind, PartnerOfferKey, PartnerPricing } from './types';
 
 // Mirrors worker/src/partner-offers.ts. The four packages are priced on the
 // edition; the sponsorship ladder is negotiated, so the figures below are the
@@ -9,7 +9,7 @@ export interface PartnerOffer {
   key: PartnerOfferKey;
   label: string;
   kind: PartnerKind;
-  /** Whether the offer covers the whole weekend or a single day. */
+  /** Whether the offer covers the whole weekend, or is sold per day (one day or both). */
   days: 'weekend' | 'single';
   /** Set when `editions.partner_pricing` carries the price. */
   pricingKey?: keyof Omit<PartnerPricing, 'gst_rate'>;
@@ -49,10 +49,26 @@ export function isSingleDay(key: PartnerOfferKey): boolean {
   return partnerOffer(key).days === 'single';
 }
 
-/** Starting amounts for an offer: the edition's price, or the published ask. */
-export function offerAmounts(edition: EditionRow | undefined, key: PartnerOfferKey) {
+/** Which days a per-day offer runs on. */
+export type DayChoice = Day | 'both';
+
+export function choiceDays(choice: DayChoice): Day[] {
+  return choice === 'both' ? ['day1', 'day2'] : [choice];
+}
+
+export function dayChoiceOf(days: Day[]): DayChoice {
+  return days.length === 2 ? 'both' : days[0] ?? 'day1';
+}
+
+/**
+ * Starting amounts for an offer: the edition's price, or the published ask.
+ * Per-day offers are priced per day, so an engagement on both days starts at
+ * twice the one-day price.
+ */
+export function offerAmounts(edition: EditionRow | undefined, key: PartnerOfferKey, choice: DayChoice = 'day1') {
   const pricing = edition?.partner_pricing ?? DEFAULT_PARTNER_PRICING;
   const offer = partnerOffer(key);
-  const base = offer.pricingKey ? pricing[offer.pricingKey] : offer.suggestedAmount ?? 0;
+  const perDay = offer.pricingKey ? pricing[offer.pricingKey] : offer.suggestedAmount ?? 0;
+  const base = offer.days === 'single' && choice === 'both' ? perDay * 2 : perDay;
   return { base, gst: Math.round(base * pricing.gst_rate * 100) / 100 };
 }

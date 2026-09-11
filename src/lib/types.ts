@@ -249,7 +249,11 @@ export interface ApiPartnerInvite {
   offer_key: PartnerOfferKey;
   offer_label: string;
   kind: PartnerKind;
-  /** Whether the offer covers the whole weekend or one day the partner picks. */
+  /**
+   * Whether the offer covers the whole weekend or is sold per day. A per-day
+   * offer with both `days` set was sold for both and is fixed; otherwise the
+   * partner picks one day.
+   */
   days_rule: 'weekend' | 'single';
   days: Day[];
   stage: PartnerStage;
