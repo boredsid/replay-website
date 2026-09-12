@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  attendanceTotals,
   handleCheckIn,
   handleCheckInBulk,
   handleCheckInUndo,
@@ -378,5 +379,89 @@ describe('matchingRegistrationIds', () => {
 
     expect([...ids!]).toEqual(['reg-live']);
     expect(queried).not.toContain('users|ilike:name');
+  });
+});
+
+describe('attendanceTotals', () => {
+  const CAMPAIGN = ['day1', 'day2'] as const;
+  const SATURDAY = ['day1'] as const;
+
+  function arrival(id: string, attendee: string, day: 'day1' | 'day2', at: string) {
+    return { id, attendee_id: attendee, day, kind: 'in' as const, voids_event_id: null, occurred_at: at };
+  }
+
+  it('counts a seat against every day its ticket covers', () => {
+    const totals = attendanceTotals(
+      [
+        { attendee_id: 'a', days: CAMPAIGN },
+        { attendee_id: 'b', days: SATURDAY },
+      ],
+      [],
+    );
+
+    expect(totals.day1.expected).toBe(2);
+    expect(totals.day2.expected).toBe(1);
+    expect(totals.day1.arrived).toBe(0);
+  });
+
+  it('keeps someone who stepped out in the arrived count, not the inside one', () => {
+    // The number the desk means by "checked in so far" must not fall when a
+    // person goes for lunch; a room count must.
+    const totals = attendanceTotals(
+      [{ attendee_id: 'a', days: SATURDAY }],
+      [
+        arrival('e1', 'a', 'day1', '2026-09-12T04:00:00Z'),
+        { id: 'e2', attendee_id: 'a', day: 'day1', kind: 'out', voids_event_id: null, occurred_at: '2026-09-12T07:00:00Z' },
+      ],
+    );
+
+    expect(totals.day1).toEqual({ expected: 1, arrived: 1, inside: 0 });
+  });
+
+  it('counts re-entry once', () => {
+    const totals = attendanceTotals(
+      [{ attendee_id: 'a', days: SATURDAY }],
+      [
+        arrival('e1', 'a', 'day1', '2026-09-12T04:00:00Z'),
+        { id: 'e2', attendee_id: 'a', day: 'day1', kind: 'out', voids_event_id: null, occurred_at: '2026-09-12T07:00:00Z' },
+        arrival('e3', 'a', 'day1', '2026-09-12T08:00:00Z'),
+      ],
+    );
+
+    expect(totals.day1).toEqual({ expected: 1, arrived: 1, inside: 1 });
+  });
+
+  it('drops an arrival the desk undid', () => {
+    const totals = attendanceTotals(
+      [{ attendee_id: 'a', days: SATURDAY }],
+      [
+        arrival('e1', 'a', 'day1', '2026-09-12T04:00:00Z'),
+        { id: 'e2', attendee_id: 'a', day: 'day1', kind: 'in', voids_event_id: 'e1', occurred_at: '2026-09-12T04:01:00Z' },
+      ],
+    );
+
+    expect(totals.day1).toEqual({ expected: 1, arrived: 0, inside: 0 });
+  });
+
+  it('does not let one seat’s arrival count for another', () => {
+    const totals = attendanceTotals(
+      [
+        { attendee_id: 'a', days: CAMPAIGN },
+        { attendee_id: 'b', days: CAMPAIGN },
+      ],
+      [arrival('e1', 'a', 'day1', '2026-09-12T04:00:00Z')],
+    );
+
+    expect(totals.day1).toEqual({ expected: 2, arrived: 1, inside: 1 });
+    expect(totals.day2).toEqual({ expected: 2, arrived: 0, inside: 0 });
+  });
+
+  it('does not count a Saturday arrival towards Sunday', () => {
+    const totals = attendanceTotals(
+      [{ attendee_id: 'a', days: CAMPAIGN }],
+      [arrival('e1', 'a', 'day1', '2026-09-12T04:00:00Z')],
+    );
+
+    expect(totals.day2).toEqual({ expected: 1, arrived: 0, inside: 0 });
   });
 });

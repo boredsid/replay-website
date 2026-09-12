@@ -90,6 +90,14 @@ describe('what a role reaches', () => {
     expect(rolesForPath('/api/admin/library/loans')).toContain('library');
     expect(rolesForPath('/api/admin/check-in/roster')).toContain('check_in');
   });
+
+  it('lets the desk read its own day tally, and nobody else', () => {
+    // The tally is the desk's own page furniture; it inherits the prefix rather
+    // than widening a role to reach it.
+    expect(mayReach(['check_in'], '/api/admin/check-in/totals')).toBe(true);
+    expect(mayReach(['read_only'], '/api/admin/check-in/totals')).toBe(false);
+    expect(mayReach(['library'], '/api/admin/check-in/totals')).toBe(false);
+  });
 });
 
 

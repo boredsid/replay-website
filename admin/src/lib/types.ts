@@ -373,6 +373,22 @@ export interface CheckInRegistration {
   attendees: CheckInAttendee[];
 }
 
+export interface CheckInDayTotals {
+  /** Seats sold for this day, across confirmed registrations only. */
+  expected: number;
+  /** Seats that have arrived today — a lunch break does not take one back. */
+  arrived: number;
+  /** Seats inside right now. Equal to arrived until somebody checks out. */
+  inside: number;
+}
+
+export interface CheckInTotals {
+  edition: string;
+  /** Which day is running, or null when the event is not on. */
+  today: CheckInDay | null;
+  days: Record<CheckInDay, CheckInDayTotals>;
+}
+
 export interface RosterRow {
   attendee_id: string;
   name: string;

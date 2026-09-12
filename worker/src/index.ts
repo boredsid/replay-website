@@ -33,7 +33,7 @@ import { handleScheduleList, handleScheduleGet, handleScheduleCreate, handleSche
 import { handleAppBootstrap } from './app-bootstrap';
 import { handleDisplayFeed } from './display-feed';
 import { handleAnnouncementList, handleAnnouncementGet, handleAnnouncementCreate, handleAnnouncementPatch, handleAnnouncementDelete } from './admin/announcements';
-import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster } from './admin/check-in';
+import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUndo, handleAttendeePatch, handleCheckInRoster, handleCheckInTotals } from './admin/check-in';
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
 import { handleEventsOverview, handleEventsSignupCreate, handleEventsSignupRemove } from './admin/events';
@@ -194,6 +194,7 @@ export default {
         // paths are not swallowed by the bare one.
         if (path === '/api/admin/check-in/search' && req.method === 'GET') return await handleCheckInSearch(req, env, sb, origin);
         if (path === '/api/admin/check-in/roster' && req.method === 'GET') return await handleCheckInRoster(req, env, sb, origin);
+        if (path === '/api/admin/check-in/totals' && req.method === 'GET') return await handleCheckInTotals(req, env, sb, origin);
         if (path === '/api/admin/check-in/pairing-code' && req.method === 'POST') return await handlePairingCodeIssue(req, env, sb, email, origin);
         if (path === '/api/admin/scan' && req.method === 'POST') return await handleScan(req, env, sb, origin);
 

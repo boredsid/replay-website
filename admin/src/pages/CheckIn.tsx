@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError, fetchAdmin, showApiError } from '@/lib/api';
-import type { CheckInAttendee, CheckInDay, CheckInRegistration, PairingCode, RosterRow } from '@/lib/types';
+import type {
+  CheckInAttendee,
+  CheckInDay,
+  CheckInDayTotals,
+  CheckInRegistration,
+  CheckInTotals,
+  PairingCode,
+  RosterRow,
+} from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/Loading';
@@ -16,6 +24,10 @@ import {
 } from '@/lib/check-in-queue';
 
 const DAY_LABEL: Record<CheckInDay, string> = { day1: 'Sat', day2: 'Sun' };
+const DAY_NAME: Record<CheckInDay, string> = { day1: 'Saturday', day2: 'Sunday' };
+
+/** How often the tally re-reads, so a second desk's arrivals show up here. */
+const TOTALS_POLL_MS = 60_000;
 
 /**
  * A fresh id per action, generated before the request leaves the device so a
@@ -70,6 +82,7 @@ export default function CheckIn() {
   const [queued, setQueued] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [codes, setCodes] = useState<Record<string, PairingCode>>({});
+  const [totals, setTotals] = useState<CheckInTotals | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const online = useOnlineStatus();
 
@@ -149,6 +162,28 @@ export default function CheckIn() {
     }
   }, [enqueue, online]);
 
+  /**
+   * The day's tally. Failures are swallowed on purpose: this is context, not
+   * the job, and a toast every time a tablet's signal dips would train the desk
+   * to dismiss toasts that matter. The last good figure stays on screen, and
+   * the banner below already says when something is queued rather than counted.
+   */
+  const loadTotals = useCallback(async () => {
+    try {
+      setTotals(await fetchAdmin<CheckInTotals>('/api/admin/check-in/totals'));
+    } catch {
+      // Keep whatever was last known.
+    }
+  }, []);
+
+  useEffect(() => { void loadTotals(); }, [loadTotals]);
+
+  useEffect(() => {
+    if (!online) return;
+    const timer = setInterval(() => { void loadTotals(); }, TOTALS_POLL_MS);
+    return () => clearInterval(timer);
+  }, [online, loadTotals]);
+
   const search = useCallback(async (term: string) => {
     if (term.trim().length < 2) { setResults(null); return; }
     setSearching(true);
@@ -163,6 +198,12 @@ export default function CheckIn() {
       setSearching(false);
     }
   }, []);
+
+  /** After anything that changes a seat: the card the desk is looking at, and
+   *  the tally it is judged against, must not disagree. */
+  const refresh = useCallback(async (term: string) => {
+    await Promise.all([search(term), loadTotals()]);
+  }, [search, loadTotals]);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -267,7 +308,7 @@ export default function CheckIn() {
       // later, with nobody left to ask for the name again.
       if (!result.queued) {
         setDrafts((prev) => ({ ...prev, [attendee.attendee_id]: EMPTY_DRAFT }));
-        await search(query);
+        await refresh(query);
       }
     } catch (error) {
       showApiError(error);
@@ -290,7 +331,7 @@ export default function CheckIn() {
           ? `Undo queued · ${attendee.name}, ${DAY_LABEL[day]}`
           : `Undone · ${attendee.name}, ${DAY_LABEL[day]}`,
       );
-      if (!result.queued) await search(query);
+      if (!result.queued) await refresh(query);
     } catch (error) {
       showApiError(error);
     } finally {
@@ -346,7 +387,7 @@ export default function CheckIn() {
           const who = pending.find((a) => a.attendee_id === f.attendee_id)?.name ?? 'A seat';
           toast.error(`${who} not checked in: ${f.error ?? 'refused'}`);
         }
-        await search(query);
+        await refresh(query);
       }
     } catch (error) {
       showApiError(error);
@@ -366,6 +407,23 @@ export default function CheckIn() {
           either.
         </p>
       </header>
+
+      {totals && (
+        <section aria-label="Attendance so far" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {(['day1', 'day2'] as CheckInDay[]).map((day) => (
+            <DayTally
+              key={day}
+              day={day}
+              totals={totals.days[day]}
+              isToday={totals.today === day}
+              // Queued arrivals have not reached the database, so the tally is
+              // behind by exactly that many until the queue drains. Saying so
+              // is cheaper than a figure the desk quietly learns to distrust.
+              pending={queued}
+            />
+          ))}
+        </section>
+      )}
 
       {(!online || queued > 0) && (
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
@@ -563,6 +621,57 @@ export default function CheckIn() {
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * One day's door figure: tickets sold against people through it.
+ *
+ * "Arrived" leads, because that is the question being asked — how much of the
+ * day has walked in. "Inside now" is a different number and appears only once
+ * somebody has checked out, so the desk is not made to read two figures that
+ * say the same thing all morning.
+ */
+export function DayTally({ day, totals, isToday, pending }: {
+  day: CheckInDay;
+  totals: CheckInDayTotals;
+  isToday: boolean;
+  pending: number;
+}) {
+  const { expected, arrived, inside } = totals;
+  const pct = expected > 0 ? Math.min(100, Math.round((arrived / expected) * 100)) : 0;
+  const steppedOut = arrived - inside;
+  const toCome = Math.max(0, expected - arrived);
+
+  return (
+    <div className={`rounded-lg border p-4 ${isToday ? 'border-primary' : ''}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm font-medium">
+          {DAY_NAME[day]}
+          {isToday && <span className="ml-2 text-xs font-normal text-primary">today</span>}
+        </span>
+        <span className="text-sm text-muted-foreground tabular-nums">{expected > 0 ? `${pct}%` : '—'}</span>
+      </div>
+
+      <p className="mt-1 text-2xl font-bold tabular-nums">
+        {arrived}
+        <span className="text-base font-normal text-muted-foreground">
+          {' '}/ {expected} checked in
+        </span>
+      </p>
+
+      <div className="mt-2 h-2 w-full rounded bg-muted" aria-hidden="true">
+        <div className="h-2 rounded bg-primary" style={{ width: `${pct}%` }} />
+      </div>
+
+      <p className="mt-1 text-xs text-muted-foreground">
+        {expected === 0
+          ? 'No tickets sold for this day yet.'
+          : `${toCome} still to arrive`}
+        {steppedOut > 0 && ` · ${inside} inside now, ${steppedOut} stepped out`}
+        {pending > 0 && ` · ${pending} not counted until your queue saves`}
+      </p>
     </div>
   );
 }
