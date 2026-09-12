@@ -210,6 +210,16 @@ that replays on reconnect.
 > naming the row it cancels, so every question is answered by folding events.
 > **Arrival and presence are different questions** — stepping out for lunch does
 > not un-arrive anybody, and conflating them would revoke the ability to book.
+>
+> **A guest seat cannot arrive anonymously.** A seat somebody else bought
+> carries no identity of its own, and the door is the only moment anyone stands
+> in front of the person — a seat that gets through unnamed stays "Guest 2" all
+> event. So a name and a 10-digit number are required to check one in, captured
+> in the same write as the arrival. Details already on the seat count, so nobody
+> is asked twice. Three exemptions, each deliberate: the purchaser's own seat,
+> named by the sale; checking *out*, where refusing produces a wrong occupancy
+> count rather than a name; and undo. The rule is the Worker's `identityGap`,
+> mirrored in the desk UI only so the button says why it is disabled.
 
 ### Game library desk (P4)
 

@@ -3,6 +3,7 @@ import {
   handleCheckIn,
   handleCheckInBulk,
   handleCheckInUndo,
+  identityGap,
   matchingRegistrationIds,
   normalizePhone,
   maskPhone,
@@ -13,6 +14,18 @@ const ORIGIN = 'https://admin.replaycon.in';
 const ATTENDEE = '11111111-1111-1111-1111-111111111111';
 const CLIENT_EVENT = '22222222-2222-2222-2222-222222222222';
 const STAFF = 'staff@replaycon.in';
+
+/** The buyer's own seat: named and numbered by the sale, so never gated. */
+const PURCHASER_SEAT = {
+  id: ATTENDEE, edition_id: 'ed-1', seat_index: 1,
+  display_name: 'Arjun', phone: '9998887777', is_purchaser: true, registration_id: 'reg-1',
+};
+
+/** A seat somebody else bought, with nothing on it yet. */
+const GUEST_SEAT = {
+  id: ATTENDEE, edition_id: 'ed-1', seat_index: 2,
+  display_name: null, phone: null, is_purchaser: false, registration_id: 'reg-1',
+};
 
 /**
  * Minimal Supabase double. `attendeeRow` is the seat being checked in;
@@ -27,9 +40,7 @@ function makeClient(options: {
   onInsert?: (row: any) => void;
   onAudit?: (row: any) => void;
 } = {}) {
-  const attendeeRow = options.attendeeRow ?? {
-    id: ATTENDEE, edition_id: 'ed-1', seat_index: 2, display_name: null, phone: null, registration_id: 'reg-1',
-  };
+  const attendeeRow = options.attendeeRow ?? PURCHASER_SEAT;
   return {
     from: (table: string) => {
       if (table === 'attendees') return {
@@ -103,7 +114,7 @@ describe('handleCheckIn', () => {
 
   it('writes the name and phone the desk collected in the same operation', async () => {
     let patch: any;
-    const sb = makeClient({ onUpdate: (p) => { patch = p; } });
+    const sb = makeClient({ attendeeRow: GUEST_SEAT, onUpdate: (p) => { patch = p; } });
     const res = await handleCheckIn(
       checkInRequest({ ...VALID, display_name: '  Priya  ', phone: '+91 98765 43210' }),
       sb, STAFF, ORIGIN,
@@ -113,7 +124,7 @@ describe('handleCheckIn', () => {
     expect(patch).toEqual({ display_name: 'Priya', phone: '9876543210' });
   });
 
-  it('checks in fine with no name or phone — capture is a prompt, not a gate', async () => {
+  it('checks the purchaser in with nothing typed — the sale already named them', async () => {
     let updated = false;
     const sb = makeClient({ onUpdate: () => { updated = true; } });
     const res = await handleCheckIn(checkInRequest(VALID), sb, STAFF, ORIGIN);
@@ -166,6 +177,52 @@ describe('handleCheckIn', () => {
   });
 });
 
+describe('guest identity is required to check in', () => {
+  it.each([
+    ['neither', {}, 'guest_identity_required:name_and_phone'],
+    ['no phone', { display_name: 'Priya' }, 'guest_identity_required:phone'],
+    ['no name', { phone: '9876543210' }, 'guest_identity_required:name'],
+  ])('refuses a guest arrival with %s', async (_case, extra, expected) => {
+    let inserted = false;
+    let updated = false;
+    const sb = makeClient({
+      attendeeRow: GUEST_SEAT,
+      onInsert: () => { inserted = true; },
+      onUpdate: () => { updated = true; },
+    });
+    const res = await handleCheckIn(checkInRequest({ ...VALID, ...extra }), sb, STAFF, ORIGIN);
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: expected });
+    // Nothing half-written: no event, and no name left on a seat that was refused.
+    expect(inserted).toBe(false);
+    expect(updated).toBe(false);
+  });
+
+  it('does not ask twice — details captured at a previous arrival still count', async () => {
+    const sb = makeClient({
+      attendeeRow: { ...GUEST_SEAT, display_name: 'Priya', phone: '9876543210' },
+    });
+    const res = await handleCheckIn(checkInRequest(VALID), sb, STAFF, ORIGIN);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('lets a nameless guest check out — refusing would only corrupt the count', async () => {
+    const sb = makeClient({ attendeeRow: GUEST_SEAT });
+    const res = await handleCheckIn(checkInRequest({ ...VALID, kind: 'out' }), sb, STAFF, ORIGIN);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('treats a blank stored name as no name at all', () => {
+    expect(identityGap(
+      { display_name: '   ', phone: '9876543210', is_purchaser: false },
+      { kind: 'in', display_name: null, phone: null },
+    )).toBe('name');
+  });
+});
+
 describe('handleCheckInBulk', () => {
   it('reports per attendee so one bad seat does not stop the group', async () => {
     const bad = '33333333-3333-3333-3333-333333333333';
@@ -175,7 +232,7 @@ describe('handleCheckInBulk', () => {
           select: () => ({
             eq: (col: string, value: string) => col === 'id'
               ? { maybeSingle: async () => ({
-                  data: value === bad ? null : { id: value, edition_id: 'ed-1', seat_index: 1, display_name: null, phone: null, registration_id: 'reg-1' },
+                  data: value === bad ? null : { ...PURCHASER_SEAT, id: value },
                   error: null,
                 }) }
               : { eq: () => ({ neq: () => ({ limit: async () => ({ data: [], error: null }) }) }) },
@@ -203,6 +260,22 @@ describe('handleCheckInBulk', () => {
     expect(res.status).toBe(200);
     expect(body.results[0]).toMatchObject({ ok: true });
     expect(body.results[1]).toMatchObject({ ok: false, error: 'attendee_not_found' });
+  });
+
+  it('lets the named half of a group through and names the seat that is not', async () => {
+    const named = '55555555-5555-5555-5555-555555555555';
+    const sb = makeClient({ attendeeRow: GUEST_SEAT });
+    const req = new Request('https://x/api/admin/check-in/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ entries: [
+        { ...VALID, attendee_id: named, display_name: 'Priya', phone: '9876543210' },
+        { ...VALID, client_event_id: '44444444-4444-4444-4444-444444444444' },
+      ] }),
+    });
+    const body = await (await handleCheckInBulk(req, sb, STAFF, ORIGIN)).json() as any;
+
+    expect(body.results[0]).toMatchObject({ ok: true });
+    expect(body.results[1]).toMatchObject({ ok: false, error: 'guest_identity_required:name_and_phone' });
   });
 
   it('rejects an empty batch', async () => {

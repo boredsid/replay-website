@@ -9,6 +9,11 @@
 // on, and their own name and number, which are written onto the seat as part of
 // checking them in rather than as a later edit. That is what turns anonymous
 // guest seats into a real attendee list.
+//
+// For a guest seat those two are required, not prompted: a seat bought by
+// somebody else carries no identity of its own, so an anonymous arrival is a
+// person in the building nobody can name. The purchaser is exempt because their
+// name and number came with the sale.
 import type { Env } from '../index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
@@ -315,11 +320,36 @@ function parseCheckIn(input: any): CheckInRequest {
 }
 
 /**
+ * Whether this arrival may be recorded, given what the seat knows about its
+ * occupant and what the desk just typed.
+ *
+ * A guest seat needs both a name and a number before it can be checked in — it
+ * is the only moment anyone stands in front of the person, and a seat that gets
+ * through anonymously stays anonymous for the rest of the event. Already-stored
+ * details count, so a returning guest is not asked twice.
+ *
+ * Three things are deliberately outside the gate. The purchaser's seat, whose
+ * identity came with the sale. Checking *out*, because refusing to record
+ * somebody leaving does not produce a name, it produces a wrong occupancy
+ * count. And undo, which appends its own row without coming through here.
+ */
+export function identityGap(
+  seat: Pick<AttendeeRow, 'display_name' | 'phone' | 'is_purchaser'>,
+  input: Pick<CheckInRequest, 'kind' | 'display_name' | 'phone'>,
+): 'name_and_phone' | 'name' | 'phone' | null {
+  if (input.kind !== 'in' || seat.is_purchaser) return null;
+  const hasName = Boolean(input.display_name || seat.display_name?.trim());
+  const hasPhone = Boolean(input.phone || seat.phone);
+  if (!hasName && !hasPhone) return 'name_and_phone';
+  if (!hasName) return 'name';
+  if (!hasPhone) return 'phone';
+  return null;
+}
+
+/**
  * Records one check-in or exit, and captures the attendee's identity in the same
  * operation when the desk collected it.
  *
- * Identity capture is prompted, never enforced. A blocked check-in is worse than
- * a nameless one: someone will refuse, or be a child, or be holding two bags.
  * A phone already used by another attendee returns a warning alongside success —
  * couples and families share numbers, and pairing does not depend on the phone
  * being unique because the code is the whole credential.
@@ -331,12 +361,17 @@ export async function recordCheckIn(
 ): Promise<{ ok: true; event_id: string; deduped: boolean; warning?: string } | { ok: false; error: string; status: number }> {
   const attendee = await sb
     .from('attendees')
-    .select('id, edition_id, seat_index, display_name, phone, registration_id')
+    .select('id, edition_id, seat_index, display_name, phone, is_purchaser, registration_id')
     .eq('id', input.attendee_id)
     .maybeSingle();
   if (attendee.error) return { ok: false, error: 'query_failed', status: 500 };
   if (!attendee.data) return { ok: false, error: 'attendee_not_found', status: 404 };
   const row = attendee.data as AttendeeRow & { edition_id: string };
+
+  // Refused before anything is written, so a rejected arrival leaves no half
+  // identity on the seat and nothing for the offline queue to replay.
+  const gap = identityGap(row, input);
+  if (gap) return { ok: false, error: `guest_identity_required:${gap}`, status: 400 };
 
   let warning: string | undefined;
 
