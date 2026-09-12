@@ -31,6 +31,36 @@ interface Draft {
   phone: string;
 }
 
+const EMPTY_DRAFT: Draft = { name: '', phone: '' };
+
+/**
+ * What still has to be collected before this seat can be checked in, or null if
+ * nothing does.
+ *
+ * A guest seat was bought by somebody else and carries no identity of its own,
+ * so the door is the only moment anyone can attach one — a seat that gets
+ * through anonymously stays "Guest 2" for the rest of the event. Details already
+ * on the seat count, so nobody is asked twice.
+ *
+ * The purchaser is exempt, and so is checking someone *out*: refusing to record
+ * a departure does not produce a name, it produces a wrong occupancy count. The
+ * Worker enforces exactly the same three rules — this is here so the desk sees
+ * the reason on the button instead of a rejection after the fact.
+ */
+export function missingIdentity(
+  attendee: Pick<CheckInAttendee, 'has_name' | 'has_phone' | 'is_purchaser'>,
+  draft: Draft,
+): string | null {
+  if (attendee.is_purchaser) return null;
+  const hasName = attendee.has_name || draft.name.trim().length > 0;
+  // Ten digits after the country code and any spacing, matching the Worker.
+  const hasPhone = attendee.has_phone || draft.phone.replace(/\D/g, '').length >= 10;
+  if (!hasName && !hasPhone) return 'Needs a name and a phone number';
+  if (!hasName) return 'Needs a name';
+  if (!hasPhone) return 'Needs a 10-digit phone number';
+  return null;
+}
+
 export default function CheckIn() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CheckInRegistration[] | null>(null);
@@ -96,16 +126,16 @@ export default function CheckIn() {
    * the body either way, so a queued action replayed later is deduplicated
    * server-side rather than checking someone in twice.
    */
-  const submit = useCallback(async (
+  const submit = useCallback(async <T,>(
     path: string,
     body: Record<string, unknown>,
-  ): Promise<{ queued: boolean; data?: { warning?: string | null } }> => {
+  ): Promise<{ queued: boolean; data?: T }> => {
     if (!online) {
       await enqueue(path, body);
       return { queued: true };
     }
     try {
-      const data = await fetchAdmin<{ warning?: string | null }>(path, {
+      const data = await fetchAdmin<T>(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -183,7 +213,11 @@ export default function CheckIn() {
   }
 
   function draftFor(id: string): Draft {
-    return drafts[id] ?? { name: '', phone: '' };
+    return drafts[id] ?? EMPTY_DRAFT;
+  }
+
+  function gapFor(attendee: CheckInAttendee): string | null {
+    return missingIdentity(attendee, draftFor(attendee.attendee_id));
   }
 
   function setDraft(id: string, patch: Partial<Draft>) {
@@ -197,9 +231,18 @@ export default function CheckIn() {
   ) {
     const draft = draftFor(attendee.attendee_id);
     const who = draft.name.trim() || attendee.name;
+
+    // The button is disabled in this state, so this only catches a stale render
+    // — but an anonymous guest must never reach the offline queue, where the
+    // refusal would surface minutes later with nobody standing at the desk.
+    if (kind === 'in') {
+      const gap = missingIdentity(attendee, draft);
+      if (gap) { toast.error(`${attendee.name}: ${gap.toLowerCase()} before checking in.`); return; }
+    }
+
     setBusy(`${attendee.attendee_id}:${day}`);
     try {
-      const result = await submit('/api/admin/check-in', {
+      const result = await submit<{ warning?: string | null }>('/api/admin/check-in', {
         attendee_id: attendee.attendee_id,
         day,
         kind,
@@ -219,8 +262,13 @@ export default function CheckIn() {
         }
       }
 
-      setDrafts((prev) => ({ ...prev, [attendee.attendee_id]: { name: '', phone: '' } }));
-      if (!result.queued) await search(query);
+      // Kept while offline: the seat still reads as anonymous until the queue
+      // drains, so a second day queued now would be refused on flush — hours
+      // later, with nobody left to ask for the name again.
+      if (!result.queued) {
+        setDrafts((prev) => ({ ...prev, [attendee.attendee_id]: EMPTY_DRAFT }));
+        await search(query);
+      }
     } catch (error) {
       showApiError(error);
     } finally {
@@ -233,7 +281,7 @@ export default function CheckIn() {
     if (!eventId) return;
     setBusy(`${attendee.attendee_id}:${day}`);
     try {
-      const result = await submit('/api/admin/check-in/undo', {
+      const result = await submit<unknown>('/api/admin/check-in/undo', {
         event_id: eventId,
         client_event_id: newClientEventId(),
       });
@@ -250,14 +298,27 @@ export default function CheckIn() {
     }
   }
 
+  function pendingFor(registration: CheckInRegistration, day: CheckInDay): CheckInAttendee[] {
+    return registration.attendees.filter((a) => a.valid_days.includes(day) && a.state[day] !== 'in');
+  }
+
   async function checkInAll(registration: CheckInRegistration, day: CheckInDay) {
-    const pending = registration.attendees.filter(
-      (a) => a.valid_days.includes(day) && a.state[day] !== 'in',
-    );
+    const pending = pendingFor(registration, day);
     if (pending.length === 0) return;
+
+    // Whole-group, not partial: quietly checking in three of four and reporting
+    // "3 checked in" is how somebody ends up inside with no record.
+    const unnamed = pending.filter((a) => gapFor(a) !== null);
+    if (unnamed.length > 0) {
+      toast.error(
+        `${unnamed.map((a) => a.name).join(', ')} still ${unnamed.length === 1 ? 'needs' : 'need'} a name and number.`,
+      );
+      return;
+    }
+
     setBusy(`${registration.registration_id}:${day}`);
     try {
-      const result = await submit('/api/admin/check-in/bulk', {
+      const result = await submit<{ results?: { attendee_id: string; ok: boolean; error?: string }[] }>('/api/admin/check-in/bulk', {
         // The bulk body carries its own id so the queue can key on it, while
         // each entry keeps the id that deduplicates that individual check-in.
         client_event_id: newClientEventId(),
@@ -273,12 +334,20 @@ export default function CheckIn() {
           };
         }),
       });
-      toast.success(
-        result.queued
-          ? `${pending.length} queued · ${DAY_LABEL[day]}`
-          : `${pending.length} checked in · ${DAY_LABEL[day]}`,
-      );
-      if (!result.queued) await search(query);
+      if (result.queued) {
+        toast.success(`${pending.length} queued · ${DAY_LABEL[day]}`);
+      } else {
+        // The batch reports per seat, so a refusal buried in it must be read out
+        // rather than counted as a success.
+        const failed = (result.data?.results ?? []).filter((r) => !r.ok);
+        const done = pending.length - failed.length;
+        if (done > 0) toast.success(`${done} checked in · ${DAY_LABEL[day]}`);
+        for (const f of failed) {
+          const who = pending.find((a) => a.attendee_id === f.attendee_id)?.name ?? 'A seat';
+          toast.error(`${who} not checked in: ${f.error ?? 'refused'}`);
+        }
+        await search(query);
+      }
     } catch (error) {
       showApiError(error);
     } finally {
@@ -292,8 +361,9 @@ export default function CheckIn() {
         <h1 className="text-2xl font-bold">Check in</h1>
         <p className="text-sm text-muted-foreground">
           Search the purchaser’s phone number — it’s the one thing every attendee can
-          give you. Once you’ve taken someone’s own name and number here, they can be
-          found by either from then on.
+          give you. Anyone who didn’t buy their own ticket needs their name and number
+          taken here before they can be checked in; after that they can be found by
+          either.
         </p>
       </header>
 
@@ -345,23 +415,32 @@ export default function CheckIn() {
               </div>
               {registration.attendees.length > 1 && (
                 <div className="flex gap-2">
-                  {registration.days.map((day) => (
-                    <Button
-                      key={day}
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy !== null}
-                      onClick={() => void checkInAll(registration, day)}
-                    >
-                      Check in all · {DAY_LABEL[day]}
-                    </Button>
-                  ))}
+                  {registration.days.map((day) => {
+                    const unnamed = pendingFor(registration, day).filter((a) => gapFor(a) !== null);
+                    return (
+                      <Button
+                        key={day}
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy !== null || unnamed.length > 0}
+                        title={unnamed.length > 0
+                          ? `${unnamed.map((a) => a.name).join(', ')} still need a name and number`
+                          : undefined}
+                        onClick={() => void checkInAll(registration, day)}
+                      >
+                        Check in all · {DAY_LABEL[day]}
+                      </Button>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
             <ul className="space-y-4">
-              {registration.attendees.map((attendee) => (
+              {registration.attendees.map((attendee) => {
+                const gap = gapFor(attendee);
+                const required = !attendee.is_purchaser;
+                return (
                 <li key={attendee.attendee_id} className="rounded-md border p-3 space-y-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-medium">
@@ -375,27 +454,40 @@ export default function CheckIn() {
                     )}
                   </div>
 
-                  {/* Prompted, never required: an unnamed guest still checks in. */}
+                  {/* Required for a guest seat, offered for the buyer's own. */}
                   {(!attendee.has_name || !attendee.has_phone) && (
-                    <div className="flex flex-wrap gap-2">
-                      {!attendee.has_name && (
-                        <Input
-                          className="max-w-[12rem]"
-                          value={draftFor(attendee.attendee_id).name}
-                          onChange={(e) => setDraft(attendee.attendee_id, { name: e.target.value })}
-                          placeholder="Name (optional)"
-                          aria-label={`Name for seat ${attendee.seat_index}`}
-                        />
-                      )}
-                      {!attendee.has_phone && (
-                        <Input
-                          className="max-w-[12rem]"
-                          value={draftFor(attendee.attendee_id).phone}
-                          onChange={(e) => setDraft(attendee.attendee_id, { phone: e.target.value })}
-                          placeholder="Phone (optional)"
-                          inputMode="numeric"
-                          aria-label={`Phone for seat ${attendee.seat_index}`}
-                        />
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap gap-2">
+                        {!attendee.has_name && (
+                          <Input
+                            className="max-w-[12rem]"
+                            value={draftFor(attendee.attendee_id).name}
+                            onChange={(e) => setDraft(attendee.attendee_id, { name: e.target.value })}
+                            placeholder={required ? 'Name (required)' : 'Name (optional)'}
+                            required={required}
+                            aria-required={required}
+                            aria-label={`Name for seat ${attendee.seat_index}`}
+                          />
+                        )}
+                        {!attendee.has_phone && (
+                          <Input
+                            className="max-w-[12rem]"
+                            value={draftFor(attendee.attendee_id).phone}
+                            onChange={(e) => setDraft(attendee.attendee_id, { phone: e.target.value })}
+                            placeholder={required ? 'Phone (required)' : 'Phone (optional)'}
+                            required={required}
+                            aria-required={required}
+                            inputMode="numeric"
+                            aria-label={`Phone for seat ${attendee.seat_index}`}
+                          />
+                        )}
+                      </div>
+                      {/* Said on the card, not only as a tooltip — the desk is on
+                          a tablet, where nothing hovers. */}
+                      {gap && (
+                        <p className="text-xs text-amber-600 dark:text-amber-500">
+                          {gap} before this guest can be checked in.
+                        </p>
                       )}
                     </div>
                   )}
@@ -413,12 +505,16 @@ export default function CheckIn() {
                           </Button>
                         );
                       }
+                      // Checking out is never gated: refusing a departure gives
+                      // you a wrong occupancy count, not a name.
+                      const blocked = state !== 'in' && gap !== null;
                       return (
                         <span key={day} className="flex items-center gap-1">
                           <Button
                             size="sm"
                             variant={state === 'in' ? 'secondary' : 'default'}
-                            disabled={busy === key}
+                            disabled={busy === key || blocked}
+                            title={blocked ? `${gap} first` : undefined}
                             onClick={() => void act(attendee, day, state === 'in' ? 'out' : 'in')}
                           >
                             {state === 'in' ? `Check out · ${DAY_LABEL[day]}` : `Check in · ${DAY_LABEL[day]}`}
@@ -461,7 +557,8 @@ export default function CheckIn() {
                     </div>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
         ))}

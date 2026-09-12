@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }));
 import { fetchAdmin } from '@/lib/api';
-import CheckIn from './CheckIn';
+import CheckIn, { missingIdentity } from './CheckIn';
 
 const api = fetchAdmin as unknown as ReturnType<typeof vi.fn>;
 
@@ -23,6 +23,20 @@ function attendee(overrides: Record<string, unknown> = {}) {
     can_pair: false,
     ...overrides,
   };
+}
+
+/** A seat somebody else bought, with nothing on it yet. */
+function guest(overrides: Record<string, unknown> = {}) {
+  return attendee({
+    attendee_id: 'a2',
+    seat_index: 2,
+    name: 'Guest 2',
+    has_name: false,
+    has_phone: false,
+    phone_masked: null,
+    is_purchaser: false,
+    ...overrides,
+  });
 }
 
 function registration(attendees: unknown[], overrides: Record<string, unknown> = {}) {
@@ -92,12 +106,7 @@ describe('CheckIn', () => {
   });
 
   it('asks for a name only when the seat does not have one', async () => {
-    api.mockResolvedValue({
-      registrations: [registration([
-        attendee(),
-        attendee({ attendee_id: 'a2', seat_index: 2, name: 'Guest 2', has_name: false, has_phone: false, phone_masked: null, is_purchaser: false }),
-      ])],
-    });
+    api.mockResolvedValue({ registrations: [registration([attendee(), guest()])] });
     await searchFor();
 
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
@@ -105,23 +114,20 @@ describe('CheckIn', () => {
     expect(screen.queryByLabelText('Name for seat 1')).not.toBeInTheDocument();
   });
 
-  it('sends the captured name with the check-in itself, not as a separate edit', async () => {
-    api.mockResolvedValue({
-      registrations: [registration([
-        attendee({ attendee_id: 'a2', seat_index: 2, name: 'Guest 2', has_name: false, has_phone: false, phone_masked: null, is_purchaser: false }),
-      ])],
-    });
+  it('sends the captured name and number with the check-in itself, not as a separate edit', async () => {
+    api.mockResolvedValue({ registrations: [registration([guest()])] });
     const user = await searchFor();
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
 
     await user.type(screen.getByLabelText('Name for seat 2'), 'Arjun');
+    await user.type(screen.getByLabelText('Phone for seat 2'), '9876543210');
     await user.click(screen.getByRole('button', { name: /Check in · Sat/i }));
 
     await waitFor(() => {
       const call = api.mock.calls.find(([path]) => path === '/api/admin/check-in');
       expect(call).toBeDefined();
       expect(JSON.parse(call![1].body)).toMatchObject({
-        attendee_id: 'a2', day: 'day1', kind: 'in', display_name: 'Arjun',
+        attendee_id: 'a2', day: 'day1', kind: 'in', display_name: 'Arjun', phone: '9876543210',
       });
     });
   });
@@ -140,10 +146,7 @@ describe('CheckIn', () => {
 
   it('offers check-in-all only for a group', async () => {
     api.mockResolvedValue({
-      registrations: [registration([
-        attendee(),
-        attendee({ attendee_id: 'a2', seat_index: 2, name: 'Guest 2', has_name: false, is_purchaser: false }),
-      ])],
+      registrations: [registration([attendee(), guest({ has_name: true, has_phone: true })])],
     });
     await searchFor();
 
@@ -165,6 +168,96 @@ describe('CheckIn', () => {
 
     await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
     expect(screen.queryByText('9876543210')).not.toBeInTheDocument();
+  });
+});
+
+describe('missingIdentity', () => {
+  const blank = { name: '', phone: '' };
+  const seat = { has_name: false, has_phone: false, is_purchaser: false };
+
+  it('names the gap so the button can say why it is disabled', () => {
+    expect(missingIdentity(seat, blank)).toBe('Needs a name and a phone number');
+    expect(missingIdentity(seat, { name: 'Arjun', phone: '' })).toBe('Needs a 10-digit phone number');
+    expect(missingIdentity(seat, { name: '', phone: '9876543210' })).toBe('Needs a name');
+    expect(missingIdentity(seat, { name: 'Arjun', phone: '9876543210' })).toBeNull();
+  });
+
+  it('accepts a number written the way people write it', () => {
+    expect(missingIdentity(seat, { name: 'Arjun', phone: '+91 98765 43210' })).toBeNull();
+    expect(missingIdentity(seat, { name: 'Arjun', phone: '98765' })).not.toBeNull();
+  });
+
+  it('counts whitespace as no name at all', () => {
+    expect(missingIdentity(seat, { name: '   ', phone: '9876543210' })).toBe('Needs a name');
+  });
+
+  it('never gates the purchaser', () => {
+    expect(missingIdentity({ ...seat, is_purchaser: true }, blank)).toBeNull();
+  });
+});
+
+describe('a guest cannot be checked in anonymously', () => {
+  it('holds the button until both the name and the number are there', async () => {
+    api.mockResolvedValue({ registrations: [registration([guest()])] });
+    const user = await searchFor();
+    await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
+
+    const button = () => screen.getByRole('button', { name: /Check in · Sat/i });
+    expect(button()).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Name for seat 2'), 'Arjun');
+    expect(button()).toBeDisabled();
+    expect(screen.getByText(/Needs a 10-digit phone number/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Phone for seat 2'), '9876543210');
+    expect(button()).toBeEnabled();
+  });
+
+  it('does not gate the purchaser, whose details came with the sale', async () => {
+    api.mockResolvedValue({
+      registrations: [registration([attendee({ has_name: false, has_phone: false, name: 'Priya' })])],
+    });
+    await searchFor();
+
+    await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Check in · Sat/i })).toBeEnabled();
+    expect(screen.getByPlaceholderText('Name (optional)')).toBeInTheDocument();
+  });
+
+  it('does not ask a guest twice once their details are on the seat', async () => {
+    api.mockResolvedValue({
+      registrations: [registration([guest({ name: 'Arjun', has_name: true, has_phone: true, phone_masked: '••••3210' })])],
+    });
+    await searchFor();
+
+    await waitFor(() => expect(screen.getByText('Arjun')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Check in · Sat/i })).toBeEnabled();
+    expect(screen.queryByLabelText('Name for seat 2')).not.toBeInTheDocument();
+  });
+
+  it('still lets an unnamed guest check out — a departure is not a place to bargain', async () => {
+    api.mockResolvedValue({
+      registrations: [registration([
+        guest({ state: { day1: 'in', day2: null }, last_event: { day1: 'evt-1', day2: null } }),
+      ])],
+    });
+    await searchFor();
+
+    await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Check out · Sat/i })).toBeEnabled();
+  });
+
+  it('holds check-in-all rather than letting three of four through', async () => {
+    api.mockResolvedValue({ registrations: [registration([attendee(), guest()])] });
+    const user = await searchFor();
+    await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
+
+    const all = () => screen.getByRole('button', { name: /Check in all · Sat/i });
+    expect(all()).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Name for seat 2'), 'Arjun');
+    await user.type(screen.getByLabelText('Phone for seat 2'), '9876543210');
+    expect(all()).toBeEnabled();
   });
 });
 
