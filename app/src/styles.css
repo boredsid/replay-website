@@ -405,6 +405,12 @@ p { line-height: 1.55; }
   font-weight: 650;
 }
 .schedule-card__booking--waitlisted { border-left-color: var(--orange); background: rgba(255, 90, 54, .08); }
+/* A refusal, so it must not wear the colour of a booking you hold. */
+.schedule-card__booking--blocked {
+  border-left-color: var(--ink);
+  background: rgba(26, 0, 136, .04);
+  font-weight: 600;
+}
 
 .save-button--book { background: var(--blue); }
 .save-button--booked { background: var(--green); }

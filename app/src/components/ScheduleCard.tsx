@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, Star, X } from 'lucide-react';
 import type { ScheduleItem } from '../types';
 import { formatClock, formatDate } from '../lib/event-time';
-import { seatsLabel, type Signup } from '../lib/signups';
+import { seatsLabel, type BookingBlock, type Signup } from '../lib/signups';
 
 function titleCase(value: string): string {
   return value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -16,6 +16,7 @@ export function ScheduleCard({
   signup,
   canBook = false,
   busy = false,
+  block = null,
   onBook,
   onCancelBooking,
 }: {
@@ -30,6 +31,8 @@ export function ScheduleCard({
   /** False until a device is paired; booking is not offered before then. */
   canBook?: boolean;
   busy?: boolean;
+  /** Why booking is closed to them right now — a clash, or the wrong day. */
+  block?: BookingBlock | null;
   onBook?: (id: string) => void;
   onCancelBooking?: (id: string) => void;
 }) {
@@ -120,15 +123,25 @@ export function ScheduleCard({
                 <button
                   type="button"
                   className="save-button save-button--book"
-                  disabled={busy}
+                  disabled={busy || block !== null}
                   onClick={() => onBook?.(item.id)}
-                  aria-label={`Book a place in ${item.title}`}
+                  // The reason is spelled out below the buttons, but a disabled
+                  // control that only makes sense next to a paragraph is no use
+                  // to anyone reading the button alone.
+                  aria-label={block
+                    ? `Cannot book ${item.title}. ${block.detail}`
+                    : `Book a place in ${item.title}`}
                 >
-                  {item.seats_remaining === 0 ? 'Join waitlist' : 'Book'}
+                  {block ? block.label : item.seats_remaining === 0 ? 'Join waitlist' : 'Book'}
                 </button>
               )
           )}
         </div>
+
+        {/* A disabled button invites a second tap; saying why is what stops it. */}
+        {!signup && bookable && canBook && block && (
+          <p className="schedule-card__booking schedule-card__booking--blocked">{block.detail}</p>
+        )}
 
         {signup && (
           <p className={`schedule-card__booking schedule-card__booking--${signup.status}`} role="status">

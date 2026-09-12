@@ -4,18 +4,24 @@
 // attendee. There is no way to read or touch anybody else's bookings, which is
 // what keeps a stolen token a nuisance rather than a breach.
 //
-// Capacity is not enforced here. It is enforced by `sign_up_for_session`, which
-// locks the schedule row and counts inside the transaction — doing it in the
-// Worker would race the moment two people tap the last seat together.
+// Capacity and clashes are not enforced here. Both are enforced by
+// `sign_up_for_session`, which locks the schedule row and the attendee and then
+// counts inside the transaction — doing either in the Worker would race the
+// moment two people tap the last seat, or one person taps two overlapping
+// sessions, together.
+//
+// What *is* enforced here is the check-in gate: which day somebody has turned
+// up for is a question about the app's half of the world, and the desk signs
+// people up through the same database function without it.
 import type { Env } from './index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { serviceClient } from './supabase';
 import { jsonResponse } from './validation';
 import { getCurrentEdition } from './editions';
 import { authenticateDevice, type DeviceIdentity } from './attendee-auth';
-import { attendeeGateDay } from './attendee-gate';
+import { attendeeBookableDays } from './attendee-gate';
+import { dateForDay } from './event-day';
 import { notifyInBackground } from './push-send';
-import type { CheckInEvent, EventDay } from './admin/check-in-state';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,6 +32,7 @@ const SIGNUP_ERRORS: Record<string, { error: string; status: number }> = {
   session_not_published: { error: 'session_not_bookable', status: 409 },
   attendee_not_found: { error: 'attendee_not_found', status: 404 },
   wrong_edition: { error: 'wrong_edition', status: 409 },
+  session_clash: { error: 'session_clash', status: 409 },
 };
 
 async function requireDevice(
@@ -41,18 +48,20 @@ async function requireDevice(
 }
 
 /**
- * Whether this attendee may book right now.
+ * The dates this attendee may book sessions on, as the schedule spells them.
  *
- * The rule itself lives in `attendeeGateDay`, shared with game-library
+ * The rule itself lives in `attendeeBookableDays`, shared with game-library
  * borrowing, so the two cannot drift into disagreeing about who is allowed
- * what.
+ * what. Returned as calendar dates because that is what `schedule_items.day`
+ * holds, and translating in one place beats translating at every comparison.
  */
-async function canBook(
+async function bookableDates(
   sb: SupabaseClient,
   attendeeId: string,
   edition: { start_date: string; end_date: string },
-): Promise<boolean> {
-  return (await attendeeGateDay(sb, attendeeId, edition)) !== null;
+): Promise<string[]> {
+  const days = await attendeeBookableDays(sb, attendeeId, edition);
+  return days.map((day) => dateForDay(edition, day));
 }
 
 /** Everything this attendee currently holds, confirmed or queued. */
@@ -93,8 +102,16 @@ export async function handleMySignups(req: Request, env: Env): Promise<Response>
     }
   }
 
+  // Sent alongside the bookings so the schedule can grey out a day the desk has
+  // not let them into yet, instead of offering a button that will be refused.
+  // Null means the answer is unknown right now — the app must not invent a
+  // restriction out of a failed lookup, and the server refuses regardless.
+  const edition = await getCurrentEdition(env);
+  const dates = edition ? await bookableDates(sb, identity.attendee_id, edition) : null;
+
   return jsonResponse({
     signups: rows.map((row) => ({ ...row, queue_position: positions.get(row.schedule_item_id) ?? 0 })),
+    bookable_dates: dates,
   });
 }
 
@@ -117,9 +134,23 @@ export async function handleSignUp(req: Request, env: Env): Promise<Response> {
 
   // Checked at the moment of booking rather than at pairing: a device paired on
   // day 1 must not hold day 2 seats until that person actually turns up.
-  if (!(await canBook(sb, identity.attendee_id, edition))) {
-    return jsonResponse({ error: 'not_checked_in' }, 409);
-  }
+  const allowed = await bookableDates(sb, identity.attendee_id, edition);
+  if (allowed.length === 0) return jsonResponse({ error: 'not_checked_in' }, 409);
+
+  // Which day the session falls on decides whether this particular check-in
+  // covers it. Read here rather than inside `sign_up_for_session`, because the
+  // desk signs people up through that same function and is deliberately allowed
+  // to book somebody who has not arrived yet.
+  const item = await sb
+    .from('schedule_items')
+    .select('day')
+    .eq('id', scheduleItemId)
+    .maybeSingle();
+  if (item.error) return jsonResponse({ error: 'query_failed' }, 500);
+  if (!item.data) return jsonResponse({ error: 'session_not_found' }, 404);
+
+  const day = (item.data as { day: string }).day;
+  if (!allowed.includes(day)) return jsonResponse({ error: 'wrong_day', day }, 409);
 
   const { data, error } = await sb.rpc('sign_up_for_session', {
     p_attendee_id: identity.attendee_id,
