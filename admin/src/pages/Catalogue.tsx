@@ -5,6 +5,7 @@ import RebuildSiteButton from '@/components/RebuildSiteButton';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { formatOwners } from '@/lib/catalogue-owners';
 import { onRevalidate } from '@/lib/revalidate';
+import { fold } from '@/lib/search';
 import type { CatalogueGameRow } from '@/lib/types';
 
 /**
@@ -23,11 +24,6 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: 'no_art', label: 'No box art' },
   { key: 'manual', label: 'Added by hand' },
 ];
-
-/** Matches the public page's fold, so searching here finds what a visitor finds. */
-function fold(value: string): string {
-  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-}
 
 /** The owner-filter value for games no source names an owner for. */
 const NO_OWNER = '__none__';
