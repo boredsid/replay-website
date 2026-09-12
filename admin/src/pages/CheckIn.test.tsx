@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }));
 import { fetchAdmin } from '@/lib/api';
-import CheckIn, { missingIdentity } from './CheckIn';
+import CheckIn, { DayTally, missingIdentity } from './CheckIn';
 
 const api = fetchAdmin as unknown as ReturnType<typeof vi.fn>;
 
@@ -51,6 +51,27 @@ function registration(attendees: unknown[], overrides: Record<string, unknown> =
   };
 }
 
+/** An empty door: the tally renders, and no test has to think about it. */
+const TOTALS = {
+  edition: 'replay-3',
+  today: null,
+  days: {
+    day1: { expected: 4, arrived: 0, inside: 0 },
+    day2: { expected: 4, arrived: 0, inside: 0 },
+  },
+};
+
+/**
+ * Serves the tally alongside whatever a test is actually about.
+ *
+ * The page loads its day totals on mount, so a bare `mockResolvedValue` would
+ * hand the tally a search response and render nothing at all.
+ */
+function mockApi(response: unknown) {
+  api.mockImplementation(async (path: string) =>
+    path.startsWith('/api/admin/check-in/totals') ? TOTALS : response);
+}
+
 async function searchFor(term = '9876543210') {
   const user = userEvent.setup();
   render(<CheckIn />);
@@ -63,7 +84,7 @@ beforeEach(() => { api.mockReset(); });
 
 describe('CheckIn', () => {
   it('offers undo for a day that has something to reverse', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([
         attendee({ state: { day1: 'in', day2: null }, last_event: { day1: 'evt-1', day2: null } }),
       ])],
@@ -77,7 +98,7 @@ describe('CheckIn', () => {
   });
 
   it('sends the event id to the undo endpoint', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([
         attendee({ state: { day1: 'in', day2: null }, last_event: { day1: 'evt-1', day2: null } }),
       ])],
@@ -95,7 +116,7 @@ describe('CheckIn', () => {
   });
 
   it('disables a day the ticket does not cover, rather than hiding the person', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([attendee({ valid_days: ['day1'] })], { days: ['day1'] })],
     });
     await searchFor();
@@ -106,7 +127,7 @@ describe('CheckIn', () => {
   });
 
   it('asks for a name only when the seat does not have one', async () => {
-    api.mockResolvedValue({ registrations: [registration([attendee(), guest()])] });
+    mockApi({ registrations: [registration([attendee(), guest()])] });
     await searchFor();
 
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
@@ -115,7 +136,7 @@ describe('CheckIn', () => {
   });
 
   it('sends the captured name and number with the check-in itself, not as a separate edit', async () => {
-    api.mockResolvedValue({ registrations: [registration([guest()])] });
+    mockApi({ registrations: [registration([guest()])] });
     const user = await searchFor();
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
 
@@ -133,7 +154,7 @@ describe('CheckIn', () => {
   });
 
   it('checks a returning attendee out rather than in', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([
         attendee({ state: { day1: 'in', day2: null }, last_event: { day1: 'evt-1', day2: null } }),
       ])],
@@ -145,7 +166,7 @@ describe('CheckIn', () => {
   });
 
   it('offers check-in-all only for a group', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([attendee(), guest({ has_name: true, has_phone: true })])],
     });
     await searchFor();
@@ -155,7 +176,7 @@ describe('CheckIn', () => {
   });
 
   it('does not offer check-in-all for a single seat', async () => {
-    api.mockResolvedValue({ registrations: [registration([attendee()])] });
+    mockApi({ registrations: [registration([attendee()])] });
     await searchFor();
 
     await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
@@ -163,7 +184,7 @@ describe('CheckIn', () => {
   });
 
   it('never renders a full phone number', async () => {
-    api.mockResolvedValue({ registrations: [registration([attendee()])] });
+    mockApi({ registrations: [registration([attendee()])] });
     await searchFor();
 
     await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
@@ -198,7 +219,7 @@ describe('missingIdentity', () => {
 
 describe('a guest cannot be checked in anonymously', () => {
   it('holds the button until both the name and the number are there', async () => {
-    api.mockResolvedValue({ registrations: [registration([guest()])] });
+    mockApi({ registrations: [registration([guest()])] });
     const user = await searchFor();
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
 
@@ -214,7 +235,7 @@ describe('a guest cannot be checked in anonymously', () => {
   });
 
   it('does not gate the purchaser, whose details came with the sale', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([attendee({ has_name: false, has_phone: false, name: 'Priya' })])],
     });
     await searchFor();
@@ -225,7 +246,7 @@ describe('a guest cannot be checked in anonymously', () => {
   });
 
   it('does not ask a guest twice once their details are on the seat', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([guest({ name: 'Arjun', has_name: true, has_phone: true, phone_masked: '••••3210' })])],
     });
     await searchFor();
@@ -236,7 +257,7 @@ describe('a guest cannot be checked in anonymously', () => {
   });
 
   it('still lets an unnamed guest check out — a departure is not a place to bargain', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([
         guest({ state: { day1: 'in', day2: null }, last_event: { day1: 'evt-1', day2: null } }),
       ])],
@@ -248,7 +269,7 @@ describe('a guest cannot be checked in anonymously', () => {
   });
 
   it('holds check-in-all rather than letting three of four through', async () => {
-    api.mockResolvedValue({ registrations: [registration([attendee(), guest()])] });
+    mockApi({ registrations: [registration([attendee(), guest()])] });
     const user = await searchFor();
     await waitFor(() => expect(screen.getByText('Guest 2')).toBeInTheDocument());
 
@@ -263,7 +284,7 @@ describe('a guest cannot be checked in anonymously', () => {
 
 describe('pairing code', () => {
   it('offers a code only once the attendee has arrived today', async () => {
-    api.mockResolvedValue({
+    mockApi({
       registrations: [registration([
         attendee({ can_pair: true }),
         attendee({ attendee_id: 'a2', seat_index: 2, name: 'Guest 2', has_name: false, is_purchaser: false, can_pair: false }),
@@ -278,6 +299,7 @@ describe('pairing code', () => {
 
   it('labels the revealed code with the attendee, so two at the desk cannot be confused', async () => {
     api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/totals')) return TOTALS;
       if (path.startsWith('/api/admin/check-in/search')) {
         return { registrations: [registration([attendee({ can_pair: true })])] };
       }
@@ -295,6 +317,7 @@ describe('pairing code', () => {
 
   it('shows an expired code as expired rather than leaving it readable', async () => {
     api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/totals')) return TOTALS;
       if (path.startsWith('/api/admin/check-in/search')) {
         return { registrations: [registration([attendee({ can_pair: true })])] };
       }
@@ -306,5 +329,98 @@ describe('pairing code', () => {
     await user.click(screen.getByRole('button', { name: 'Get app code' }));
 
     await waitFor(() => expect(screen.getByText(/Expired/i)).toBeInTheDocument());
+  });
+  it('shows the day’s tickets against the people through the door', async () => {
+    api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/totals')) {
+        return {
+          edition: 'replay-3',
+          today: 'day1',
+          days: {
+            day1: { expected: 187, arrived: 128, inside: 128 },
+            day2: { expected: 164, arrived: 0, inside: 0 },
+          },
+        };
+      }
+      return { registrations: [] };
+    });
+
+    render(<CheckIn />);
+
+    await waitFor(() => expect(screen.getByText('128')).toBeInTheDocument());
+    expect(screen.getByText('/ 187 checked in')).toBeInTheDocument();
+    expect(screen.getByText('/ 164 checked in')).toBeInTheDocument();
+    expect(screen.getByText('59 still to arrive')).toBeInTheDocument();
+  });
+
+  it('only mentions who is inside once somebody has left', async () => {
+    // Two identical numbers all morning is one number the desk stops reading.
+    api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/totals')) {
+        return {
+          edition: 'replay-3',
+          today: 'day1',
+          days: {
+            day1: { expected: 10, arrived: 8, inside: 6 },
+            day2: { expected: 10, arrived: 4, inside: 4 },
+          },
+        };
+      }
+      return { registrations: [] };
+    });
+
+    render(<CheckIn />);
+
+    await waitFor(() => expect(screen.getByText(/6 inside now, 2 stepped out/)).toBeInTheDocument());
+    expect(screen.getByText('6 still to arrive')).toBeInTheDocument();
+  });
+
+  it('re-reads the tally after a check-in, not just the card', async () => {
+    api.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/admin/check-in/totals')) return TOTALS;
+      if (path.startsWith('/api/admin/check-in/search')) {
+        return { registrations: [registration([attendee()])] };
+      }
+      return {};
+    });
+    const user = await searchFor();
+    await waitFor(() => expect(screen.getByText('Priya')).toBeInTheDocument());
+    const before = api.mock.calls.filter(([path]) => path === '/api/admin/check-in/totals').length;
+
+    await user.click(screen.getByRole('button', { name: 'Check in · Sat' }));
+
+    await waitFor(() => expect(
+      api.mock.calls.filter(([path]) => path === '/api/admin/check-in/totals').length,
+    ).toBeGreaterThan(before));
+  });
+
+  it('says the tally is behind while check-ins are still queued', () => {
+    // Offline arrivals are real people standing inside an uncounted building,
+    // and the tally cannot see them until the queue drains.
+    render(
+      <DayTally
+        day="day1"
+        totals={{ expected: 10, arrived: 6, inside: 6 }}
+        isToday
+        pending={2}
+      />,
+    );
+
+    expect(screen.getByText(/2 not counted until your queue saves/)).toBeInTheDocument();
+  });
+
+  it('says so plainly when a day has sold nothing', () => {
+    render(
+      <DayTally
+        day="day2"
+        totals={{ expected: 0, arrived: 0, inside: 0 }}
+        isToday={false}
+        pending={0}
+      />,
+    );
+
+    expect(screen.getByText('No tickets sold for this day yet.')).toBeInTheDocument();
+    // No percentage, rather than a confident 0%.
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 });

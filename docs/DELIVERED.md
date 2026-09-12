@@ -200,7 +200,8 @@ per phone.
 ### Check-in (P2A)
 
 Search by phone, check in per day, undo, bulk, roster CSV, and an offline queue
-that replays on reconnect.
+that replays on reconnect. Above the search, a tally per day: tickets sold
+against people through the door.
 
 > **The rule that matters is enforced in the database**, not the Worker:
 > `enforce_check_in_day_purchased()` makes it impossible to check somebody in
@@ -220,6 +221,17 @@ that replays on reconnect.
 > named by the sale; checking *out*, where refusing produces a wrong occupancy
 > count rather than a name; and undo. The rule is the Worker's `identityGap`,
 > mirrored in the desk UI only so the button says why it is disabled.
+>
+> **The day tally counts seats, and derives every number.** `expected` is one
+> per attendee row on a confirmed registration covering that day — the rows the
+> door actually works from, not `registrations.seats`, so a cancelled sale's
+> seats fall out on their own. `arrived` and `inside` come from the same event
+> fold the buttons use, so a total cannot disagree with the row it was counted
+> from and an undo removes its seat from both. The two are shown separately,
+> and `inside` only once somebody has checked out: "checked in so far" must not
+> fall when a person goes to lunch, while a room count must. Queued offline
+> arrivals are not in it yet, and the card says so rather than letting the desk
+> learn to distrust the figure.
 
 ### Game library desk (P4)
 

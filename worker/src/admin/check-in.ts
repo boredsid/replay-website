@@ -19,7 +19,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { adminJson } from './auth';
 import { writeAudit } from './audit';
 import { getCurrentEdition } from '../editions';
-import { pairingGateDay } from './pairing';
+import { editionDayForToday, pairingGateDay } from './pairing';
 import {
   currentState,
   hasArrivedOn,
@@ -32,6 +32,8 @@ import {
 const DAYS: readonly EventDay[] = ['day1', 'day2'];
 const KINDS: readonly EventKind[] = ['in', 'out'];
 const SEARCH_LIMIT = 20;
+/** Far beyond this event's scale; PostgREST would otherwise stop at its default. */
+const TOTALS_ROW_LIMIT = 10000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -282,6 +284,108 @@ export async function handleCheckInRoster(
   }).sort((x, y) => x.name.localeCompare(y.name));
 
   return adminJson({ edition: edition.slug, generated_at: new Date().toISOString(), roster }, 200, origin);
+}
+
+export interface DayTotals {
+  /** Seats sold for this day: one per confirmed attendee row that covers it. */
+  expected: number;
+  /** Seats that have arrived at some point today, lunch breaks included. */
+  arrived: number;
+  /** Seats inside right now — arrived, and not checked out again since. */
+  inside: number;
+}
+
+/**
+ * How the door is doing, per day.
+ *
+ * Three numbers rather than two, because they answer different questions and
+ * merging them would make one of them wrong. `arrived` is the one the desk means
+ * by "checked in so far": someone who stepped out for lunch has still arrived
+ * and must keep counting. `inside` is what a fire marshal or a room count
+ * wants. They are equal until the first person checks out.
+ *
+ * Derived from the same event fold the desk buttons use, so a total can never
+ * disagree with the row it was counted from — there is no column to drift, and
+ * an undo at the desk removes its seat from both counts.
+ */
+export function attendanceTotals(
+  seats: ReadonlyArray<{ attendee_id: string; days: readonly EventDay[] }>,
+  events: ReadonlyArray<AttendeeEvent>,
+): Record<EventDay, DayTotals> {
+  const totals: Record<EventDay, DayTotals> = {
+    day1: { expected: 0, arrived: 0, inside: 0 },
+    day2: { expected: 0, arrived: 0, inside: 0 },
+  };
+  for (const seat of seats) {
+    const own = eventsFor(events, seat.attendee_id);
+    const state = currentState(own);
+    for (const day of DAYS) {
+      if (!seat.days.includes(day)) continue;
+      totals[day].expected += 1;
+      if (hasArrivedOn(own, day)) totals[day].arrived += 1;
+      if (state[day] === 'in') totals[day].inside += 1;
+    }
+  }
+  return totals;
+}
+
+/**
+ * The day's headline: tickets sold against people through the door.
+ *
+ * Its own endpoint rather than a field on the search results, because it is a
+ * property of the event and not of whoever the desk just looked up — it has to
+ * be there before the first search of the morning, and stay right after one.
+ */
+export async function handleCheckInTotals(
+  _req: Request,
+  env: Env,
+  sb: SupabaseClient,
+  origin: string,
+  now = new Date(),
+): Promise<Response> {
+  const edition = await getCurrentEdition(env);
+  if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
+
+  const [regs, attendees, events] = await Promise.all([
+    sb.from('registrations')
+      .select('id, days')
+      .eq('edition_id', edition.id)
+      .eq('payment_status', 'confirmed')
+      .limit(TOTALS_ROW_LIMIT),
+    sb.from('attendees')
+      .select('id, registration_id')
+      .eq('edition_id', edition.id)
+      .limit(TOTALS_ROW_LIMIT),
+    sb.from('check_in_events')
+      .select('id, attendee_id, day, kind, voids_event_id, occurred_at')
+      .eq('edition_id', edition.id)
+      .limit(TOTALS_ROW_LIMIT),
+  ]);
+  if (regs.error || attendees.error || events.error) {
+    return adminJson({ error: 'query_failed' }, 500, origin);
+  }
+
+  // Seats belonging to a cancelled or unpaid registration are not expected at
+  // the door, and the database keeps their rows — so the join is the filter.
+  const daysByReg = new Map(
+    ((regs.data ?? []) as Pick<RegistrationRow, 'id' | 'days'>[]).map((r) => [r.id, r.days]),
+  );
+  const seats = ((attendees.data ?? []) as Array<{ id: string; registration_id: string }>)
+    .filter((a) => daysByReg.has(a.registration_id))
+    .map((a) => ({ attendee_id: a.id, days: daysByReg.get(a.registration_id)! }));
+
+  const editionDates = edition as unknown as { start_date: string; end_date: string };
+  return adminJson(
+    {
+      edition: edition.slug,
+      // Null outside the event, which is the honest answer in the week before
+      // it: the desk is testing, and nothing should be highlighted as live.
+      today: editionDayForToday(editionDates, now),
+      days: attendanceTotals(seats, (events.data ?? []) as AttendeeEvent[]),
+    },
+    200,
+    origin,
+  );
 }
 
 interface CheckInRequest {
