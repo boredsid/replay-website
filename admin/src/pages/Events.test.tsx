@@ -219,3 +219,35 @@ describe('the export', () => {
     expect(downloadCsv).toHaveBeenCalledWith('replay-3-event-bookings.csv', expect.stringContaining('Werewolf'));
   });
 });
+
+describe('finding a session by name', () => {
+  it('narrows the board to what was typed, whatever the case', async () => {
+    const user = userEvent.setup();
+    draw();
+    await screen.findByText('Werewolf');
+
+    await user.type(screen.getByLabelText('Search sessions'), 'quiz');
+    expect(screen.getByText('Quiz Night')).toBeInTheDocument();
+    expect(screen.queryByText('Werewolf')).not.toBeInTheDocument();
+  });
+
+  it('leaves the totals alone — they answer for the whole edition, not the search', async () => {
+    const user = userEvent.setup();
+    draw();
+    await screen.findByText('Werewolf');
+
+    await user.type(screen.getByLabelText('Search sessions'), 'quiz');
+    const tile = (label: string) => screen.getByText(label).parentElement!;
+    expect(within(tile('Bookable sessions')).getByText('2')).toBeInTheDocument();
+  });
+
+  it('says nothing matched rather than claiming no session is bookable', async () => {
+    const user = userEvent.setup();
+    draw();
+    await screen.findByText('Werewolf');
+
+    await user.type(screen.getByLabelText('Search sessions'), 'chess');
+    expect(await screen.findByText(/No bookable session with .*chess.* in its name/)).toBeInTheDocument();
+    expect(screen.queryByText(/Book in the app/)).not.toBeInTheDocument();
+  });
+});

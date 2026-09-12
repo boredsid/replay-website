@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCanWrite } from '@/lib/whoami';
 import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
+import { matchesSearch } from '@/lib/search';
 import type { EditionRow, ScheduleItemRow, ScheduleSection } from '@/lib/types';
 
 const SECTION_LABEL: Record<ScheduleSection, string> = {
@@ -24,6 +26,7 @@ export default function Programme() {
   const [editionId, setEditionId] = useState('');
   const [items, setItems] = useState<ScheduleItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   // Editions are an admin-only route. Somebody who may only look cannot ask
   // for the list, so they get no picker and the Worker answers for whichever
@@ -66,14 +69,19 @@ export default function Programme() {
     return () => { off(); };
   }, [editionId, canWrite]);
 
+  const shown = useMemo(
+    () => items.filter((item) => matchesSearch(query, item.title)),
+    [items, query],
+  );
+
   const groups = useMemo(() => {
     const map = new Map<string, ScheduleItemRow[]>();
-    for (const item of items) {
+    for (const item of shown) {
       const key = `${item.day}|${item.section}`;
       map.set(key, [...(map.get(key) ?? []), item]);
     }
     return [...map.entries()];
-  }, [items]);
+  }, [shown]);
 
   return (
     <div className="p-4 md:p-6">
@@ -92,17 +100,37 @@ export default function Programme() {
         )}
       </div>
 
-      {canWrite && (
-        <label className="mb-5 block max-w-sm">
-          <span className="mb-1 block text-sm text-muted-foreground">Edition</span>
-          <select value={editionId} onChange={(event) => setEditionId(event.target.value)} className="w-full rounded-md border bg-background px-3 py-2">
-            {editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.slug} · {edition.start_date}</option>)}
-          </select>
-        </label>
-      )}
+      <div className="mb-5 flex flex-wrap items-end gap-3">
+        {canWrite && (
+          <label className="block w-full max-w-sm">
+            <span className="mb-1 block text-sm text-muted-foreground">Edition</span>
+            <select value={editionId} onChange={(event) => setEditionId(event.target.value)} className="w-full rounded-md border bg-background px-3 py-2">
+              {editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.slug} · {edition.start_date}</option>)}
+            </select>
+          </label>
+        )}
+        {(items.length > 0 || query) && (
+          <label className="relative block w-full min-w-60 max-w-sm flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by name"
+              aria-label="Search the programme"
+              className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+            />
+          </label>
+        )}
+      </div>
 
       {loading ? (
         <div className="text-muted-foreground">Loading…</div>
+      ) : shown.length === 0 && query ? (
+        <div className="rounded-md border bg-background p-6">
+          <h2 className="font-semibold">Nothing matches</h2>
+          <p className="mt-1 text-sm text-muted-foreground">No programme item with “{query}” in its name.</p>
+        </div>
       ) : items.length === 0 ? (
         <div className="rounded-md border bg-background p-6">
           <h2 className="font-semibold">No programme items yet</h2>

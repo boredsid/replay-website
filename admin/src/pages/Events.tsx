@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
+import { matchesSearch } from '@/lib/search';
 import { useCanManageEvents } from '@/lib/whoami';
 import { bookingsToCsv, downloadCsv } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
@@ -50,6 +52,7 @@ export default function Events() {
   const [data, setData] = useState<EventsOverview | null>(null);
   const [failed, setFailed] = useState(false);
   const [day, setDay] = useState<string>('all');
+  const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const [personQuery, setPersonQuery] = useState('');
@@ -83,8 +86,10 @@ export default function Events() {
   );
 
   const sessions = useMemo(
-    () => (data?.sessions ?? []).filter((session) => day === 'all' || session.day === day),
-    [data, day],
+    () => (data?.sessions ?? []).filter(
+      (session) => (day === 'all' || session.day === day) && matchesSearch(query, session.title),
+    ),
+    [data, day, query],
   );
 
   const totals = useMemo(() => {
@@ -296,6 +301,17 @@ export default function Events() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">Across the programme</h2>
+          <label className="relative order-last w-full min-w-60 flex-1 sm:order-none sm:w-auto sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by name"
+              aria-label="Search sessions"
+              className="w-full rounded-md border bg-background py-1.5 pl-9 pr-3 text-sm"
+            />
+          </label>
           {days.length > 1 && (
             <div className="flex gap-1">
               {['all', ...days].map((option) => (
@@ -313,10 +329,16 @@ export default function Events() {
         </div>
 
         {sessions.length === 0 && (
-          <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
-            No sessions are set to “Book in the app” yet. Turn booking on for a session in the
-            {' '}<Link to="/programme" className="underline">programme</Link>{' '}and it appears here.
-          </p>
+          query ? (
+            <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
+              No bookable session with “{query}” in its name{day === 'all' ? '' : ' on this day'}.
+            </p>
+          ) : (
+            <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
+              No sessions are set to “Book in the app” yet. Turn booking on for a session in the
+              {' '}<Link to="/programme" className="underline">programme</Link>{' '}and it appears here.
+            </p>
+          )
         )}
 
         <ul className="space-y-2">
