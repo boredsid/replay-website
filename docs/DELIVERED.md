@@ -290,6 +290,24 @@ Book a session from the app, join a waitlist, get promoted automatically.
 >
 > Sign-up modes are `('none','app')`. `walk-in`, `advance` and `on-site`
 > described nothing the app could act on.
+>
+> **Nobody can hold two overlapping seats.** `sign_up_for_session` refuses a
+> booking that overlaps one the attendee already holds, locking the attendee row
+> as well as the schedule row so two simultaneous taps cannot slip past each
+> other. A queued place counts as held — promotion is immediate, so a waitlist
+> can become a seat while the person is sitting in the session it overlaps.
+> All-day items clash with nothing (one open-play sign-up must not swallow the
+> programme), sessions on a cancelled item never stand in the way of its
+> replacement, and touching ends are back to back rather than overlapping. The
+> app mirrors the same comparison so it can grey the button out and name the
+> clash; the desk gets the clashing title in the refusal.
+>
+> **A check-in only opens the day it was for.** The app may book sessions on the
+> days `bookableDays` returns — during the event, only the day the attendee has
+> actually arrived for. A two-day ticket does not let somebody hold Sunday seats
+> from their sofa on Saturday. Enforced in the Worker rather than the RPC,
+> because the desk signs people up through that same function and is
+> deliberately allowed to book somebody who has not arrived yet.
 
 ### Game library (P4)
 

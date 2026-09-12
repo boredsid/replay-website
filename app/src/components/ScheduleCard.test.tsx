@@ -153,3 +153,33 @@ describe('ScheduleCard booking', () => {
     expect(onToggle).toHaveBeenCalledWith('item-1');
   });
 });
+
+describe('ScheduleCard booking blocks', () => {
+  const clash = { reason: 'clash' as const, label: 'Clashes', detail: 'Overlaps Catan. Give that up first if you would rather do this.' };
+
+  it('disables the button and says why', () => {
+    renderCard({ block: clash });
+
+    const button = screen.getByRole('button', { name: /Cannot book Werewolf/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Clashes');
+    // The reason has to be readable without the button's accessible name.
+    expect(screen.getByText(/Overlaps Catan/)).toBeInTheDocument();
+  });
+
+  it('cannot be tapped through', async () => {
+    const onBook = vi.fn();
+    renderCard({ block: clash, onBook });
+
+    await userEvent.click(screen.getByRole('button', { name: /Cannot book Werewolf/i }));
+
+    expect(onBook).not.toHaveBeenCalled();
+  });
+
+  it('never blocks giving up a place they already hold', () => {
+    renderCard({ block: clash, signup: booked });
+
+    expect(screen.getByRole('button', { name: /Give up your place/i })).toBeEnabled();
+    expect(screen.queryByText(/Overlaps Catan/)).not.toBeInTheDocument();
+  });
+});

@@ -119,6 +119,61 @@ function readIds(scheduleItemId: string, attendeeId: unknown): BookingResult<str
 }
 
 /**
+ * The title of whatever this attendee holds that overlaps the given session.
+ *
+ * Only ever called after `sign_up_for_session` has already refused, so it is
+ * allowed to be a second round trip and allowed to come back empty — a message
+ * without a name is worse than one with, and far better than a slug.
+ */
+async function clashingSession(
+  sb: SupabaseClient,
+  attendeeId: string,
+  scheduleItemId: string,
+): Promise<string | null> {
+  const item = await sb
+    .from('schedule_items')
+    .select('day, start_time, end_time, is_all_day')
+    .eq('id', scheduleItemId)
+    .maybeSingle();
+  const target = item.data as
+    { day: string; start_time: string | null; end_time: string | null; is_all_day: boolean } | null;
+  if (!target || target.is_all_day || !target.start_time || !target.end_time) return null;
+
+  const held = await sb
+    .from('session_signups')
+    .select('schedule_item_id')
+    .eq('attendee_id', attendeeId)
+    .neq('status', 'cancelled');
+  if (held.error) return null;
+  const ids = ((held.data ?? []) as Array<{ schedule_item_id: string }>)
+    .map((row) => row.schedule_item_id);
+  if (ids.length === 0) return null;
+
+  const others = await sb
+    .from('schedule_items')
+    .select('title, day, start_time, end_time, is_all_day, public_status')
+    .in('id', ids);
+  if (others.error) return null;
+
+  const rows = (others.data ?? []) as Array<{
+    title: string; day: string; start_time: string | null;
+    end_time: string | null; is_all_day: boolean; public_status: string;
+  }>;
+
+  // The same comparison the database made, because a message naming a session
+  // that does not actually overlap would send staff to undo the wrong booking.
+  const clash = rows.find((other) => (
+    other.public_status === 'published'
+    && other.day === target.day
+    && !other.is_all_day
+    && other.start_time !== null && other.end_time !== null
+    && other.start_time < target.end_time!
+    && target.start_time! < other.end_time
+  ));
+  return clash?.title ?? null;
+}
+
+/**
  * Signs someone up on somebody's behalf.
  *
  * Same function the app calls, so an attendee who declines the app gets exactly
@@ -147,6 +202,19 @@ export async function createSignup(
   if (error) {
     if (error.message?.includes('session_not_bookable')) {
       return { ok: false, error: 'session_not_bookable', status: 409 };
+    }
+    // A clash is the one refusal staff can act on, so it says which session to
+    // act on. The database only reports *that* there is one — naming it is a
+    // second question, and asking it costs a query only on the refusal path.
+    if (error.message?.includes('session_clash')) {
+      const held = await clashingSession(sb, attendeeId, scheduleItemId);
+      return {
+        ok: false,
+        status: 409,
+        error: held
+          ? `They are already booked into ${held}, which overlaps this session.`
+          : 'They are already booked into something that overlaps this session.',
+      };
     }
     return { ok: false, error: 'signup_failed', status: 500 };
   }

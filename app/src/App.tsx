@@ -10,7 +10,10 @@ import { Radio, CalendarDays, Star, Map as MapIcon, IdCard as IdIcon, Library as
 import Wizard from './components/Wizard';
 import InstallBox from './components/InstallBox';
 import { clearDevice, loadDevice, type Device } from './lib/device';
-import { bySession, cancelSignup, fetchSignups, signUp, type Signup } from './lib/signups';
+import {
+  bookingBlock, bySession, cancelSignup, fetchSignups, signUp,
+  type BookingBlock, type MySignups, type Signup,
+} from './lib/signups';
 import { mergeSaved, pushSaved, pushUnsaved } from './lib/saved';
 import { fetchLibrary, type LibraryState } from './lib/library';
 import LibraryView, { type CatalogueGame } from './components/LibraryView';
@@ -124,6 +127,7 @@ function List({
       signup={booking?.signups.get(item.id)}
       canBook={booking?.canBook ?? false}
       busy={booking?.busy === item.id}
+      block={booking?.blockFor(item) ?? null}
       onBook={booking?.onBook}
       onCancelBooking={booking?.onCancelBooking}
     />
@@ -135,6 +139,8 @@ interface BookingProps {
   signups: Map<string, Signup>;
   canBook: boolean;
   busy: string | null;
+  /** Why this one cannot be booked right now, or null when it can be. */
+  blockFor: (item: ScheduleItem) => BookingBlock | null;
   onBook: (id: string) => void;
   onCancelBooking: (id: string) => void;
 }
@@ -378,6 +384,8 @@ export default function App() {
   // sitting it was dismissed in.
   const [dismissedThisOpen, setDismissedThisOpen] = useState(false);
   const [signups, setSignups] = useState<Signup[]>([]);
+  // Null until the server has said, and after a failed say. See `MySignups`.
+  const [bookableDates, setBookableDates] = useState<string[] | null>(null);
   const [bookingBusy, setBookingBusy] = useState<string | null>(null);
   const [bookingNote, setBookingNote] = useState<string | null>(null);
   const [push, setPush] = useState<PushState | null>(null);
@@ -426,11 +434,24 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', capture);
   }, []);
 
+  /**
+   * Takes a bookings response, or ignores a failed one.
+   *
+   * The bookable dates travel with the bookings because they answer the same
+   * question — what this person may do next — and splitting them across two
+   * fetches would let the screen believe one and not the other.
+   */
+  const applySignups = useCallback((mine: MySignups | null) => {
+    if (!mine) return;
+    setSignups(mine.signups);
+    setBookableDates(mine.bookableDates);
+  }, []);
+
   useEffect(() => {
-    if (!device) { setSignups([]); return; }
+    if (!device) { setSignups([]); setBookableDates(null); return; }
     // Null means the request failed; keep whatever is on screen rather than
     // blanking someone's bookings because the venue wifi dipped.
-    void fetchSignups(device).then((rows) => { if (rows) setSignups(rows); });
+    void fetchSignups(device).then(applySignups);
     void livePushState(device).then(setPush);
     // Without this the shelf never learns whether borrowing is open, and every
     // card falls back to "Available" with no button -- which cannot recover on
@@ -446,7 +467,7 @@ export default function App() {
       saveAgenda(window.localStorage, union);
       setSaved(union);
     });
-  }, [device]);
+  }, [device, applySignups]);
 
   useEffect(() => {
     if (tab !== 'library' || catalogue || catalogueError) return;
@@ -468,8 +489,7 @@ export default function App() {
   };
 
   const refreshSignups = async (current: Device) => {
-    const rows = await fetchSignups(current);
-    if (rows) setSignups(rows);
+    applySignups(await fetchSignups(current));
   };
 
   /**
@@ -484,9 +504,9 @@ export default function App() {
     if (!device) return;
     await Promise.all([
       fetchLibrary(device).then((next) => { if (next) setLibrary(next); }),
-      fetchSignups(device).then((rows) => { if (rows) setSignups(rows); }),
+      fetchSignups(device).then(applySignups),
     ]);
-  }, [device]);
+  }, [device, applySignups]);
 
   const refreshAll = useCallback(() => {
     refresh();
@@ -538,6 +558,14 @@ export default function App() {
       await refreshSignups(device);
     } else if (result.error === 'not_checked_in') {
       setBookingNote('Check in at the desk first, then this will work.');
+    } else if (result.error === 'wrong_day' || result.error === 'session_clash') {
+      setBookingNote(result.error === 'wrong_day'
+        ? 'That is on a day you are not checked in for yet.'
+        : 'That overlaps something you have already booked.');
+      // Both refusals mean this phone's picture is out of date — the desk has
+      // seen them since, or a second device paired to the same seat booked
+      // something. Re-reading is what makes the card agree with the answer.
+      await refreshSignups(device);
     } else if (result.error === 'unauthorised') {
       // The token is dead, so the honest thing is to send them back to setup.
       clearDevice();
@@ -609,10 +637,12 @@ export default function App() {
     ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: data.timezone }).format(new Date(fetchedAt))
     : null;
 
-  const booking = {
-    signups: bySession(signups),
+  const held = bySession(signups);
+  const booking: BookingProps = {
+    signups: held,
     canBook: device !== null,
     busy: bookingBusy,
+    blockFor: (item) => bookingBlock(item, held, data?.schedule ?? [], bookableDates),
     onBook: book,
     onCancelBooking: cancelBooking,
   };

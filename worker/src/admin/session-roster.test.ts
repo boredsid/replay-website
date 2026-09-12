@@ -159,6 +159,64 @@ describe('handleSessionSignupCreate', () => {
     expect(res.status).toBe(409);
   });
 
+  it('names the session a desk booking clashes with', async () => {
+    const client = {
+      rpc: async () => ({ data: null, error: { message: 'error: session_clash' } }),
+      from: (table: string) => {
+        if (table === 'schedule_items') return {
+          select: () => ({
+            eq: () => ({ maybeSingle: async () => ({
+              data: { day: '2026-09-12', start_time: '14:00', end_time: '16:00', is_all_day: false },
+              error: null,
+            }) }),
+            in: async () => ({
+              data: [
+                // Same slot, so this is the one staff need to know about.
+                { title: 'Catan', day: '2026-09-12', start_time: '15:00', end_time: '17:00', is_all_day: false, public_status: 'published' },
+                // Back to back, not overlapping: naming this would send staff
+                // to cancel a booking that was never in the way.
+                { title: 'Quiz', day: '2026-09-12', start_time: '16:00', end_time: '18:00', is_all_day: false, public_status: 'published' },
+              ],
+              error: null,
+            }),
+          }),
+        };
+        if (table === 'session_signups') return {
+          select: () => ({ eq: () => ({ neq: async () => ({ data: [{ schedule_item_id: 'x' }], error: null }) }) }),
+        };
+        throw new Error(`unexpected table ${table}`);
+      },
+    } as never;
+
+    const res = await handleSessionSignupCreate(body(A1), client, SESSION, STAFF, ORIGIN);
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'They are already booked into Catan, which overlaps this session.' });
+  });
+
+  it('still refuses a clash it cannot name', async () => {
+    const client = {
+      rpc: async () => ({ data: null, error: { message: 'error: session_clash' } }),
+      from: (table: string) => {
+        if (table === 'schedule_items') return {
+          select: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+            in: async () => ({ data: [], error: null }),
+          }),
+        };
+        if (table === 'session_signups') return {
+          select: () => ({ eq: () => ({ neq: async () => ({ data: [], error: null }) }) }),
+        };
+        throw new Error(`unexpected table ${table}`);
+      },
+    } as never;
+
+    const res = await handleSessionSignupCreate(body(A1), client, SESSION, STAFF, ORIGIN);
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: expect.stringContaining('overlaps this session') });
+  });
+
   it('rejects a malformed attendee id', async () => {
     const res = await handleSessionSignupCreate(
       body('nope'), rpcClient({ data: [] }), SESSION, STAFF, ORIGIN,

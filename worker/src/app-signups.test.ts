@@ -20,14 +20,19 @@ const currentEdition = getCurrentEdition as unknown as ReturnType<typeof vi.fn>;
 
 const ARRIVED = [{ id: 'e1', day: 'day1', kind: 'in', voids_event_id: null, occurred_at: '2026-09-12T04:00:00Z' }];
 
-function tables(options: { events?: unknown[]; signups?: unknown[]; onSelect?: (t: string) => void } = {}) {
+function tables(options: {
+  events?: unknown[]; signups?: unknown[]; day?: string; sessionMissing?: boolean;
+  ticketDays?: string[]; onSelect?: (t: string) => void;
+} = {}) {
   sbMock.from.mockImplementation((table: string) => {
     options.onSelect?.(table);
     if (table === 'attendees') return {
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { registration_id: 'reg-1' }, error: null }) }) }),
     };
     if (table === 'registrations') return {
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { days: ['day1', 'day2'] }, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: { days: options.ticketDays ?? ['day1', 'day2'] }, error: null,
+      }) }) }),
     };
     if (table === 'check_in_events') return {
       select: () => ({ eq: async () => ({ data: options.events ?? ARRIVED, error: null }) }),
@@ -36,7 +41,12 @@ function tables(options: { events?: unknown[]; signups?: unknown[]; onSelect?: (
       select: () => ({ eq: () => ({ neq: async () => ({ data: options.signups ?? [], error: null }) }) }),
     };
     if (table === 'schedule_items') return {
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { title: 'Werewolf' }, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: options.sessionMissing
+          ? null
+          : { title: 'Werewolf', day: options.day ?? EDITION.start_date },
+        error: null,
+      }) }) }),
     };
     throw new Error(`unexpected table ${table}`);
   });
@@ -80,8 +90,10 @@ describe('handleMySignups', () => {
   it('returns only this attendee’s live sign-ups', async () => {
     signedIn();
     let filtered: string | null = null;
+    tables({ signups: [{ schedule_item_id: SESSION, status: 'confirmed' }] });
+    const base = sbMock.from.getMockImplementation()!;
     sbMock.from.mockImplementation((table: string) => {
-      if (table !== 'session_signups') throw new Error(`unexpected ${table}`);
+      if (table !== 'session_signups') return base(table);
       return {
         select: () => ({
           eq: (_col: string, value: string) => {
@@ -98,6 +110,29 @@ describe('handleMySignups', () => {
     // Scoped to the token's own attendee: there is no way to read anyone else's.
     expect(filtered).toBe(ATTENDEE);
     expect(await res.json()).toMatchObject({ signups: [{ status: 'confirmed' }] });
+  });
+
+  it('says which dates the desk has let them into', async () => {
+    signedIn();
+    tables();
+
+    const body = await (await handleMySignups(new Request('https://api/api/app/me/signups'), env)).json();
+
+    // Arrived on day 1 and it is day 1: today, and only today, even though the
+    // ticket covers both days.
+    expect(body).toMatchObject({ bookable_dates: [EDITION.start_date] });
+  });
+
+  it('says nothing about dates rather than guessing when there is no edition', async () => {
+    signedIn();
+    tables();
+    currentEdition.mockResolvedValue(null);
+
+    const body = await (await handleMySignups(new Request('https://api/api/app/me/signups'), env)).json() as
+      { bookable_dates: string[] | null };
+
+    // Null, not []: an empty list would tell the app to grey out every day.
+    expect(body.bookable_dates).toBeNull();
   });
 });
 
@@ -144,11 +179,45 @@ describe('handleSignUp', () => {
     expect((await handleSignUp(post({ schedule_item_id: SESSION }), env)).status).toBe(200);
   });
 
+  it('refuses a session on a day they are not checked in for', async () => {
+    signedIn();
+    // Arrived on day 1, and this session is on day 2.
+    tables({ day: EDITION.end_date });
+
+    const res = await handleSignUp(post({ schedule_item_id: SESSION }), env);
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: 'wrong_day', day: EDITION.end_date });
+    // A seat they cannot turn up for must never be held, so this never books.
+    expect(sbMock.rpc).not.toHaveBeenCalled();
+  });
+
+  it('opens day 2 once they have checked in on day 2', async () => {
+    signedIn();
+    vi.setSystemTime(new Date('2026-09-13T06:30:00Z'));
+    tables({
+      day: EDITION.end_date,
+      events: [{ id: 'e9', day: 'day2', kind: 'in', voids_event_id: null, occurred_at: '2026-09-13T04:00:00Z' }],
+    });
+    sbMock.rpc.mockResolvedValue({ data: [{ status: 'confirmed', queue_position: 0 }], error: null });
+
+    expect((await handleSignUp(post({ schedule_item_id: SESSION }), env)).status).toBe(200);
+  });
+
+  it('refuses a session that has since disappeared', async () => {
+    signedIn();
+    tables({ sessionMissing: true });
+
+    expect((await handleSignUp(post({ schedule_item_id: SESSION }), env)).status).toBe(404);
+    expect(sbMock.rpc).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['session_not_bookable', 409],
     ['session_not_published', 409],
     ['session_not_found', 404],
     ['wrong_edition', 409],
+    ['session_clash', 409],
   ])('maps a %s exception onto %i', async (message, status) => {
     signedIn();
     tables();
@@ -156,6 +225,17 @@ describe('handleSignUp', () => {
 
     const res = await handleSignUp(post({ schedule_item_id: SESSION }), env);
     expect(res.status).toBe(status);
+  });
+
+  it('tells the app a clash is a clash, so it can name the overlap itself', async () => {
+    signedIn();
+    tables();
+    sbMock.rpc.mockResolvedValue({ data: null, error: { message: 'error: session_clash' } });
+
+    const res = await handleSignUp(post({ schedule_item_id: SESSION }), env);
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: 'session_clash' });
   });
 
   it('rejects a malformed session id before doing anything', async () => {

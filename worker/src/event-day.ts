@@ -42,7 +42,40 @@ export function pairingGateDay(
   events: readonly CheckInEvent[],
   now?: Date,
 ): EventDay | null {
+  // Expressed through `bookableDays` rather than beside it: pairing and booking
+  // ask the same question of the same events, and two spellings of one rule is
+  // how they would start answering it differently.
+  return bookableDays(edition, ticketDays, events, now)[0] ?? null;
+}
+
+/** The calendar date an edition day falls on. */
+export function dateForDay(
+  edition: { start_date: string; end_date: string },
+  day: EventDay,
+): string {
+  return day === 'day1' ? edition.start_date : edition.end_date;
+}
+
+/**
+ * Which days this attendee may book sessions for right now.
+ *
+ * Deliberately narrower than "has a ticket for": a ticket covering both days
+ * does not let someone hold Sunday seats from their sofa on Saturday. During the
+ * event the only bookable day is the one they have actually turned up for, so a
+ * held seat always means somebody in the building — and a seat they cannot use
+ * is never taken out of circulation for somebody who can.
+ *
+ * Outside the event it relaxes to every ticket day they have arrived on, for the
+ * same reason `pairingGateDay` does: the whole flow has to be rehearsable
+ * somewhere other than the door on day one.
+ */
+export function bookableDays(
+  edition: { start_date: string; end_date: string },
+  ticketDays: readonly EventDay[],
+  events: readonly CheckInEvent[],
+  now?: Date,
+): EventDay[] {
   const today = editionDayForToday(edition, now);
-  if (today) return hasArrivedOn(events, today) ? today : null;
-  return ticketDays.find((day) => hasArrivedOn(events, day)) ?? null;
+  if (today) return hasArrivedOn(events, today) ? [today] : [];
+  return ticketDays.filter((day) => hasArrivedOn(events, day));
 }
