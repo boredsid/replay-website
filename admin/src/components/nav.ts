@@ -1,3 +1,4 @@
+import { hasReadFloor } from '@/lib/whoami';
 import { LayoutDashboard, Ticket, UserPlus, ScrollText, Calendar, Users, CalendarDays, CalendarCheck, Handshake, Megaphone, ImageIcon, TicketPercent, UserCheck, Library, BookMarked, ShieldCheck, Wallet } from 'lucide-react';
 
 export const NAV = [
@@ -7,7 +8,7 @@ export const NAV = [
   { to: '/library', label: 'Game library', mobileLabel: 'Library', icon: Library, end: false, mobile: 'primary', mobileOrder: 2, roles: ['library'] },
   { to: '/catalogue', label: 'Game catalogue', mobileLabel: 'Catalogue', icon: BookMarked, end: false, mobile: 'more', mobileOrder: 1 },
   { to: '/programme', label: 'Programme', mobileLabel: 'Schedule', icon: CalendarDays, end: false, mobile: 'more', mobileOrder: 0, roles: ['programme'] },
-  { to: '/events', label: 'Events', mobileLabel: 'Events', icon: CalendarCheck, end: false, mobile: 'more', mobileOrder: 1 },
+  { to: '/events', label: 'Events', mobileLabel: 'Events', icon: CalendarCheck, end: false, mobile: 'more', mobileOrder: 1, roles: ['event_manager'] },
   { to: '/announcements', label: 'Announcements', mobileLabel: 'Notices', icon: Megaphone, end: false, mobile: 'primary', mobileOrder: 4, roles: ['programme'] },
   { to: '/registrations', label: 'Registrations', mobileLabel: 'Tickets', icon: Ticket, end: false, mobile: 'primary', mobileOrder: 3 },
   { to: '/promos', label: 'Promo codes', mobileLabel: 'Promos', icon: TicketPercent, end: false, mobile: 'more', mobileOrder: 2 },
@@ -23,7 +24,8 @@ export const NAV = [
 /** Pages every signed-in member of staff may read. Writing is still gated. */
 const READABLE_BY_ALL: readonly string[] = ['/programme', '/events', '/announcements', '/registrations'];
 
-export type NavRole = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
+export type NavRole =
+  | 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme' | 'event_manager';
 
 /**
  * The nav a set of roles should see.
@@ -36,10 +38,13 @@ export function navFor(roles: readonly string[]): typeof NAV[number][] {
   if (roles.includes('admin')) return [...NAV];
   // Everything except the one page that can grant roles.
   if (roles.includes('basic_admin')) return NAV.filter((item) => item.to !== '/staff');
+  // Almost everyone on staff carries the read-only floor and so is worth
+  // showing those links to. `event_manager` does not — it is granted named
+  // sessions, not pages — so for it the floor is not there to draw.
+  const floor = hasReadFloor(roles);
   return NAV.filter((item) => {
     const allowed = (item as { roles?: readonly string[] }).roles;
-    // Read-only for everyone on staff, so the link is worth showing.
-    if (READABLE_BY_ALL.includes(item.to)) return true;
+    if (floor && READABLE_BY_ALL.includes(item.to)) return true;
     return Boolean(allowed?.some((role) => roles.includes(role)));
   });
 }
@@ -70,11 +75,25 @@ export const MOBILE_MORE_NAV = NAV
   .filter((item) => item.mobile === 'more')
   .sort((a, b) => a.mobileOrder - b.mobileOrder);
 
+const byMobileOrder = (a: typeof NAV[number], b: typeof NAV[number]) => a.mobileOrder - b.mobileOrder;
+
+/**
+ * The tabs along the bottom of a phone.
+ *
+ * `mobile: 'more'` is a statement about a full admin's crowded bar, not about
+ * the page. A role whose whole nav sits under More would get a bar containing
+ * one button, called More — so when nothing is primary for somebody, their
+ * pages are promoted into it and the More sheet is left empty.
+ */
 export function mobilePrimaryFor(roles: readonly string[]) {
-  return navFor(roles).filter((item) => item.mobile === 'primary')
-    .sort((a, b) => a.mobileOrder - b.mobileOrder);
+  const mine = navFor(roles);
+  const primary = mine.filter((item) => item.mobile === 'primary');
+  return (primary.length > 0 ? primary : mine).sort(byMobileOrder);
 }
+
 export function mobileMoreFor(roles: readonly string[]) {
-  return navFor(roles).filter((item) => item.mobile === 'more')
-    .sort((a, b) => a.mobileOrder - b.mobileOrder);
+  const promoted = new Set(mobilePrimaryFor(roles).map((item) => item.to));
+  return navFor(roles)
+    .filter((item) => item.mobile === 'more' && !promoted.has(item.to))
+    .sort(byMobileOrder);
 }

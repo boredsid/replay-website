@@ -37,6 +37,7 @@ import { handleCheckInSearch, handleCheckIn, handleCheckInBulk, handleCheckInUnd
 import { handlePairingCodeIssue, handleScan } from './admin/pairing';
 import { handleSessionRoster, handleSessionSignupCreate, handleSessionSignupRemove, handleSessionAttendeeSearch } from './admin/session-roster';
 import { handleEventsOverview, handleEventsSignupCreate, handleEventsSignupRemove } from './admin/events';
+import { eventScopes, eventWriteScope } from './admin/event-scope';
 import { handleAppPair } from './app-pair';
 import { handleMySignups, handleSignUp, handleCancelSignup } from './app-signups';
 import { handlePushSubscribe, handlePushUnsubscribe, handlePushPreferences, handlePushConfig } from './app-push';
@@ -215,11 +216,22 @@ export default {
         if (path === '/api/admin/library/lost' && req.method === 'POST') return await handleLibraryLost(req, sb, email, origin);
 
         // The events board. Readable by every member of staff (see
-        // READABLE_BY_ALL) and writable only by the two admin roles, because
-        // nothing here is listed in RULES.
-        if (path === '/api/admin/events' && req.method === 'GET') return await handleEventsOverview(req, env, sb, origin);
-        if (path === '/api/admin/events/signups' && req.method === 'POST') return await handleEventsSignupCreate(req, sb, email, origin);
-        if (path === '/api/admin/events/signups' && req.method === 'DELETE') return await handleEventsSignupRemove(req, env, ctx, sb, email, origin);
+        // READABLE_BY_ALL), writable by the two admin roles, and both readable
+        // and writable by an `event_manager` -- for the sessions an admin has
+        // named as theirs, and no others.
+        // The scope is looked up here rather than in the gate above, so the
+        // extra read happens on the three routes that need it and not on the
+        // other forty-nine.
+        if (path === '/api/admin/events' && req.method === 'GET') {
+          const scopes = await eventScopes(sb, staff);
+          return await handleEventsOverview(req, env, sb, origin, scopes.read, scopes.write);
+        }
+        if (path === '/api/admin/events/signups' && req.method === 'POST') {
+          return await handleEventsSignupCreate(req, sb, email, origin, await eventWriteScope(sb, staff));
+        }
+        if (path === '/api/admin/events/signups' && req.method === 'DELETE') {
+          return await handleEventsSignupRemove(req, env, ctx, sb, email, origin, await eventWriteScope(sb, staff));
+        }
 
         // Matched before the `/sessions/:id` patterns so the search is not
         // treated as a session id.

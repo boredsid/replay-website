@@ -163,6 +163,62 @@ describe('read only', () => {
   });
 });
 
+describe('the event manager', () => {
+  it('reaches the events board, to read and to write', () => {
+    for (const method of ['GET', 'POST', 'DELETE']) {
+      expect(mayReach(['event_manager'], '/api/admin/events', method)).toBe(true);
+      expect(mayReach(['event_manager'], '/api/admin/events/signups', method)).toBe(true);
+    }
+    // Which sessions of it is not a question a prefix can answer; that is
+    // `event-scope.ts`, per request.
+    expect(hasFullAccess(['event_manager'], '/api/admin/events')).toBe(true);
+  });
+
+  it('does not get the read-only floor, which is the whole point of the role', () => {
+    // Every other role carries it. Somebody brought in to run one tournament
+    // must not thereby read every ticket in the edition.
+    for (const path of ['/api/admin/registrations', '/api/admin/schedule',
+                        '/api/admin/announcements', '/api/admin/sessions']) {
+      expect(mayReach(['event_manager'], path, 'GET')).toBe(false);
+    }
+  });
+
+  it('can find an attendee, because booking one in starts there', () => {
+    expect(mayReach(['event_manager'], '/api/admin/sessions/attendees', 'GET')).toBe(true);
+  });
+
+  it('cannot write a roster directly, which has no scope check on it', () => {
+    // The longest-prefix rule is what keeps the attendee search from dragging
+    // the rest of `/api/admin/sessions` along with it.
+    for (const method of ['GET', 'POST', 'DELETE']) {
+      expect(mayReach(['event_manager'], '/api/admin/sessions/abc/roster', method)).toBe(false);
+      expect(mayReach(['event_manager'], '/api/admin/sessions/abc/signups', method)).toBe(false);
+    }
+  });
+
+  it('reaches whoami, or the app cannot draw itself', () => {
+    expect(mayReach(['event_manager'], '/api/admin/whoami')).toBe(true);
+  });
+
+  it('reaches nothing else at all', () => {
+    for (const path of ['/api/admin/dashboard', '/api/admin/check-in', '/api/admin/library/loans',
+                        '/api/admin/users', '/api/admin/staff', '/api/admin/editions',
+                        '/api/admin/promo-codes', '/api/admin/finance', '/api/admin/audit']) {
+      expect(mayReach(['event_manager'], path, 'GET')).toBe(false);
+    }
+  });
+
+  it('gets the floor back from a desk it also works', () => {
+    // The floor comes from the desk, not from being on staff — so a volunteer
+    // covering check-in keeps every read they had before the second role.
+    const both = ['check_in', 'event_manager'];
+    expect(mayReach(both, '/api/admin/registrations', 'GET')).toBe(true);
+    expect(mayReach(both, '/api/admin/check-in', 'POST')).toBe(true);
+    // And still cannot write the pages the desk only reads.
+    expect(mayReach(both, '/api/admin/schedule', 'POST')).toBe(false);
+  });
+});
+
 describe('the events board', () => {
   it('is readable by every member of staff', () => {
     for (const role of ['read_only', 'check_in', 'library', 'programme']) {

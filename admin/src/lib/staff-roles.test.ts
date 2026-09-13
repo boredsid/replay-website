@@ -101,3 +101,27 @@ describe('read only', () => {
       .toEqual(['admin', 'read_only', 'programme']);
   });
 });
+
+describe('the event manager beside other roles', () => {
+  it('is dropped by Full admin, which contains it', () => {
+    expect(reconcileRoles(['event_manager'], 'admin')).toEqual(['admin']);
+    expect(reconcileRoles(['event_manager'], 'basic_admin')).toEqual(['basic_admin']);
+  });
+
+  it('narrows somebody down from Full admin, like a desk does', () => {
+    expect(reconcileRoles(['admin'], 'event_manager')).toEqual(['event_manager']);
+  });
+
+  it('sits alongside a desk, because neither contains the other', () => {
+    // It writes bookings Read only cannot, and it carries none of the read-only
+    // floor a desk does — so it adds rather than narrowing.
+    expect(orderRoles(reconcileRoles(['check_in'], 'event_manager')))
+      .toEqual(['check_in', 'event_manager']);
+    expect(orderRoles(reconcileRoles(['read_only'], 'event_manager')))
+      .toEqual(['read_only', 'event_manager']);
+  });
+
+  it('comes off again without taking the desk with it', () => {
+    expect(reconcileRoles(['check_in', 'event_manager'], 'event_manager')).toEqual(['check_in']);
+  });
+});

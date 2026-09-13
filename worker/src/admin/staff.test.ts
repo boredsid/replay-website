@@ -21,19 +21,46 @@ function patch(body: unknown) {
   return new Request('https://api/api/admin/staff/x', { method: 'PATCH', body: JSON.stringify(body) });
 }
 
+/** Every write the assignment table saw, so a test can assert on the set. */
+interface EventWrites { inserted: Array<Record<string, unknown>>; cleared: string[] }
+
 /** A client whose write either succeeds or fails with a database message. */
-function client(options: { error?: string; rows?: unknown[] } = {}) {
+function client(options: {
+  error?: string;
+  rows?: unknown[];
+  assignments?: Array<{ staff_email: string; schedule_item_id: string }>;
+  eventsError?: string;
+} = {}, writes?: EventWrites) {
   const result = { data: options.error ? null : (options.rows ?? [{ email: 'v@replaycon.in' }]),
                    error: options.error ? { message: options.error } : null };
   return {
-    from: () => ({
-      insert: async () => result,
-      update: () => ({ eq: () => ({ select: async () => result }) }),
-      delete: () => ({ eq: () => ({ select: async () => result }) }),
-      select: () => ({ order: async () => ({ data: options.rows ?? [], error: null }) }),
-    }),
+    from: (table: string) => {
+      if (table === 'staff_events') {
+        return {
+          insert: async (rows: Array<Record<string, unknown>>) => {
+            writes?.inserted.push(...rows);
+            return { error: options.eventsError ? { message: options.eventsError } : null };
+          },
+          delete: () => ({ eq: async (_column: string, email: string) => {
+            writes?.cleared.push(email);
+            return { error: null };
+          } }),
+          select: async () => ({ data: options.assignments ?? [], error: null }),
+        };
+      }
+      return {
+        insert: async () => result,
+        update: () => ({ eq: () => ({ select: async () => result }) }),
+        delete: () => ({ eq: () => ({ select: async () => result }) }),
+        select: () => ({ order: async () => ({ data: options.rows ?? [], error: null }) }),
+      };
+    },
   } as never;
 }
+
+const SESSION_A = 'b1111111-1111-1111-1111-111111111111';
+const SESSION_B = 'b2222222-2222-2222-2222-222222222222';
+const noWrites = (): EventWrites => ({ inserted: [], cleared: [] });
 
 beforeEach(() => {
   audit.mockReset();
@@ -158,6 +185,83 @@ describe('listing', () => {
   it('returns everyone with their roles', async () => {
     const rows = [{ email: ME, name: 'Siddhant', roles: ['admin'], added_by: 'migration', created_at: '' }];
     const body = await (await handleStaffList(client({ rows }), ORIGIN)).json() as { staff: unknown[] };
-    expect(body.staff).toEqual(rows);
+    expect(body.staff).toEqual([{ ...rows[0], events: [] }]);
+  });
+
+  it('hangs each event manager\'s sessions off their row', async () => {
+    const rows = [
+      { email: ME, name: 'Siddhant', roles: ['admin'], added_by: null, created_at: '' },
+      { email: 'runner@replaycon.in', name: 'Runner', roles: ['event_manager'], added_by: ME, created_at: '' },
+    ];
+    const body = await (await handleStaffList(client({
+      rows,
+      assignments: [
+        { staff_email: 'runner@replaycon.in', schedule_item_id: SESSION_A },
+        { staff_email: 'runner@replaycon.in', schedule_item_id: SESSION_B },
+      ],
+    }), ORIGIN)).json() as { staff: Array<{ email: string; events: string[] }> };
+    expect(body.staff[0].events).toEqual([]);
+    expect(body.staff[1].events).toEqual([SESSION_A, SESSION_B]);
+  });
+});
+
+describe('the sessions an event manager runs', () => {
+  it('stores the ones named when they are added', async () => {
+    const writes = noWrites();
+    const response = await handleStaffCreate(
+      post({ email: 'runner@replaycon.in', roles: ['event_manager'], events: [SESSION_A, SESSION_B] }),
+      env, client({}, writes), ME, ORIGIN,
+    );
+    expect(response.status).toBe(200);
+    expect(writes.inserted.map((row) => row.schedule_item_id)).toEqual([SESSION_A, SESSION_B]);
+    expect(writes.inserted[0]).toMatchObject({ staff_email: 'runner@replaycon.in', assigned_by: ME });
+  });
+
+  it('replaces the set rather than adding to it', async () => {
+    const writes = noWrites();
+    await handleStaffUpdate(
+      patch({ roles: ['event_manager'], events: [SESSION_B] }),
+      env, client({}, writes), 'runner@replaycon.in', ME, ORIGIN,
+    );
+    expect(writes.cleared).toEqual(['runner@replaycon.in']);
+    expect(writes.inserted.map((row) => row.schedule_item_id)).toEqual([SESSION_B]);
+  });
+
+  it('clears them when the role goes, so a re-grant is a fresh decision', async () => {
+    const writes = noWrites();
+    await handleStaffUpdate(
+      patch({ roles: ['check_in'], events: [SESSION_A] }),
+      env, client({}, writes), 'runner@replaycon.in', ME, ORIGIN,
+    );
+    expect(writes.cleared).toEqual(['runner@replaycon.in']);
+    expect(writes.inserted).toEqual([]);
+  });
+
+  it('leaves them alone when the request does not mention them', async () => {
+    const writes = noWrites();
+    await handleStaffUpdate(
+      patch({ roles: ['event_manager'], name: 'Renamed' }),
+      env, client({}, writes), 'runner@replaycon.in', ME, ORIGIN,
+    );
+    expect(writes.cleared).toEqual([]);
+    expect(writes.inserted).toEqual([]);
+  });
+
+  it('drops anything that is not a session id', async () => {
+    const writes = noWrites();
+    await handleStaffUpdate(
+      patch({ roles: ['event_manager'], events: [SESSION_A, 'not-a-uuid', 42, null, SESSION_A] }),
+      env, client({}, writes), 'runner@replaycon.in', ME, ORIGIN,
+    );
+    expect(writes.inserted.map((row) => row.schedule_item_id)).toEqual([SESSION_A]);
+  });
+
+  it('says so when a named session no longer exists', async () => {
+    const response = await handleStaffUpdate(
+      patch({ roles: ['event_manager'], events: [SESSION_A] }),
+      env, client({ eventsError: 'violates foreign key constraint' }), 'runner@replaycon.in', ME, ORIGIN,
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: 'unknown_event' });
   });
 });

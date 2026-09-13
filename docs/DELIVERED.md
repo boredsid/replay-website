@@ -90,11 +90,11 @@ partners, sponsors, leads, audit log, plus the three event-day screens below.
   a different job. Changes reach the public page on the next rebuild and the
   desk immediately.
 
-### Roles and staff (P6, 2026-09-05; `read_only` 2026-09-07)
+### Roles and staff (P6, 2026-09-05; `read_only` 2026-09-07; `event_manager` 2026-09-13)
 
 `staff` (email, roles[]) replaced a comma-separated `ADMIN_EMAILS` secret.
-Six roles: `admin`, `basic_admin`, `read_only`, `check_in`, `library`,
-`programme`.
+Seven roles: `admin`, `basic_admin`, `read_only`, `check_in`, `library`,
+`programme`, `event_manager`.
 
 - **`basic_admin` is everything except the staff table.** That is the only
   privilege boundary that matters — a role that can edit staff can grant itself
@@ -119,6 +119,32 @@ Six roles: `admin`, `basic_admin`, `read_only`, `check_in`, `library`,
   other role, so `/` now redirects to the first page somebody can actually open
   (`landingFor` in `admin/src/components/nav.ts`). Widening `READABLE_BY_ALL`
   widens this role by exactly one page — do it deliberately.
+- **`event_manager` is the first grant that is rows rather than pages.**
+  Somebody brought in to run two tournaments gets the events board and *nothing
+  else in the admin* — deliberately not even the shared read-only floor, which
+  would have handed them every ticket in the edition to change four bookings.
+  On that board they see and change only the sessions a full admin has ticked
+  for them on the Staff page (`staff_events`). The assignment is the grant: with
+  no rows they can do nothing at all, which is the safe direction.
+  - The route map lets them reach `/api/admin/events`; *which* sessions is
+    decided per request in `worker/src/admin/event-scope.ts`, because a path
+    prefix cannot express "these four". The read scope is null — unrestricted —
+    for anybody who also holds a desk, since a desk already reads every booking;
+    the **write** scope is always their own sessions, so a second role can widen
+    what they look at and never what they rewrite.
+  - `READ_FLOOR_ROLES` in `roles.ts` is the allowlist of roles carrying the
+    read-only floor, and `event_manager`'s absence from it *is* the role. Its
+    mirror is `hasReadFloor` in `admin/src/lib/whoami.tsx`, which the nav and
+    the events board's roster link both read. Being an allowlist, a role added
+    later and left unclassified reaches nothing rather than the floor.
+  - Dropping the role clears the assignment, so a re-grant is a decision
+    somebody makes again rather than an old list coming back to life. A PATCH
+    that does not mention `events` leaves them alone — `null` and `[]` are
+    different answers.
+  - They are the first role whose whole navigation sat under the phone's More
+    sheet, so `mobilePrimaryFor` now promotes a role's pages into the bar when
+    nothing is marked primary for it. `mobile: 'more'` is a statement about a
+    full admin's crowded bar, not about the page.
 - **Cloudflare Access is synced from the table**, so adding somebody is one
   screen rather than a dashboard edit plus a Worker deploy. The sync preserves
   rules it did not create and **never writes an object it could not first
@@ -150,10 +176,18 @@ which is the wrong shape for the questions people stand there asking.
   hold. Finding an attendee here lists every session they are in or waiting
   for, with their queue place.
 - **Its permissions are deliberately unlike anything else.** Readable by every
-  member of staff (it is in `READABLE_BY_ALL`); writable by `admin` and
-  `basic_admin` alone, because it has no entry in `RULES` and so is admin-only
-  by omission. A desk role that needs to move somebody uses the session roster
-  it already owns, linked from each session.
+  member of staff (it is in `READABLE_BY_ALL`); writable by `admin`,
+  `basic_admin`, and by `event_manager` for the sessions named as theirs. A desk
+  role that needs to move somebody outside that uses the session roster it
+  already owns, linked from each session — a link an event manager is not shown,
+  since the roster is a 403 for them.
+- **The payload says whether it was narrowed** (`scoped`), which is what tells
+  "nothing has been assigned to you" apart from "nothing is bookable yet". Two
+  different problems with two different people to ask. Each session additionally
+  carries `can_manage`, because seeing and changing are not the same question:
+  an event manager who also works a desk reads the whole board through the desk
+  and writes only their own sessions, and a button the Worker refuses is its own
+  kind of bug.
 - **Adding and removing go through the same functions the roster does**
   (`createSignup` / `removeSignup` in `worker/src/admin/session-roster.ts`),
   which go through the `sign_up_for_session` and `cancel_session_signup` RPCs

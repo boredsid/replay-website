@@ -9,9 +9,12 @@
 // than defaulting to open.
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type Role = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
+export type Role =
+  | 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme' | 'event_manager';
 
-export const ROLES: readonly Role[] = ['admin', 'basic_admin', 'read_only', 'check_in', 'library', 'programme'];
+export const ROLES: readonly Role[] = [
+  'admin', 'basic_admin', 'read_only', 'check_in', 'library', 'programme', 'event_manager',
+];
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Full admin',
@@ -20,6 +23,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme and notices',
+  event_manager: 'Event manager',
 };
 
 /**
@@ -60,7 +64,7 @@ const ADMIN_ONLY: readonly string[] = [
 const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
   // Every signed-in member of staff needs to know who they are, or the admin
   // app cannot render its own navigation.
-  { prefix: '/api/admin/whoami', roles: ['read_only', 'check_in', 'library', 'programme'] },
+  { prefix: '/api/admin/whoami', roles: ['read_only', 'check_in', 'library', 'programme', 'event_manager'] },
 
   // The desk. Roster and search are how somebody is found at the door.
   { prefix: '/api/admin/check-in', roles: ['check_in'] },
@@ -82,6 +86,17 @@ const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
   { prefix: '/api/admin/sessions', roles: ['programme', 'check_in'] },
   { prefix: '/api/admin/announcements', roles: ['programme'] },
 
+  // The events board, for the role whose grant is rows rather than pages.
+  // Route-level access is the whole board; which sessions of it they actually
+  // see and change is decided per request in `admin/event-scope.ts`, because a
+  // prefix cannot express "these four".
+  { prefix: '/api/admin/events', roles: ['event_manager'] },
+  // Booking somebody in starts with finding them. Narrower than the
+  // `/api/admin/sessions` rule above on purpose: that prefix also carries the
+  // rosters, which an event manager must not be able to write to directly --
+  // those have no scope check, and the longest prefix is the one that wins.
+  { prefix: '/api/admin/sessions/attendees', roles: ['programme', 'check_in', 'event_manager'] },
+
   // Read-only situational awareness; no personal data beyond counts.
   { prefix: '/api/admin/dashboard', roles: ['check_in', 'library', 'programme'] },
 ];
@@ -95,6 +110,8 @@ const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
  *
  * This list is what the `read_only` role is: it holds nothing else, so adding
  * a prefix here widens that role by exactly one page. Do it deliberately.
+ *
+ * `event_manager` is deliberately outside it -- see `READ_FLOOR_ROLES`.
  *
  * `handleRegList` and `handleRegGet` additionally redact what a read-only
  * viewer gets: money and full phone numbers are not needed to answer a
@@ -110,6 +127,21 @@ const READABLE_BY_ALL: readonly string[] = [
   // reads it here and writes through the session roster it already owns.
   '/api/admin/events',
 ];
+
+/**
+ * Which roles carry that floor.
+ *
+ * An allowlist rather than "everybody except", so a role added later and not
+ * classified gets the narrow answer rather than a page it was never given.
+ *
+ * `event_manager` is not here, and that absence is the role. It is granted
+ * named sessions, not pages; handing it the floor as well would mean somebody
+ * brought in to run one tournament could read every ticket in the edition and
+ * the whole programme besides, which is wider than the thing they were given
+ * and wider than anybody meant. Somebody who also works a desk carries the
+ * floor through that desk, as they should.
+ */
+const READ_FLOOR_ROLES: readonly Role[] = ['read_only', 'check_in', 'library', 'programme'];
 
 /**
  * Which roles may call this path. Admin is implicit everywhere.
@@ -143,7 +175,14 @@ export function hasFullAccess(roles: readonly string[], path: string): boolean {
 export function mayReach(roles: readonly string[], path: string, method = 'GET'): boolean {
   if (hasFullAccess(roles, path)) return true;
   if (method !== 'GET') return false;
+  if (!carriesReadFloor(roles)) return false;
   return READABLE_BY_ALL.some((prefix) => path.startsWith(prefix));
+}
+
+/** Whether any of these roles brings the shared read-only floor with it. */
+export function carriesReadFloor(roles: readonly string[]): boolean {
+  if (roles.includes('admin') || roles.includes('basic_admin')) return true;
+  return roles.some((role) => (READ_FLOOR_ROLES as readonly string[]).includes(role));
 }
 
 export interface StaffMember {

@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   check_in: 'Check-in desk',
   library: 'Game library',
   programme: 'Programme & notices',
+  event_manager: 'Event manager',
 };
 
 export const ROLE_HINTS: Record<Role, string> = {
@@ -17,6 +18,7 @@ export const ROLE_HINTS: Record<Role, string> = {
   check_in: 'Check people in, issue app codes, session rosters',
   library: 'Lend and take back games',
   programme: 'Edit the schedule and send notices',
+  event_manager: 'Only the events you give them below — and nothing else in here',
 };
 
 export const ALL_ROLES = Object.keys(ROLE_LABELS) as Role[];
@@ -29,8 +31,8 @@ export const ALL_ROLES = Object.keys(ROLE_LABELS) as Role[];
  * siblings of Read only, which every one of them already contains.
  */
 const COVERS: Record<Role, readonly Role[]> = {
-  admin: ['basic_admin', 'read_only', 'check_in', 'library', 'programme'],
-  basic_admin: ['read_only', 'check_in', 'library', 'programme'],
+  admin: ['basic_admin', 'read_only', 'check_in', 'library', 'programme', 'event_manager'],
+  basic_admin: ['read_only', 'check_in', 'library', 'programme', 'event_manager'],
   // Every desk already carries the read-only floor, so Read only is not a
   // sibling of the desks but something each of them contains. Ticking it
   // beside a desk narrows the person to it, which is the obvious reading.
@@ -38,6 +40,10 @@ const COVERS: Record<Role, readonly Role[]> = {
   library: ['read_only'],
   programme: ['read_only'],
   read_only: [],
+  // Event manager is nobody's subset and nobody's superset. It writes bookings
+  // Read only cannot, and it does not carry the floor Read only is — so ticking
+  // it beside anything else adds, rather than narrowing.
+  event_manager: [],
 };
 
 /** Whether holding `outer` already means holding `inner`. */

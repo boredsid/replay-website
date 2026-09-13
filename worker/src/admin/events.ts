@@ -12,15 +12,20 @@
 // separate "what has this person booked" endpoint — it is a filter, not a query.
 //
 // Who may do what here is unusual and deliberate. `/api/admin/events` is in
-// `READABLE_BY_ALL`, so every member of staff can read it; it has no entry in
-// `RULES`, so writing is admin and basic_admin only. A desk role that needs to
-// change a booking still has the session roster it already owns.
+// `READABLE_BY_ALL`, so every member of staff can read it; writing it is the
+// two admin roles, and `event_manager`, which is granted named sessions rather
+// than the page. A desk role that needs to change a booking outside that still
+// has the session roster it already owns.
+//
+// So every function here takes a scope: the ids this caller may act on, or null
+// for no restriction. See `event-scope.ts` — the route map cannot express it.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Env } from '../index';
 import { adminJson } from './auth';
 import { getCurrentEdition, getEditionById } from '../editions';
 import { maskPhone, seatLabel } from './check-in';
 import { createSignup, removeSignup } from './session-roster';
+import { scopeAllows, type EventScope } from './event-scope';
 
 /**
  * Enough for an edition many times the size of this one.
@@ -75,6 +80,8 @@ export async function handleEventsOverview(
   env: Env,
   sb: SupabaseClient,
   origin: string,
+  scope: EventScope = null,
+  writeScope: EventScope = null,
 ): Promise<Response> {
   const requested = new URL(req.url).searchParams.get('edition_id')?.trim() ?? '';
   const edition = requested ? await getEditionById(env, requested) : await getCurrentEdition(env);
@@ -82,32 +89,47 @@ export async function handleEventsOverview(
     return adminJson({ error: requested ? 'edition_not_found' : 'no_current_edition' }, requested ? 404 : 503, origin);
   }
 
-  const items = await sb
-    .from('schedule_items')
-    .select('id, title, day, start_time, end_time, is_all_day, location, host_name, kind, section, capacity, signup_mode, public_status, display_order')
-    .eq('edition_id', edition.id)
-    // Only sessions people can book. An all-day open-play table has no roster
-    // to show, and listing it would bury the four things that do.
-    .eq('signup_mode', 'app')
-    .order('day', { ascending: true })
-    .order('start_time', { ascending: true, nullsFirst: true })
-    .order('display_order', { ascending: true });
-  if (items.error) return adminJson({ error: 'query_failed' }, 500, origin);
-  const sessions = (items.data ?? []) as SessionRow[];
+  // An event manager with nothing assigned gets an empty board rather than a
+  // query for `id in ()`, which PostgREST would answer with everything.
+  const empty = scope !== null && scope.size === 0;
+
+  let sessions: SessionRow[] = [];
+  if (!empty) {
+    let query = sb
+      .from('schedule_items')
+      .select('id, title, day, start_time, end_time, is_all_day, location, host_name, kind, section, capacity, signup_mode, public_status, display_order')
+      .eq('edition_id', edition.id)
+      // Only sessions people can book. An all-day open-play table has no roster
+      // to show, and listing it would bury the four things that do.
+      .eq('signup_mode', 'app');
+    if (scope !== null) query = query.in('id', [...scope]);
+    const items = await query
+      .order('day', { ascending: true })
+      .order('start_time', { ascending: true, nullsFirst: true })
+      .order('display_order', { ascending: true });
+    if (items.error) return adminJson({ error: 'query_failed' }, 500, origin);
+    sessions = (items.data ?? []) as SessionRow[];
+  }
 
   // Ordered by sign-up time across the whole edition, so queue position within
   // a session is just the order these arrive in — the same derivation
   // `handleSessionRoster` makes. Position is never stored; two places reading
   // it two ways is how they would come to disagree.
-  const signups = await sb
-    .from('session_signups')
-    .select('schedule_item_id, attendee_id, status, signed_up_at, promoted_at')
-    .eq('edition_id', edition.id)
-    .neq('status', 'cancelled')
-    .order('signed_up_at', { ascending: true })
-    .limit(MAX_SIGNUPS);
-  if (signups.error) return adminJson({ error: 'query_failed' }, 500, origin);
-  const rows = (signups.data ?? []) as SignupRow[];
+  let rows: SignupRow[] = [];
+  if (sessions.length > 0) {
+    const signups = await sb
+      .from('session_signups')
+      .select('schedule_item_id, attendee_id, status, signed_up_at, promoted_at')
+      .eq('edition_id', edition.id)
+      .neq('status', 'cancelled')
+      // Named rather than left to the edition, so a scoped caller never loads a
+      // roster they are not allowed to look at, let alone the people on it.
+      .in('schedule_item_id', sessions.map((session) => session.id))
+      .order('signed_up_at', { ascending: true })
+      .limit(MAX_SIGNUPS);
+    if (signups.error) return adminJson({ error: 'query_failed' }, 500, origin);
+    rows = (signups.data ?? []) as SignupRow[];
+  }
 
   let people = new Map<string, AttendeeRow>();
   if (rows.length > 0) {
@@ -139,6 +161,9 @@ export async function handleEventsOverview(
 
   return adminJson({
     edition: { id: edition.id, slug: edition.slug, name: edition.name },
+    // So the screen can word an empty board as "nothing assigned to you" rather
+    // than "nothing is bookable yet", which would be a different problem.
+    scoped: scope !== null,
     sessions: sessions.map((session) => {
       const mine = byItem.get(session.id) ?? [];
       const confirmed = mine.filter((row) => row.status === 'confirmed').map(shape);
@@ -156,12 +181,28 @@ export async function handleEventsOverview(
         section: session.section,
         capacity: session.capacity,
         public_status: session.public_status,
+        // Whether this caller may change *this* session, which is not always
+        // the same as whether they can see it: an event manager who also works
+        // a desk reads the whole board and writes only their own. Marked per
+        // session so the screen never offers a button the Worker will refuse.
+        can_manage: scopeAllows(writeScope, session.id),
         seats_remaining: session.capacity === null ? null : Math.max(0, session.capacity - confirmed.length),
         confirmed,
         waitlisted,
       };
     }),
   }, 200, origin);
+}
+
+/**
+ * A write aimed at somebody else's session.
+ *
+ * A sentence rather than a code, because the admin app shows this string as it
+ * arrives -- and it is a refusal staff can act on: ask whoever runs the board
+ * to add the session to theirs.
+ */
+function notYours(origin: string): Response {
+  return adminJson({ error: 'That session is not one of yours.' }, 403, origin);
 }
 
 /** The two ids every write here takes, from a body that may not be JSON at all. */
@@ -186,8 +227,10 @@ export async function handleEventsSignupCreate(
   sb: SupabaseClient,
   actorEmail: string,
   origin: string,
+  scope: EventScope = null,
 ): Promise<Response> {
   const { schedule_item_id, attendee_id } = await readBooking(req);
+  if (!scopeAllows(scope, schedule_item_id)) return notYours(origin);
   const result = await createSignup(sb, schedule_item_id, attendee_id, actorEmail, 'events');
   if (!result.ok) return adminJson({ error: result.error }, result.status, origin);
   return adminJson(result.data, 200, origin);
@@ -201,8 +244,10 @@ export async function handleEventsSignupRemove(
   sb: SupabaseClient,
   actorEmail: string,
   origin: string,
+  scope: EventScope = null,
 ): Promise<Response> {
   const { schedule_item_id, attendee_id } = await readBooking(req);
+  if (!scopeAllows(scope, schedule_item_id)) return notYours(origin);
   const result = await removeSignup(env, ctx, sb, schedule_item_id, attendee_id, actorEmail, 'events');
   if (!result.ok) return adminJson({ error: result.error }, result.status, origin);
   return adminJson(result.data, 200, origin);
