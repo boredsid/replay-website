@@ -189,6 +189,23 @@ describe('overlaps', () => {
     expect(overlaps(session('a'), allDay)).toBe(false);
     expect(overlaps(allDay, session('a'))).toBe(false);
   });
+
+  it('never clashes with a playtest, whichever side it is on', () => {
+    // Playtests are come-and-go, so booking one is not being in a room.
+    // Symmetric on purpose: a one-sided exemption would let the same pair of
+    // bookings through in one order and refuse it in the other.
+    const playtest = session('b', { kind: 'playtest', start_time: '15:00', end_time: '17:00' });
+    expect(overlaps(session('a'), playtest)).toBe(false);
+    expect(overlaps(playtest, session('a'))).toBe(false);
+  });
+
+  it('lets two playtests sit on top of each other', () => {
+    // Follows from the rule rather than being a separate decision: if holding a
+    // playtest never occupies you, two of them cannot conflict either.
+    const a = session('a', { kind: 'playtest' });
+    const b = session('b', { kind: 'playtest', start_time: '15:00', end_time: '17:00' });
+    expect(overlaps(a, b)).toBe(false);
+  });
 });
 
 describe('bookingBlock', () => {
@@ -221,6 +238,16 @@ describe('bookingBlock', () => {
     const sunday = session('sunday', { day: '2026-09-13' });
     // The server refuses independently; the app must not invent a restriction.
     expect(bookingBlock(sunday, mine, [...schedule, sunday], null)).toBeNull();
+  });
+
+  it('lets a session through when the booking it overlaps is a playtest', () => {
+    const playtest = session('held', { kind: 'playtest' });
+    expect(bookingBlock(clashing, mine, [playtest, clashing, later], ['2026-09-12'])).toBeNull();
+  });
+
+  it('lets a playtest through when it overlaps something they hold', () => {
+    const wanted = session('wanted', { kind: 'playtest', start_time: '15:00', end_time: '17:00' });
+    expect(bookingBlock(wanted, mine, [...schedule, wanted], ['2026-09-12'])).toBeNull();
   });
 
   it('counts a queued place as held', () => {
