@@ -230,3 +230,35 @@ describe('hasFullAccess', () => {
     expect(hasFullAccess(['basic_admin'], '/api/admin/registrations')).toBe(true);
   });
 });
+
+describe('the arrivals list', () => {
+  const ARRIVALS = '/api/admin/check-in/arrivals';
+
+  it('is full admins only — not even a basic admin', () => {
+    // The one screen that hands over every attendee's number in full. The staff
+    // table was the only other thing a basic admin could not reach; this is the
+    // second, and the list should stay that short.
+    expect(mayReach(['admin'], ARRIVALS)).toBe(true);
+    expect(mayReach(['basic_admin'], ARRIVALS)).toBe(false);
+  });
+
+  it('is kept from the desk that owns every other check-in route', () => {
+    // The desk works from masked numbers on purpose, so this must not be
+    // inherited from the `/api/admin/check-in` prefix it sits under.
+    expect(mayReach(['check_in'], ARRIVALS)).toBe(false);
+    expect(mayReach(['check_in'], '/api/admin/check-in/totals')).toBe(true);
+    expect(rolesForPath(ARRIVALS)).toEqual([]);
+  });
+
+  it('is not reachable through the shared read-only floor either', () => {
+    for (const role of ['read_only', 'library', 'programme']) {
+      expect(mayReach([role], ARRIVALS, 'GET')).toBe(false);
+    }
+  });
+
+  it('leaves the staff boundary exactly as it was', () => {
+    expect(mayReach(['basic_admin'], '/api/admin/staff', 'GET')).toBe(false);
+    expect(mayReach(['basic_admin'], '/api/admin/check-in', 'POST')).toBe(true);
+    expect(mayReach(['basic_admin'], '/api/admin/registrations', 'PATCH')).toBe(true);
+  });
+});

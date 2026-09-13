@@ -91,3 +91,32 @@ export function hasArrivedOn(events: readonly CheckInEvent[], day: EventDay): bo
 export function nextKind(events: readonly CheckInEvent[], day: EventDay): EventKind {
   return currentState(events)[day] === 'in' ? 'out' : 'in';
 }
+
+/**
+ * When each day's first live arrival happened, or null for a day nobody came.
+ *
+ * The *first* rather than the latest, because this answers "what time did they
+ * get here" — a lunch break followed by a second check-in must not rewrite the
+ * arrival time on the record.
+ */
+export function firstArrivalPerDay(events: readonly CheckInEvent[]): Record<EventDay, string | null> {
+  const first: Record<EventDay, string | null> = { day1: null, day2: null };
+  for (const event of liveEvents(events).sort(byTime)) {
+    if (event.kind === 'in' && first[event.day] === null) first[event.day] = event.occurred_at;
+  }
+  return first;
+}
+
+/**
+ * When each day's last live event happened, arrival or exit.
+ *
+ * Pairs with `currentState`: that says whether they are inside, this says as of
+ * when — which is the difference between "left" and "left four hours ago".
+ */
+export function lastMovementPerDay(events: readonly CheckInEvent[]): Record<EventDay, string | null> {
+  const last: Record<EventDay, string | null> = { day1: null, day2: null };
+  for (const event of liveEvents(events).sort(byTime)) {
+    last[event.day] = event.occurred_at;
+  }
+  return last;
+}

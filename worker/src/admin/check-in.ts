@@ -22,8 +22,10 @@ import { getCurrentEdition } from '../editions';
 import { editionDayForToday, pairingGateDay } from './pairing';
 import {
   currentState,
+  firstArrivalPerDay,
   hasArrivedOn,
   lastEventPerDay,
+  lastMovementPerDay,
   type CheckInEvent,
   type EventDay,
   type EventKind,
@@ -33,7 +35,7 @@ const DAYS: readonly EventDay[] = ['day1', 'day2'];
 const KINDS: readonly EventKind[] = ['in', 'out'];
 const SEARCH_LIMIT = 20;
 /** Far beyond this event's scale; PostgREST would otherwise stop at its default. */
-const TOTALS_ROW_LIMIT = 10000;
+const FULL_SCAN_LIMIT = 10000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -351,15 +353,15 @@ export async function handleCheckInTotals(
       .select('id, days')
       .eq('edition_id', edition.id)
       .eq('payment_status', 'confirmed')
-      .limit(TOTALS_ROW_LIMIT),
+      .limit(FULL_SCAN_LIMIT),
     sb.from('attendees')
       .select('id, registration_id')
       .eq('edition_id', edition.id)
-      .limit(TOTALS_ROW_LIMIT),
+      .limit(FULL_SCAN_LIMIT),
     sb.from('check_in_events')
       .select('id, attendee_id, day, kind, voids_event_id, occurred_at')
       .eq('edition_id', edition.id)
-      .limit(TOTALS_ROW_LIMIT),
+      .limit(FULL_SCAN_LIMIT),
   ]);
   if (regs.error || attendees.error || events.error) {
     return adminJson({ error: 'query_failed' }, 500, origin);
@@ -386,6 +388,158 @@ export async function handleCheckInTotals(
     200,
     origin,
   );
+}
+
+export interface ArrivalRow {
+  attendee_id: string;
+  name: string;
+  seat_index: number;
+  is_purchaser: boolean;
+  /** This seat's own number, in full, or null if nobody has taken one. */
+  phone: string | null;
+  /** The buyer's number, in full — on a guest seat it is the only one there is. */
+  purchaser_phone: string;
+  purchaser_name: string | null;
+  purchaser_email: string | null;
+  pass_type: string;
+  days: EventDay[];
+  /** Where they are now, per day. */
+  state: Record<EventDay, EventKind | null>;
+  /** What time they first got here, per day. */
+  arrived_at: Record<EventDay, string | null>;
+  /** Their last movement either way, so "left" can be read as "left when". */
+  last_seen_at: Record<EventDay, string | null>;
+}
+
+/**
+ * Everyone who has actually come through the door, named and numbered in full.
+ *
+ * The rest of this file masks phone numbers to the last four digits, and that
+ * is right for the desk: a volunteer verifying somebody at the door needs to
+ * check a number against what they are told, not to read one out, and a tablet
+ * left on a table is a sheet of 273 numbers. This is the deliberate exception —
+ * the organiser chasing a lost bag, a missing child, or a no-show host needs to
+ * ring the person, and a masked number cannot do that. It is why the route is
+ * full-admin-only in `roles.ts` rather than part of the check-in desk's grant.
+ *
+ * Arrival is the filter, not merely the ticket: this answers "who is here", so
+ * a seat that was sold and never turned up is absent from it. The roster export
+ * already answers "who was expected".
+ */
+export async function handleCheckInArrivals(
+  req: Request,
+  env: Env,
+  sb: SupabaseClient,
+  actorEmail: string,
+  origin: string,
+): Promise<Response> {
+  const edition = await getCurrentEdition(env);
+  if (!edition) return adminJson({ error: 'no_current_edition' }, 503, origin);
+
+  // An unrecognised day is treated as no filter rather than refused: this is a
+  // list somebody is reading, and returning both days is never the wrong answer.
+  const requested = new URL(req.url).searchParams.get('day');
+  const dayFilter = DAYS.includes(requested as EventDay) ? (requested as EventDay) : null;
+
+  const [regs, attendees, events] = await Promise.all([
+    sb.from('registrations')
+      .select('id, user_phone, pass_type, days, seats')
+      .eq('edition_id', edition.id)
+      .eq('payment_status', 'confirmed')
+      .limit(FULL_SCAN_LIMIT),
+    sb.from('attendees')
+      .select('id, seat_index, display_name, phone, is_purchaser, registration_id')
+      .eq('edition_id', edition.id)
+      .limit(FULL_SCAN_LIMIT),
+    sb.from('check_in_events')
+      .select('id, attendee_id, day, kind, voids_event_id, occurred_at')
+      .eq('edition_id', edition.id)
+      .limit(FULL_SCAN_LIMIT),
+  ]);
+  if (regs.error || attendees.error || events.error) {
+    return adminJson({ error: 'query_failed' }, 500, origin);
+  }
+
+  // Seats on a cancelled or unpaid registration are not people who arrived,
+  // whatever rows the database still holds for them — so the join is the filter.
+  const byReg = new Map(((regs.data ?? []) as RegistrationRow[]).map((r) => [r.id, r]));
+  const seats = ((attendees.data ?? []) as AttendeeRow[]).filter((a) => byReg.has(a.registration_id));
+  const all = (events.data ?? []) as AttendeeEvent[];
+
+  const present = seats.filter((seat) => {
+    const own = eventsFor(all, seat.id);
+    return dayFilter
+      ? hasArrivedOn(own, dayFilter)
+      : DAYS.some((day) => hasArrivedOn(own, day));
+  });
+
+  // One lookup for the buyers behind the seats that are left, rather than one
+  // per seat: a family of four shares a purchaser.
+  const phones = [...new Set(present.map((seat) => byReg.get(seat.registration_id)!.user_phone))];
+  const buyers = phones.length > 0
+    ? await sb.from('users').select('phone, name, email').in('phone', phones)
+    : { data: [], error: null };
+  if (buyers.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const buyerByPhone = new Map(
+    ((buyers.data ?? []) as Array<{ phone: string; name: string | null; email: string | null }>)
+      .map((u) => [u.phone, u]),
+  );
+
+  const arrivals: ArrivalRow[] = present.map((seat) => {
+    const reg = byReg.get(seat.registration_id)!;
+    const own = eventsFor(all, seat.id);
+    const buyer = buyerByPhone.get(reg.user_phone);
+    return {
+      attendee_id: seat.id,
+      name: seatLabel(seat.display_name, seat.seat_index),
+      seat_index: seat.seat_index,
+      is_purchaser: seat.is_purchaser,
+      phone: seat.phone,
+      purchaser_phone: reg.user_phone,
+      purchaser_name: buyer?.name ?? null,
+      purchaser_email: buyer?.email ?? null,
+      pass_type: reg.pass_type,
+      days: reg.days,
+      state: currentState(own),
+      arrived_at: firstArrivalPerDay(own),
+      last_seen_at: lastMovementPerDay(own),
+    };
+  });
+
+  // Most recent movement first. The organiser opening this during the event
+  // wants the last half hour at the top; anyone looking for one person searches.
+  arrivals.sort((a, b) => latestMovement(b) - latestMovement(a));
+
+  // A read, audited. This is the one screen that hands somebody every
+  // attendee's number in full, and who pulled it is worth being able to answer
+  // later. It is allowed to fail quietly: the rows are already assembled, and
+  // refusing the organiser their own attendee list because a log row would not
+  // insert helps nobody standing at a venue.
+  try {
+    await writeAudit(sb, {
+      actor_email: actorEmail,
+      action: 'check_in.arrivals_viewed',
+      target_table: 'attendees',
+      target_id: edition.id,
+      diff: { day: dayFilter, rows: arrivals.length },
+    });
+  } catch {
+    // Logged by the insert path; not the organiser's problem.
+  }
+
+  return adminJson(
+    { edition: edition.slug, day: dayFilter, generated_at: new Date().toISOString(), arrivals },
+    200,
+    origin,
+  );
+}
+
+/** Sort key: the later of the two days' last movements, as a timestamp. */
+function latestMovement(row: ArrivalRow): number {
+  return Math.max(...DAYS.map((day) => {
+    const at = row.last_seen_at[day];
+    return at ? Date.parse(at) : 0;
+  }));
 }
 
 interface CheckInRequest {

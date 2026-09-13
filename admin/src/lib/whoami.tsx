@@ -50,6 +50,18 @@ export function useCanManageEvents(): boolean {
   return mine.includes('admin') || mine.includes('basic_admin');
 }
 
+/**
+ * Whether this person is a full admin, as opposed to a basic one.
+ *
+ * Narrower than every other check here, and used for exactly one thing: the
+ * arrivals list, which is every attendee's phone number in full. Mirrors
+ * `ADMIN_ONLY` in `worker/src/admin/roles.ts` — the Worker refuses the request
+ * regardless, this only keeps us from drawing a button that 403s.
+ */
+export function useIsFullAdmin(): boolean {
+  return (useContext(Ctx)?.roles ?? []).includes('admin');
+}
+
 export function WhoAmIProvider({ fallback, children }: { fallback: ReactNode; children: (who: WhoAmI) => ReactNode }) {
   const [who, setWho] = useState<WhoAmI | null>(null);
   const [loaded, setLoaded] = useState(false);

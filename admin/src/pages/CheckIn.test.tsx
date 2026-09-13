@@ -3,6 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 vi.mock('@/lib/api', () => ({ fetchAdmin: vi.fn(), showApiError: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }));
+
+/** Only `useIsFullAdmin` is faked; the rest of the module behaves normally. */
+const who = { fullAdmin: false };
+vi.mock('@/lib/whoami', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/whoami')>()),
+  useIsFullAdmin: () => who.fullAdmin,
+}));
 import { fetchAdmin } from '@/lib/api';
 import CheckIn, { DayTally, missingIdentity } from './CheckIn';
 
@@ -80,7 +87,23 @@ async function searchFor(term = '9876543210') {
   return user;
 }
 
-beforeEach(() => { api.mockReset(); });
+beforeEach(() => { api.mockReset(); who.fullAdmin = false; });
+
+describe('the arrivals list', () => {
+  it('is not offered to the desk, which works from masked numbers', async () => {
+    mockApi({ registrations: [] });
+    render(<CheckIn />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Roster' })).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /Who’s in/i })).not.toBeInTheDocument();
+  });
+
+  it('is offered to a full admin', async () => {
+    who.fullAdmin = true;
+    mockApi({ registrations: [] });
+    render(<CheckIn />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /Who’s in/i })).toBeInTheDocument());
+  });
+});
 
 describe('CheckIn', () => {
   it('offers undo for a day that has something to reverse', async () => {

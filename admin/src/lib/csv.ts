@@ -174,3 +174,55 @@ export function ledgerToCsv(loans: readonly LedgerLoan[], withdrawn: readonly Le
 
   return toCsv(LEDGER_HEADERS, rows);
 }
+
+const ARRIVALS_HEADERS = [
+  'name', 'phone', 'seat', 'ticket_holder', 'buyer', 'buyer_phone', 'buyer_email',
+  'pass', 'days', 'day1_arrived', 'day1_state', 'day2_arrived', 'day2_state',
+] as const;
+
+export interface ExportableArrival {
+  name: string;
+  phone: string | null;
+  seat_index: number;
+  is_purchaser: boolean;
+  purchaser_name: string | null;
+  purchaser_phone: string;
+  purchaser_email: string | null;
+  pass_type: string;
+  days: readonly string[];
+  state: Record<string, string | null>;
+  arrived_at: Record<string, string | null>;
+}
+
+/**
+ * Who came through the door, with numbers that can actually be rung.
+ *
+ * The door roster masks phones because it is carried around a venue and checked
+ * against what somebody standing there tells you. This one has the opposite job
+ * — ringing the person who left a bag, or the parent of a child nobody can find
+ * — and a masked number cannot do it. Full admins only, same as the screen.
+ *
+ * A guest seat falls back to the buyer's number in its own column rather than in
+ * the attendee's: knowing whose number you are about to ring is the difference
+ * between a useful call and a confusing one.
+ */
+export function arrivalsToCsv(arrivals: readonly ExportableArrival[]): string {
+  return toCsv(
+    ARRIVALS_HEADERS,
+    arrivals.map((a) => [
+      a.name,
+      a.phone ?? '',
+      a.seat_index,
+      a.is_purchaser ? 'bought the ticket' : 'guest',
+      a.purchaser_name ?? '',
+      a.purchaser_phone,
+      a.purchaser_email ?? '',
+      a.pass_type,
+      a.days.join(' + '),
+      a.arrived_at.day1 ?? '',
+      a.days.includes('day1') ? (a.state.day1 ?? 'not arrived') : 'n/a',
+      a.arrived_at.day2 ?? '',
+      a.days.includes('day2') ? (a.state.day2 ?? 'not arrived') : 'n/a',
+    ]),
+  );
+}

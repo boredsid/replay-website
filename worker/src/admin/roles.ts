@@ -33,6 +33,24 @@ export const ROLE_LABELS: Record<Role, string> = {
 const STAFF_PREFIX = '/api/admin/staff';
 
 /**
+ * Paths a basic admin does not reach either — full admins only.
+ *
+ * Deliberately short, and it should stay that way: the difference between the
+ * two admin roles is meant to be one boundary, not a growing list of
+ * exceptions somebody has to hold in their head. A path earns a place here by
+ * handing over something a basic admin has no other route to.
+ *
+ * The arrivals list is the second entry. Everywhere else in the admin, an
+ * attendee's phone number is either masked or attached to the one booking
+ * somebody is looking at; that endpoint is the whole building's numbers in
+ * full, in one response, which is a different kind of object.
+ */
+const ADMIN_ONLY: readonly string[] = [
+  STAFF_PREFIX,
+  '/api/admin/check-in/arrivals',
+];
+
+/**
  * Longest-prefix wins, so `/check-in/roster` can differ from `/check-in`.
  *
  * `admin` is not listed anywhere: it reaches everything, checked separately.
@@ -46,6 +64,12 @@ const RULES: ReadonlyArray<{ prefix: string; roles: readonly Role[] }> = [
 
   // The desk. Roster and search are how somebody is found at the door.
   { prefix: '/api/admin/check-in', roles: ['check_in'] },
+  // Except the arrivals list, which is every attendee's number in full. Empty
+  // rather than absent: the desk's prefix above would otherwise swallow it, and
+  // an explicit empty rule says "classified, and the answer is nobody" where a
+  // missing one would only mean nobody had looked. See ADMIN_ONLY, which keeps
+  // a basic admin out of it too.
+  { prefix: '/api/admin/check-in/arrivals', roles: [] },
   { prefix: '/api/admin/attendees', roles: ['check_in'] },
 
   // Scanning a pass is the first step at both counters.
@@ -105,7 +129,7 @@ export function rolesForPath(path: string): readonly Role[] {
 /** Full access: may change this, not merely look at it. */
 export function hasFullAccess(roles: readonly string[], path: string): boolean {
   if (roles.includes('admin')) return true;
-  if (roles.includes('basic_admin')) return !path.startsWith(STAFF_PREFIX);
+  if (roles.includes('basic_admin')) return !ADMIN_ONLY.some((prefix) => path.startsWith(prefix));
   return rolesForPath(path).some((role) => roles.includes(role));
 }
 
