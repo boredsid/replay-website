@@ -166,16 +166,16 @@ describe('handleSessionSignupCreate', () => {
         if (table === 'schedule_items') return {
           select: () => ({
             eq: () => ({ maybeSingle: async () => ({
-              data: { day: '2026-09-12', start_time: '14:00', end_time: '16:00', is_all_day: false },
+              data: { kind: 'tournament', day: '2026-09-12', start_time: '14:00', end_time: '16:00', is_all_day: false },
               error: null,
             }) }),
             in: async () => ({
               data: [
                 // Same slot, so this is the one staff need to know about.
-                { title: 'Catan', day: '2026-09-12', start_time: '15:00', end_time: '17:00', is_all_day: false, public_status: 'published' },
+                { title: 'Catan', kind: 'social-game', day: '2026-09-12', start_time: '15:00', end_time: '17:00', is_all_day: false, public_status: 'published' },
                 // Back to back, not overlapping: naming this would send staff
                 // to cancel a booking that was never in the way.
-                { title: 'Quiz', day: '2026-09-12', start_time: '16:00', end_time: '18:00', is_all_day: false, public_status: 'published' },
+                { title: 'Quiz', kind: 'quiz', day: '2026-09-12', start_time: '16:00', end_time: '18:00', is_all_day: false, public_status: 'published' },
               ],
               error: null,
             }),
@@ -191,6 +191,39 @@ describe('handleSessionSignupCreate', () => {
     const res = await handleSessionSignupCreate(body(A1), client, SESSION, STAFF, ORIGIN);
 
     expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'They are already booked into Catan, which overlaps this session.' });
+  });
+
+  it('does not name a playtest as the clash', async () => {
+    // A playtest cannot be what the database refused over, so naming one would
+    // send staff to cancel a booking that was never in the way.
+    const client = {
+      rpc: async () => ({ data: null, error: { message: 'error: session_clash' } }),
+      from: (table: string) => {
+        if (table === 'schedule_items') return {
+          select: () => ({
+            eq: () => ({ maybeSingle: async () => ({
+              data: { kind: 'tournament', day: '2026-09-12', start_time: '14:00', end_time: '16:00', is_all_day: false },
+              error: null,
+            }) }),
+            in: async () => ({
+              data: [
+                { title: 'Prototype table', kind: 'playtest', day: '2026-09-12', start_time: '15:00', end_time: '17:00', is_all_day: false, public_status: 'published' },
+                { title: 'Catan', kind: 'social-game', day: '2026-09-12', start_time: '15:30', end_time: '17:00', is_all_day: false, public_status: 'published' },
+              ],
+              error: null,
+            }),
+          }),
+        };
+        if (table === 'session_signups') return {
+          select: () => ({ eq: () => ({ neq: async () => ({ data: [{ schedule_item_id: 'x' }], error: null }) }) }),
+        };
+        throw new Error(`unexpected table ${table}`);
+      },
+    } as never;
+
+    const res = await handleSessionSignupCreate(body(A1), client, SESSION, STAFF, ORIGIN);
+
     expect(await res.json()).toEqual({ error: 'They are already booked into Catan, which overlaps this session.' });
   });
 

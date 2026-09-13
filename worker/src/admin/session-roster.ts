@@ -125,6 +125,13 @@ function readIds(scheduleItemId: string, attendeeId: unknown): BookingResult<str
  * allowed to be a second round trip and allowed to come back empty — a message
  * without a name is worse than one with, and far better than a slug.
  */
+/**
+ * The one kind that never clashes: a playtest is come-and-go, so holding one is
+ * not the same as being in a room for an hour. Must agree with the SQL guard and
+ * with `overlaps` in the attendee app.
+ */
+const PLAYTEST = 'playtest';
+
 async function clashingSession(
   sb: SupabaseClient,
   attendeeId: string,
@@ -132,12 +139,13 @@ async function clashingSession(
 ): Promise<string | null> {
   const item = await sb
     .from('schedule_items')
-    .select('day, start_time, end_time, is_all_day')
+    .select('kind, day, start_time, end_time, is_all_day')
     .eq('id', scheduleItemId)
     .maybeSingle();
   const target = item.data as
-    { day: string; start_time: string | null; end_time: string | null; is_all_day: boolean } | null;
+    { kind: string; day: string; start_time: string | null; end_time: string | null; is_all_day: boolean } | null;
   if (!target || target.is_all_day || !target.start_time || !target.end_time) return null;
+  if (target.kind === PLAYTEST) return null;
 
   const held = await sb
     .from('session_signups')
@@ -151,12 +159,12 @@ async function clashingSession(
 
   const others = await sb
     .from('schedule_items')
-    .select('title, day, start_time, end_time, is_all_day, public_status')
+    .select('title, kind, day, start_time, end_time, is_all_day, public_status')
     .in('id', ids);
   if (others.error) return null;
 
   const rows = (others.data ?? []) as Array<{
-    title: string; day: string; start_time: string | null;
+    title: string; kind: string; day: string; start_time: string | null;
     end_time: string | null; is_all_day: boolean; public_status: string;
   }>;
 
@@ -166,6 +174,7 @@ async function clashingSession(
     other.public_status === 'published'
     && other.day === target.day
     && !other.is_all_day
+    && other.kind !== PLAYTEST
     && other.start_time !== null && other.end_time !== null
     && other.start_time < target.end_time!
     && target.start_time! < other.end_time

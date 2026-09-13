@@ -140,18 +140,36 @@ export function seatsLabel(seatsRemaining: number | null): string | null {
 }
 
 /**
+ * Playtests are come-and-go, so they are not a room somebody is stuck in.
+ *
+ * Mirrors `kind = 'playtest'` in the SQL guard and in the desk's copy. The test
+ * is on the kind rather than the `playtesting` section because the kind is what
+ * every layer already carries.
+ */
+function isPlaytest(item: ScheduleItem): boolean {
+  return item.kind === 'playtest';
+}
+
+/**
  * Whether two sessions cannot both be attended.
  *
  * Must agree with the guard in `sign_up_for_session`, which is the one that
  * actually decides — this copy exists so the app can grey a button out rather
- * than let someone tap it and be told no. Three rules, all matching the SQL:
+ * than let someone tap it and be told no. Four rules, all matching the SQL:
  * a different day never clashes, an all-day item clashes with nothing (one
- * open-play sign-up must not swallow the whole programme), and touching ends
- * are back to back rather than overlapping.
+ * open-play sign-up must not swallow the whole programme), a playtest clashes
+ * with nothing either, and touching ends are back to back rather than
+ * overlapping.
+ *
+ * The playtest rule is deliberately symmetric — it exempts the session being
+ * booked as readily as the one already held. Exempting only the held side would
+ * make the same pair of bookings reachable in one order and refused in the
+ * other, which reads as a bug rather than a rule.
  */
 export function overlaps(a: ScheduleItem, b: ScheduleItem): boolean {
   if (a.day !== b.day) return false;
   if (a.is_all_day || b.is_all_day) return false;
+  if (isPlaytest(a) || isPlaytest(b)) return false;
   if (!a.start_time || !a.end_time || !b.start_time || !b.end_time) return false;
   return a.start_time < b.end_time && b.start_time < a.end_time;
 }
