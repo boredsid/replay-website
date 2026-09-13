@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/Loading';
 import PairingCodePanel from '@/components/PairingCodePanel';
+import ArrivalsDialog from '@/components/ArrivalsDialog';
+import { useIsFullAdmin } from '@/lib/whoami';
 import { downloadCsv, rosterToCsv } from '@/lib/csv';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import {
@@ -83,8 +85,10 @@ export default function CheckIn() {
   const [exporting, setExporting] = useState(false);
   const [codes, setCodes] = useState<Record<string, PairingCode>>({});
   const [totals, setTotals] = useState<CheckInTotals | null>(null);
+  const [arrivalsOpen, setArrivalsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const online = useOnlineStatus();
+  const isFullAdmin = useIsFullAdmin();
 
   // The desk types a number the moment someone walks up; nothing else on this
   // screen deserves the cursor.
@@ -448,7 +452,17 @@ export default function CheckIn() {
         <Button type="button" variant="outline" onClick={() => void exportRoster()} disabled={exporting}>
           {exporting ? 'Preparing…' : 'Roster'}
         </Button>
+        {/* Full admins only. The desk works from masked numbers all weekend;
+            this is the one place the full list is readable, and the Worker
+            refuses it for everybody else regardless of what is drawn here. */}
+        {isFullAdmin && (
+          <Button type="button" variant="outline" onClick={() => setArrivalsOpen(true)}>
+            Who’s in
+          </Button>
+        )}
       </form>
+
+      {isFullAdmin && <ArrivalsDialog open={arrivalsOpen} onOpenChange={setArrivalsOpen} />}
 
       {searching && <Loading><span>Searching…</span></Loading>}
 

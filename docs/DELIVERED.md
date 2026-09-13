@@ -233,6 +233,18 @@ against people through the door.
 > arrivals are not in it yet, and the card says so rather than letting the desk
 > learn to distrust the figure.
 
+> **Full admins alone see who is in the building, unmasked.** Everywhere else
+> on the desk a phone number is the last four digits, because that is all a
+> volunteer verifying somebody at the door needs and a tablet left on a table
+> should not be a sheet of 273 numbers. "Who's in" is the exception, for the
+> organiser who has to ring the owner of a lost bag or a host who has not shown
+> up: every arrival with their own number, the buyer behind each guest seat,
+> arrival times in IST, whether they are still inside, and a CSV. Arrival is
+> the filter rather than the ticket, so a seat that was sold and never used is
+> absent — the roster export already answers who was expected. The route is in
+> `ADMIN_ONLY` in `worker/src/admin/roles.ts`, which a basic admin does not
+> reach either, and the read is audited.
+
 ### Game library desk (P4)
 
 One screen. Scan a pass — or search by phone for somebody without the app — and

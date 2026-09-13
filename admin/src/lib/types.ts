@@ -389,6 +389,41 @@ export interface CheckInTotals {
   days: Record<CheckInDay, CheckInDayTotals>;
 }
 
+/**
+ * One person who actually came through the door, in full.
+ *
+ * The only place in the admin where an attendee's number is not masked, which
+ * is why the Worker keeps it to full admins. Everything else the check-in desk
+ * sees is deliberately `phone_masked`.
+ */
+export interface ArrivalRow {
+  attendee_id: string;
+  name: string;
+  seat_index: number;
+  is_purchaser: boolean;
+  /** This seat's own number, or null on a seat nobody has taken one for. */
+  phone: string | null;
+  /** The buyer's number — on a guest seat it is the only one there is. */
+  purchaser_phone: string;
+  purchaser_name: string | null;
+  purchaser_email: string | null;
+  pass_type: PassType;
+  days: CheckInDay[];
+  state: Record<CheckInDay, CheckInPresence>;
+  /** What time they first arrived, per day. */
+  arrived_at: Record<CheckInDay, string | null>;
+  /** Their last movement either way, so "left" reads as "left when". */
+  last_seen_at: Record<CheckInDay, string | null>;
+}
+
+export interface ArrivalsResponse {
+  edition: string;
+  /** The day asked for, or null when both are included. */
+  day: CheckInDay | null;
+  generated_at: string;
+  arrivals: ArrivalRow[];
+}
+
 export interface RosterRow {
   attendee_id: string;
   name: string;
