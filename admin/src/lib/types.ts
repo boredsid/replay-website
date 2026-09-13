@@ -194,12 +194,29 @@ export interface EventSession {
   capacity: number | null;
   public_status: SchedulePublicStatus;
   seats_remaining: number | null;
+  /**
+   * Whether the person reading this may change *this* session's bookings.
+   *
+   * Not the same question as whether they can see it: an event manager who also
+   * works a desk reads the whole board through the desk and writes only the
+   * sessions named as theirs. Absent on an older payload, where every session
+   * shown was one the viewer's role decided as a whole.
+   */
+  can_manage?: boolean;
   confirmed: EventBooking[];
   waitlisted: EventBooking[];
 }
 
 export interface EventsOverview {
   edition: { id: string; slug: string; name: string };
+  /**
+   * Whether the Worker narrowed this to the caller's own sessions.
+   *
+   * True only for an event manager, and it is what tells an empty board apart
+   * from an empty programme — "nothing has been assigned to you" and "nothing
+   * is bookable yet" are different problems with different people to ask.
+   */
+  scoped?: boolean;
   sessions: EventSession[];
 }
 

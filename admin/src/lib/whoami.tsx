@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { fetchAdmin } from './api';
 
-export type Role = 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme';
+export type Role =
+  | 'admin' | 'basic_admin' | 'read_only' | 'check_in' | 'library' | 'programme' | 'event_manager';
 
 interface WhoAmI { email: string; name?: string | null; roles?: Role[]; }
 const Ctx = createContext<WhoAmI | null>(null);
@@ -40,14 +41,37 @@ export function useCanWrite(...owners: Role[]): boolean {
  * Whether this person may change a booking from the events board.
  *
  * Narrower than `useCanWrite` on purpose. The events board is readable by every
- * member of staff and writable by the two admin roles alone — a desk role that
- * needs to move somebody uses the session roster, which it already owns. The
- * Worker enforces this; hiding the buttons only keeps us from offering one that
- * 403s.
+ * member of staff and writable by the two admin roles and `event_manager` — a
+ * desk role that needs to move somebody uses the session roster, which it
+ * already owns. The Worker enforces this; hiding the buttons only keeps us from
+ * offering one that 403s.
+ *
+ * For an event manager it is true of everything on their screen, because the
+ * screen only holds sessions that are theirs — the Worker scoped the payload
+ * before it arrived, and refuses anything outside it besides.
  */
 export function useCanManageEvents(): boolean {
   const mine = useContext(Ctx)?.roles ?? [];
-  return mine.includes('admin') || mine.includes('basic_admin');
+  return mine.includes('admin') || mine.includes('basic_admin') || mine.includes('event_manager');
+}
+
+/**
+ * Whether this person carries the shared read-only floor.
+ *
+ * Mirrors `READ_FLOOR_ROLES` in `worker/src/admin/roles.ts`. Every role does
+ * except `event_manager`, which is granted named sessions rather than pages —
+ * so it is the one role for which the programme, the notices and the ticket
+ * list are not there, and links to them should not be drawn.
+ */
+export function useHasReadFloor(): boolean {
+  const mine = useContext(Ctx)?.roles ?? [];
+  return hasReadFloor(mine);
+}
+
+/** The same question, for code that already holds the roles. */
+export function hasReadFloor(roles: readonly string[]): boolean {
+  if (roles.includes('admin') || roles.includes('basic_admin')) return true;
+  return (['read_only', 'check_in', 'library', 'programme'] as string[]).some((role) => roles.includes(role));
 }
 
 /**

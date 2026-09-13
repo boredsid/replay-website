@@ -6,7 +6,8 @@ import BottomTabBar from './BottomTabBar';
 // The bar is role-aware now, and a bare render has no provider — which is
 // correctly an empty bar, not a useful test.
 const roles = vi.hoisted(() => ({ current: ['admin'] as string[] }));
-vi.mock('@/lib/whoami', () => ({
+vi.mock('@/lib/whoami', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/whoami')>()),
   useWhoAmI: () => ({ email: 'a@x.com', roles: roles.current }),
 }));
 

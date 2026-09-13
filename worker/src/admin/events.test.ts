@@ -31,6 +31,9 @@ function session(over: Record<string, unknown> = {}) {
  * else so a fourth query added later shows up as a failing test rather than a
  * slower page.
  */
+/** The ids the last session query was narrowed to, or null if it was not. */
+let scopedTo: string[] | null = null;
+
 function overviewClient(options: {
   sessions?: Array<Record<string, unknown>>;
   signups?: Array<Record<string, unknown>>;
@@ -43,6 +46,7 @@ function overviewClient(options: {
       if (table === 'schedule_items') {
         const chain: Record<string, unknown> = {};
         chain.eq = () => chain;
+        chain.in = (_column: string, ids: string[]) => { scopedTo = ids; return chain; };
         chain.order = () => chain;
         // The last `.order()` is awaited directly, so the chain resolves too.
         chain.then = (resolve: (v: unknown) => void) => resolve({ data: sessions, error: null });
@@ -51,6 +55,7 @@ function overviewClient(options: {
       if (table === 'session_signups') {
         const chain: Record<string, unknown> = {};
         chain.eq = () => chain;
+        chain.in = () => chain;
         chain.neq = () => chain;
         chain.order = () => chain;
         chain.limit = async () => ({ data: signups, error: signupError ?? null });
@@ -79,6 +84,7 @@ const post = (body: unknown) => new Request('https://x', { method: 'POST', body:
 
 beforeEach(() => {
   vi.clearAllMocks();
+  scopedTo = null;
   vi.mocked(getCurrentEdition).mockResolvedValue(EDITION as never);
 });
 
@@ -250,5 +256,90 @@ describe('booking from the events board', () => {
       ENV, CTX, rpcClient({ data: [{ cancelled: false, promoted_attendee_id: null }] }), STAFF, ORIGIN,
     );
     expect(await res.json()).toEqual({ removed: false, promoted_attendee_id: null });
+  });
+});
+
+/**
+ * An `event_manager` reaches these routes like an admin does; what makes the
+ * role narrow is the scope handed in beside the request. `null` is the board as
+ * it has always been, and every other caller passes it.
+ */
+describe('a board scoped to somebody', () => {
+  it('asks only for the sessions in the scope', async () => {
+    await handleEventsOverview(
+      new Request('https://x'), ENV, overviewClient(), ORIGIN, new Set([S1]),
+    );
+    expect(scopedTo).toEqual([S1]);
+  });
+
+  it('leaves the query alone when there is no scope', async () => {
+    await handleEventsOverview(new Request('https://x'), ENV, overviewClient(), ORIGIN);
+    expect(scopedTo).toBeNull();
+  });
+
+  it('returns an empty board rather than asking for `id in ()`', async () => {
+    // PostgREST answers an empty `in` with every row, so an event manager with
+    // nothing assigned would otherwise be handed the whole edition.
+    const res = await handleEventsOverview(
+      new Request('https://x'), ENV, overviewClient(), ORIGIN, new Set(),
+    );
+    expect(await res.json()).toMatchObject({ scoped: true, sessions: [] });
+    expect(scopedTo).toBeNull();
+  });
+
+  it('says whether it was scoped, so the screen can word an empty board', async () => {
+    const open = await handleEventsOverview(new Request('https://x'), ENV, overviewClient(), ORIGIN);
+    expect(await open.json()).toMatchObject({ scoped: false });
+  });
+
+  it('marks each session with whether this caller may change it', async () => {
+    // An event manager who also works a desk reads the whole board and writes
+    // only their own, so the flag is per session rather than per payload —
+    // otherwise the screen offers a button the Worker will refuse.
+    const res = await handleEventsOverview(
+      new Request('https://x'), ENV,
+      overviewClient({ sessions: [session(), session({ id: S2, title: 'Quiz' })] }),
+      ORIGIN, null, new Set([S1]),
+    );
+    const body = await res.json() as { sessions: Array<{ id: string; can_manage: boolean }> };
+    expect(body.sessions.map((s) => [s.id, s.can_manage])).toEqual([[S1, true], [S2, false]]);
+  });
+
+  it('marks every session manageable when nothing is restricted', async () => {
+    const res = await handleEventsOverview(new Request('https://x'), ENV, overviewClient(), ORIGIN);
+    const body = await res.json() as { sessions: Array<{ can_manage: boolean }> };
+    expect(body.sessions.every((s) => s.can_manage)).toBe(true);
+  });
+
+  it('refuses a booking into a session that is not theirs', async () => {
+    const res = await handleEventsSignupCreate(
+      post({ schedule_item_id: S2, attendee_id: A1 }),
+      rpcClient({ data: [{ status: 'confirmed', queue_position: 0 }] }), STAFF, ORIGIN, new Set([S1]),
+    );
+    expect(res.status).toBe(403);
+    // A sentence, because the admin app shows this string as it arrives.
+    expect((await res.json() as { error: string }).error).toMatch(/not one of yours/);
+  });
+
+  it('refuses a removal from a session that is not theirs', async () => {
+    const res = await handleEventsSignupRemove(
+      new Request('https://x', { method: 'DELETE', body: JSON.stringify({ schedule_item_id: S2, attendee_id: A1 }) }),
+      ENV, CTX, rpcClient({ data: [{ cancelled: true, promoted_attendee_id: null }] }), STAFF, ORIGIN, new Set([S1]),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('allows both when the session is theirs', async () => {
+    const booked = await handleEventsSignupCreate(
+      post({ schedule_item_id: S1, attendee_id: A1 }),
+      rpcClient({ data: [{ status: 'confirmed', queue_position: 0 }] }), STAFF, ORIGIN, new Set([S1]),
+    );
+    expect(booked.status).toBe(200);
+
+    const removed = await handleEventsSignupRemove(
+      new Request('https://x', { method: 'DELETE', body: JSON.stringify({ schedule_item_id: S1, attendee_id: A1 }) }),
+      ENV, CTX, rpcClient({ data: [{ cancelled: true, promoted_attendee_id: null }] }), STAFF, ORIGIN, new Set([S1]),
+    );
+    expect(removed.status).toBe(200);
   });
 });

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { useWhoAmI, type Role } from '@/lib/whoami';
@@ -8,13 +9,92 @@ import { ShieldAlert, Trash2, UserPlus } from 'lucide-react';
 import {
   ALL_ROLES, ROLE_HINTS, ROLE_LABELS, orderRoles, reconcileRoles, sameRoles,
 } from '@/lib/staff-roles';
+import type { ScheduleItemRow } from '@/lib/types';
 
 interface StaffRow {
   email: string;
   name: string | null;
   roles: Role[];
+  /** The sessions they run. Only meaningful while they hold `event_manager`. */
+  events: string[];
   added_by: string | null;
   created_at: string;
+}
+
+/** Two sets of session ids, compared as sets rather than as arrays. */
+function sameEvents(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const right = new Set(b);
+  return a.every((id) => right.has(id));
+}
+
+function sessionLabel(item: ScheduleItemRow): string {
+  const when = item.is_all_day ? 'all day' : (item.start_time?.slice(0, 5) ?? '');
+  return `${item.day} · ${when}${item.location ? ` · ${item.location}` : ''}`;
+}
+
+/**
+ * The sessions an event manager may be given.
+ *
+ * Ticking boxes rather than a search field: an edition has a couple of dozen
+ * bookable sessions, which is a list somebody reads, not one they query. Only
+ * sessions set to "Book in the app" appear, because those are the only ones the
+ * events board shows — assigning anything else would be a grant over a page
+ * that stays empty.
+ */
+function EventPicker({ sessions, chosen, onToggle, disabled, failed }: {
+  sessions: ScheduleItemRow[];
+  chosen: readonly string[];
+  onToggle: (id: string) => void;
+  disabled?: boolean;
+  /** The programme could not be read, which is not the same as it being empty. */
+  failed?: boolean;
+}) {
+  return (
+    <fieldset className="space-y-2 rounded-md border bg-muted/30 p-3">
+      <legend className="px-1 text-sm font-medium">Which events are theirs?</legend>
+      {failed
+        ? (
+          <p className="text-sm text-muted-foreground">
+            The programme could not be read, so there is nothing to choose from. Reload the
+            page, and check there is a current edition.
+          </p>
+        )
+        : sessions.length === 0
+        ? (
+          <p className="text-sm text-muted-foreground">
+            No session is set to “Book in the app” yet. Turn booking on for one in the
+            {' '}<Link to="/programme" className="underline">programme</Link>{' '}and it can be
+            handed over here.
+          </p>
+        )
+        : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              They see and change the bookings for these, and nothing else anywhere in the admin.
+              With none ticked they can do nothing at all.
+            </p>
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {sessions.map((item) => (
+                <label key={item.id} className="flex items-start gap-2 rounded-md p-1 text-sm hover:bg-background">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={chosen.includes(item.id)}
+                    disabled={disabled}
+                    onChange={() => onToggle(item.id)}
+                  />
+                  <span>
+                    <span className="font-medium">{item.title}</span>
+                    <span className="block text-muted-foreground">{sessionLabel(item)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+    </fieldset>
+  );
 }
 
 type AccessSync =
@@ -36,11 +116,15 @@ export default function Staff() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [roles, setRoles] = useState<Role[]>(['check_in']);
+  const [newEvents, setNewEvents] = useState<string[]>([]);
   const [sync, setSync] = useState<AccessSync | null>(null);
   // Edits in progress, per person. Checkboxes change these; nothing is sent
   // until Update, so changing somebody from admin to two desks is one request
   // and one audit row rather than three of each.
   const [drafts, setDrafts] = useState<Record<string, Role[]>>({});
+  const [eventDrafts, setEventDrafts] = useState<Record<string, string[]>>({});
+  const [sessions, setSessions] = useState<ScheduleItemRow[]>([]);
+  const [sessionsFailed, setSessionsFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -50,6 +134,24 @@ export default function Staff() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Loaded once whether or not anybody is an event manager yet. A separate
+  // request the moment the box is ticked would make the picker appear empty for
+  // the second it takes to arrive, which reads as "there are no sessions".
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await fetchAdmin<{ items: ScheduleItemRow[] }>('/api/admin/schedule');
+        setSessions((data.items ?? []).filter((item) => item.signup_mode === 'app'));
+        setSessionsFailed(false);
+      } catch {
+        // No toast: this is furniture for one role's picker, and a page about
+        // staff should not open with an error about editions when there is no
+        // current one. The picker says so itself, where it is relevant.
+        setSessionsFailed(true);
+      }
+    })();
+  }, []);
 
   /** Says what happened to the perimeter, which is the half that is not ours. */
   const reportSync = (result: AccessSync | undefined) => {
@@ -70,23 +172,41 @@ export default function Staff() {
     try {
       const result = await fetchAdmin<{ ok: true; access_sync?: AccessSync }>('/api/admin/staff', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), name: name.trim() || null, roles }),
+        body: JSON.stringify({
+          email: email.trim(), name: name.trim() || null, roles,
+          events: roles.includes('event_manager') ? newEvents : [],
+        }),
       });
       toast.success(`${email.trim()} added`);
       reportSync(result.access_sync);
-      setEmail(''); setName(''); setRoles(['check_in']);
+      setEmail(''); setName(''); setRoles(['check_in']); setNewEvents([]);
       await load();
     } catch (error) { showApiError(error); } finally { setBusy(false); }
   };
 
   /** What the checkboxes for this person currently show. */
   const draftFor = (row: StaffRow): Role[] => drafts[row.email] ?? orderRoles(row.roles);
+  const eventsFor = (row: StaffRow): string[] => eventDrafts[row.email] ?? row.events ?? [];
 
   const toggleDraft = (row: StaffRow, role: Role) => {
     setDrafts((current) => ({
       ...current,
       [row.email]: orderRoles(reconcileRoles(draftFor(row), role)),
     }));
+  };
+
+  const toggleEvent = (row: StaffRow, id: string) => {
+    const mine = eventsFor(row);
+    setEventDrafts((current) => ({
+      ...current,
+      [row.email]: mine.includes(id) ? mine.filter((other) => other !== id) : [...mine, id],
+    }));
+  };
+
+  /** Forgets both drafts for one person, saved or abandoned. */
+  const clearDraft = (email: string) => {
+    setDrafts((current) => { const { [email]: _roles, ...rest } = current; return rest; });
+    setEventDrafts((current) => { const { [email]: _events, ...rest } = current; return rest; });
   };
 
   const saveRoles = async (row: StaffRow) => {
@@ -96,13 +216,12 @@ export default function Staff() {
     try {
       await fetchAdmin(`/api/admin/staff/${encodeURIComponent(row.email)}`, {
         method: 'PATCH',
-        body: JSON.stringify({ roles: next }),
+        // Sent whether or not they are an event manager: the Worker clears the
+        // set when the role goes, and saying so here keeps the two in step.
+        body: JSON.stringify({ roles: next, events: next.includes('event_manager') ? eventsFor(row) : [] }),
       });
       toast.success(`${row.name || row.email} updated`);
-      setDrafts((current) => {
-        const { [row.email]: _done, ...rest } = current;
-        return rest;
-      });
+      clearDraft(row.email);
       await load();
     } catch (error) { showApiError(error); } finally { setBusy(false); }
   };
@@ -131,7 +250,9 @@ export default function Staff() {
         <p className="text-sm text-muted-foreground">
           Everyone on staff can additionally <strong>read</strong> the programme,
           notices and bookings, whatever else they do. Bookings shown that way
-          carry no amounts and only the last four digits of a number.
+          carry no amounts and only the last four digits of a number. The one
+          exception is <strong>Event manager</strong>: it opens the events you
+          give them and nothing else in here, not even to look at.
         </p>
       </header>
 
@@ -183,6 +304,17 @@ export default function Staff() {
             </label>
           ))}
         </fieldset>
+        {roles.includes('event_manager') && (
+          <EventPicker
+            sessions={sessions}
+            failed={sessionsFailed}
+            chosen={newEvents}
+            disabled={busy}
+            onToggle={(id) => setNewEvents((current) => (
+              current.includes(id) ? current.filter((other) => other !== id) : [...current, id]
+            ))}
+          />
+        )}
         <Button type="submit" disabled={busy || !email.trim()}>Add</Button>
       </form>
 
@@ -190,7 +322,11 @@ export default function Staff() {
         {rows.map((row) => {
           const isMe = who?.email?.toLowerCase() === row.email.toLowerCase();
           const draft = draftFor(row);
-          const changed = !sameRoles(draft, row.roles);
+          const events = eventsFor(row);
+          // Either half counts as a change: moving somebody from one tournament
+          // to another leaves their roles alone and is still an edit to save.
+          const changed = !sameRoles(draft, row.roles)
+            || (draft.includes('event_manager') && !sameEvents(events, row.events ?? []));
           return (
             <li key={row.email} className="space-y-3 rounded-lg border p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -235,19 +371,20 @@ export default function Staff() {
                   Update
                 </Button>
                 {changed && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => setDrafts((current) => {
-                      const { [row.email]: _discard, ...rest } = current;
-                      return rest;
-                    })}
-                  >
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => clearDraft(row.email)}>
                     Cancel
                   </Button>
                 )}
               </div>
+              {draft.includes('event_manager') && (
+                <EventPicker
+                  sessions={sessions}
+                  failed={sessionsFailed}
+                  chosen={events}
+                  disabled={busy}
+                  onToggle={(id) => toggleEvent(row, id)}
+                />
+              )}
             </li>
           );
         })}

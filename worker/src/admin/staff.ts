@@ -19,6 +19,55 @@ function withSync(body: Record<string, unknown>, sync: SyncOutcome): Record<stri
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The sessions named on the request, or null if it named none.
+ *
+ * Null and `[]` are different answers: the first leaves an existing assignment
+ * alone, the second clears it. A PATCH that only changes somebody's name must
+ * not silently strip the events they run.
+ */
+function cleanEvents(input: unknown): string[] | null {
+  if (!Array.isArray(input)) return null;
+  const ids = [...new Set(input)].filter((id): id is string => typeof id === 'string' && UUID.test(id));
+  // Sixty is far more sessions than one person runs; a body claiming more is a
+  // mistake or a probe, and either way not worth writing.
+  return ids.slice(0, 60);
+}
+
+/**
+ * Replaces the set of sessions somebody manages.
+ *
+ * The role and the rows are one grant, so dropping `event_manager` clears them:
+ * a re-grant later should be a decision somebody makes again, not an old list
+ * quietly coming back to life.
+ *
+ * Delete-then-insert rather than a diff. The set is tiny, this runs when an
+ * admin presses Update and never in a hot path, and a diff would be three
+ * queries to save one.
+ */
+async function setStaffEvents(
+  sb: SupabaseClient,
+  email: string,
+  roles: Role[],
+  events: string[] | null,
+  actorEmail: string,
+): Promise<string | null> {
+  const wanted = roles.includes('event_manager') ? events : [];
+  if (wanted === null) return null;
+
+  const cleared = await sb.from('staff_events').delete().eq('staff_email', email);
+  if (cleared.error) return 'events_failed';
+  if (wanted.length === 0) return null;
+
+  const { error } = await sb.from('staff_events').insert(
+    wanted.map((id) => ({ staff_email: email, schedule_item_id: id, assigned_by: actorEmail })),
+  );
+  // A session deleted between the admin loading the picker and pressing Update
+  // fails the foreign key. Saying which half landed is more use than 'failed'.
+  return error ? 'unknown_event' : null;
+}
 
 function cleanRoles(input: unknown): Role[] | null {
   if (!Array.isArray(input) || input.length === 0) return null;
@@ -47,7 +96,20 @@ export async function handleStaffList(sb: SupabaseClient, origin: string): Promi
     .select('email, name, roles, added_by, created_at')
     .order('created_at');
   if (error) return adminJson({ error: 'query_failed' }, 500, origin);
-  return adminJson({ staff: data ?? [] }, 200, origin);
+  const rows = (data ?? []) as Array<{ email: string; roles: Role[] }>;
+
+  // Two queries rather than an embedded join: the assignment table is small,
+  // and the whole staff list fits in one read of it.
+  const assigned = await sb.from('staff_events').select('staff_email, schedule_item_id');
+  if (assigned.error) return adminJson({ error: 'query_failed' }, 500, origin);
+  const byEmail = new Map<string, string[]>();
+  for (const row of (assigned.data ?? []) as { staff_email: string; schedule_item_id: string }[]) {
+    byEmail.set(row.staff_email, [...(byEmail.get(row.staff_email) ?? []), row.schedule_item_id]);
+  }
+
+  return adminJson({
+    staff: rows.map((row) => ({ ...row, events: byEmail.get(row.email) ?? [] })),
+  }, 200, origin);
 }
 
 export async function handleStaffCreate(
@@ -57,7 +119,7 @@ export async function handleStaffCreate(
   actorEmail: string,
   origin: string,
 ): Promise<Response> {
-  let body: { email?: unknown; name?: unknown; roles?: unknown };
+  let body: { email?: unknown; name?: unknown; roles?: unknown; events?: unknown };
   try { body = await req.json(); } catch { return adminJson({ error: 'invalid_body' }, 400, origin); }
 
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -68,18 +130,23 @@ export async function handleStaffCreate(
 
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 120) : null;
 
+  const events = cleanEvents(body.events);
+
   const { error } = await sb.from('staff').insert({ email, name, roles, added_by: actorEmail });
   if (error) {
     const mapped = staffError(error.message ?? '');
     return adminJson({ error: mapped.error }, mapped.status, origin);
   }
 
+  const eventsError = await setStaffEvents(sb, email, roles, events, actorEmail);
+  if (eventsError) return adminJson({ error: eventsError }, 400, origin);
+
   await writeAudit(sb, {
     actor_email: actorEmail,
     action: 'staff.add',
     target_table: 'staff',
     target_id: email,
-    diff: { roles, name },
+    diff: { roles, name, events: roles.includes('event_manager') ? events ?? [] : [] },
   });
   return adminJson(withSync({ ok: true }, await syncAccessFromStaff(env, sb)), 200, origin);
 }
@@ -92,7 +159,7 @@ export async function handleStaffUpdate(
   actorEmail: string,
   origin: string,
 ): Promise<Response> {
-  let body: { roles?: unknown; name?: unknown };
+  let body: { roles?: unknown; name?: unknown; events?: unknown };
   try { body = await req.json(); } catch { return adminJson({ error: 'invalid_body' }, 400, origin); }
 
   const email = target.trim().toLowerCase();
@@ -116,12 +183,16 @@ export async function handleStaffUpdate(
   }
   if (!data || data.length === 0) return adminJson({ error: 'not_found' }, 404, origin);
 
+  const events = cleanEvents(body.events);
+  const eventsError = await setStaffEvents(sb, email, roles, events, actorEmail);
+  if (eventsError) return adminJson({ error: eventsError }, 400, origin);
+
   await writeAudit(sb, {
     actor_email: actorEmail,
     action: 'staff.update',
     target_table: 'staff',
     target_id: email,
-    diff: { roles },
+    diff: { roles, events: roles.includes('event_manager') ? events : [] },
   });
   return adminJson({ ok: true }, 200, origin);
 }

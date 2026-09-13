@@ -5,7 +5,7 @@ import { Search } from 'lucide-react';
 import { fetchAdmin, showApiError } from '@/lib/api';
 import { onRevalidate } from '@/lib/revalidate';
 import { matchesSearch } from '@/lib/search';
-import { useCanManageEvents } from '@/lib/whoami';
+import { useCanManageEvents, useHasReadFloor } from '@/lib/whoami';
 import { bookingsToCsv, downloadCsv } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,13 +42,28 @@ function fillTone(session: EventSession): string {
  * read rather than three round trips — and the per-person view, which nothing
  * answered before, is a filter.
  *
- * Reading is open to every member of staff. Changing a booking is not: only the
- * two admin roles see the controls, and the Worker refuses the request from
- * anybody else regardless. A desk role that needs to move somebody uses the
- * session roster it already owns, reachable from each session below.
+ * Reading is open to every member of staff. Changing a booking is not: the two
+ * admin roles see the controls, and so does an `event_manager` — for whom the
+ * Worker has already narrowed this payload to the sessions an admin named as
+ * theirs, so everything on their screen is something they may change. A desk
+ * role that needs to move somebody outside that uses the session roster it
+ * already owns, reachable from each session below.
  */
 export default function Events() {
-  const canManage = useCanManageEvents();
+  const canWriteBookings = useCanManageEvents();
+  // An event manager is the one role without the read-only floor, so the
+  // roster page is a 403 for them rather than a link.
+  const canOpenRoster = useHasReadFloor();
+  /**
+   * Whether to offer the controls on one session.
+   *
+   * Two questions, and both have to be yes. The role decides whether this
+   * person writes bookings at all; the payload decides whether this particular
+   * session is one of theirs, which is only ever narrower for an event manager
+   * who also works a desk. Offering a button the Worker refuses is its own kind
+   * of bug.
+   */
+  const canManageSession = (session: EventSession) => canWriteBookings && (session.can_manage ?? true);
   const [data, setData] = useState<EventsOverview | null>(null);
   const [failed, setFailed] = useState(false);
   const [day, setDay] = useState<string>('all');
@@ -195,7 +210,9 @@ export default function Events() {
         <div>
           <h1 className="text-2xl font-bold">Events</h1>
           <p className="text-sm text-muted-foreground">
-            Every bookable session in {data.edition.name}, and who is in each.
+            {data.scoped
+              ? <>The sessions you run at {data.edition.name}, and who is in each.</>
+              : <>Every bookable session in {data.edition.name}, and who is in each.</>}
           </p>
         </div>
         <Button variant="outline" onClick={exportBookings} disabled={totals.confirmed + totals.waiting === 0}>
@@ -205,7 +222,7 @@ export default function Events() {
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Bookable sessions', value: totals.sessions },
+          { label: data.scoped ? 'Your sessions' : 'Bookable sessions', value: totals.sessions },
           { label: 'Seats taken', value: totals.confirmed },
           { label: 'On waitlists', value: totals.waiting },
           { label: 'Full', value: totals.full },
@@ -221,7 +238,9 @@ export default function Events() {
         <div>
           <h2 className="font-semibold">What has someone booked?</h2>
           <p className="text-sm text-muted-foreground">
-            Find an attendee to see every session they hold a seat or a place in the queue for.
+            {data.scoped
+              ? 'Find an attendee to see which of your sessions they hold a seat or a place in the queue for.'
+              : 'Find an attendee to see every session they hold a seat or a place in the queue for.'}
           </p>
         </div>
         <form onSubmit={findPerson} className="flex gap-2">
@@ -265,7 +284,11 @@ export default function Events() {
               {person.phone_masked && <span className="font-normal text-muted-foreground"> · {person.phone_masked}</span>}
             </p>
             {theirs.length === 0
-              ? <p className="text-sm text-muted-foreground">No sessions booked.</p>
+              ? (
+                <p className="text-sm text-muted-foreground">
+                  {data.scoped ? 'Not booked into any of your sessions.' : 'No sessions booked.'}
+                </p>
+              )
               : (
                 <ul className="space-y-2">
                   {theirs.map(({ session, status, position }) => (
@@ -280,7 +303,7 @@ export default function Events() {
                           </span>
                         )}
                       </span>
-                      {canManage && (
+                      {canManageSession(session) && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -300,7 +323,7 @@ export default function Events() {
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold">Across the programme</h2>
+          <h2 className="font-semibold">{data.scoped ? 'Your sessions' : 'Across the programme'}</h2>
           <label className="relative order-last w-full min-w-60 flex-1 sm:order-none sm:w-auto sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <input
@@ -332,6 +355,13 @@ export default function Events() {
           query ? (
             <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
               No bookable session with “{query}” in its name{day === 'all' ? '' : ' on this day'}.
+            </p>
+          ) : data.scoped ? (
+            // A different problem with a different person to ask, so it is
+            // worded as one rather than as "nothing is bookable yet".
+            <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
+              No events have been assigned to you yet. Ask whoever runs the programme to add
+              the ones you are organising.
             </p>
           ) : (
             <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
@@ -374,13 +404,15 @@ export default function Events() {
                         : `${session.confirmed.length} / ${session.capacity}`}
                       {session.waitlisted.length > 0 && ` · ${session.waitlisted.length} waiting`}
                     </span>
-                    <Link to={`/programme/${session.id}/roster`} className="text-sm underline">Roster</Link>
+                    {canOpenRoster && (
+                      <Link to={`/programme/${session.id}/roster`} className="text-sm underline">Roster</Link>
+                    )}
                   </div>
                 </div>
 
                 {open && (
                   <div className="space-y-3 border-t p-3">
-                    {canManage && (
+                    {canManageSession(session) && (
                       addingTo === session.id
                         ? (
                           <div className="space-y-2 rounded-md border bg-muted/30 p-2">
@@ -417,7 +449,7 @@ export default function Events() {
                                   {booking.phone_masked && <span className="text-muted-foreground"> · {booking.phone_masked}</span>}
                                   {booking.promoted && <span className="ml-2 text-xs text-muted-foreground">moved up from the waitlist</span>}
                                 </span>
-                                {canManage && (
+                                {canManageSession(session) && (
                                   <Button size="sm" variant="outline" disabled={busy === booking.attendee_id} onClick={() => void unbook(session.id, booking.attendee_id, booking.name)}>
                                     Remove
                                   </Button>
@@ -440,7 +472,7 @@ export default function Events() {
                                   <span className="text-muted-foreground">#{index + 1}</span> {booking.name}
                                   {booking.phone_masked && <span className="text-muted-foreground"> · {booking.phone_masked}</span>}
                                 </span>
-                                {canManage && (
+                                {canManageSession(session) && (
                                   <Button size="sm" variant="outline" disabled={busy === booking.attendee_id} onClick={() => void unbook(session.id, booking.attendee_id, booking.name)}>
                                     Remove
                                   </Button>
@@ -449,7 +481,7 @@ export default function Events() {
                             ))}
                           </ol>
                         )}
-                      {canManage && session.waitlisted.length > 0 && (
+                      {canManageSession(session) && session.waitlisted.length > 0 && (
                         <p className="mt-1 text-xs text-muted-foreground">
                           Removing somebody from the session moves the person at the top of this list into their seat.
                         </p>

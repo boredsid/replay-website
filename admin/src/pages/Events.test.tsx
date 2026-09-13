@@ -12,7 +12,11 @@ vi.mock('@/lib/api', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 let canManage = true;
-vi.mock('@/lib/whoami', () => ({ useCanManageEvents: () => canManage }));
+let hasReadFloor = true;
+vi.mock('@/lib/whoami', () => ({
+  useCanManageEvents: () => canManage,
+  useHasReadFloor: () => hasReadFloor,
+}));
 
 const downloadCsv = vi.fn();
 vi.mock('@/lib/csv', async () => {
@@ -21,13 +25,14 @@ vi.mock('@/lib/csv', async () => {
 });
 
 import { emitRevalidate } from '@/lib/revalidate';
+import type { EventsOverview } from '@/lib/types';
 import Events from './Events';
 
 const PRIYA = { attendee_id: 'att-1', name: 'Priya', phone_masked: '••••3210', signed_up_at: '2026-09-12T09:00:00Z', promoted: false };
 const ARJUN = { attendee_id: 'att-2', name: 'Arjun', phone_masked: null, signed_up_at: '2026-09-12T09:05:00Z', promoted: false };
 const MEERA = { attendee_id: 'att-3', name: 'Meera', phone_masked: null, signed_up_at: '2026-09-12T09:10:00Z', promoted: false };
 
-const OVERVIEW = {
+const OVERVIEW: EventsOverview = {
   edition: { id: 'ed-1', slug: 'replay-3', name: 'REPLAY' },
   sessions: [
     {
@@ -45,6 +50,9 @@ const OVERVIEW = {
   ],
 };
 
+/** What `/api/admin/events` answers with. Reset to the whole board each test. */
+let overview: EventsOverview = OVERVIEW;
+
 function draw() {
   return render(<MemoryRouter><Events /></MemoryRouter>);
 }
@@ -57,7 +65,7 @@ function draw() {
  */
 function stubApi(found: Array<{ attendee_id: string; name: string; phone_masked: string | null }> = []) {
   fetchAdmin.mockImplementation(async (path: string, init?: RequestInit) => {
-    if (path === '/api/admin/events') return structuredClone(OVERVIEW);
+    if (path === '/api/admin/events') return structuredClone(overview);
     if (path.startsWith('/api/admin/sessions/attendees')) return { attendees: found };
     if (path === '/api/admin/events/signups') {
       const body = init?.method === 'POST'
@@ -71,6 +79,8 @@ function stubApi(found: Array<{ attendee_id: string; name: string; phone_masked:
 }
 
 beforeEach(() => {
+  hasReadFloor = true;
+  overview = OVERVIEW;
   vi.clearAllMocks();
   canManage = true;
   stubApi([{ attendee_id: 'att-1', name: 'Priya', phone_masked: '••••3210' }]);
@@ -249,5 +259,99 @@ describe('finding a session by name', () => {
     await user.type(screen.getByLabelText('Search sessions'), 'chess');
     expect(await screen.findByText(/No bookable session with .*chess.* in its name/)).toBeInTheDocument();
     expect(screen.queryByText(/Book in the app/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * An event manager holds the board and nothing else in the admin, so the Worker
+ * hands them a payload already narrowed to their own sessions and marks it
+ * `scoped`. That flag is what lets an empty board be worded as the problem it
+ * actually is.
+ */
+describe('an event manager', () => {
+  beforeEach(() => {
+    canManage = true;
+    hasReadFloor = false;
+    overview = { ...structuredClone(OVERVIEW), scoped: true };
+    stubApi();
+  });
+
+  it('can still change a booking, because everything shown is theirs', async () => {
+    const user = userEvent.setup();
+    draw();
+    await user.click(await screen.findByText('Werewolf'));
+    expect(await screen.findByRole('button', { name: 'Add someone' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Remove' }).length).toBeGreaterThan(0);
+  });
+
+  it('is not offered a roster it would only be refused', async () => {
+    draw();
+    await screen.findByText('Werewolf');
+    expect(screen.queryByRole('link', { name: 'Roster' })).not.toBeInTheDocument();
+  });
+
+  it('is told the board is theirs rather than the whole edition', async () => {
+    draw();
+    await screen.findByText('Werewolf');
+    expect(screen.getByText(/The sessions you run at REPLAY/)).toBeInTheDocument();
+    expect(screen.getByText('Your sessions', { selector: 'h2' })).toBeInTheDocument();
+  });
+
+  it('is told nothing is assigned, not that nothing is bookable', async () => {
+    // Two different problems with two different people to ask.
+    overview = { ...structuredClone(OVERVIEW), sessions: [], scoped: true };
+    stubApi();
+    draw();
+    expect(await screen.findByText(/No events have been assigned to you/)).toBeInTheDocument();
+    expect(screen.queryByText(/Book in the app/)).not.toBeInTheDocument();
+  });
+});
+
+describe('everyone else', () => {
+  it('keeps the roster link and the whole-edition wording', async () => {
+    stubApi();
+    draw();
+    await screen.findByText('Werewolf');
+    expect(screen.getAllByRole('link', { name: 'Roster' }).length).toBe(2);
+    expect(screen.getByText(/Every bookable session in REPLAY/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Somebody who runs a tournament *and* works the check-in desk. The desk lets
+ * them read every booking in the edition, so the board is not narrowed — but
+ * the controls must still only appear on the sessions that are theirs.
+ */
+describe('an event manager who also works a desk', () => {
+  beforeEach(() => {
+    canManage = true;
+    hasReadFloor = true;
+    const board = structuredClone(OVERVIEW);
+    board.sessions[0] = { ...board.sessions[0], can_manage: true };
+    board.sessions[1] = { ...board.sessions[1], can_manage: false };
+    overview = { ...board, scoped: false };
+    stubApi();
+  });
+
+  it('may change the session that is theirs', async () => {
+    const user = userEvent.setup();
+    draw();
+    await user.click(await screen.findByText('Werewolf'));
+    expect(await screen.findByRole('button', { name: 'Add someone' })).toBeInTheDocument();
+  });
+
+  it('is offered no control on a session that is not', async () => {
+    const user = userEvent.setup();
+    draw();
+    await user.click(await screen.findByText('Quiz Night'));
+    await screen.findByText(/In the session/);
+    expect(screen.queryByRole('button', { name: 'Add someone' })).not.toBeInTheDocument();
+  });
+
+  it('still reads the whole board, since the desk already let them', async () => {
+    draw();
+    await screen.findByText('Werewolf');
+    expect(screen.getByText('Quiz Night')).toBeInTheDocument();
+    expect(screen.getByText(/Every bookable session in REPLAY/)).toBeInTheDocument();
   });
 });
