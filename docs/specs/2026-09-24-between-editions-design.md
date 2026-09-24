@@ -144,7 +144,7 @@ scope for the same reason.
 | `/plan-your-visit` | Unchanged | "Back with REPLAY 4." Arrival, map, venue guide and help sections removed; the library section stays; not in the nav |
 | `/contact` | Unchanged | The venue answer turns past tense: "REPLAY 3 was at Indiqube Symphony, MG Road. REPLAY 4's venue is announced with its dates." |
 | `/library` | Unchanged | Unchanged. The desk process text comes from the upcoming edition, or the recap edition if there is none. |
-| Share card | Unchanged | `LAST TIME / 287 PLAYERS / SEP 12–13, 2026` and `NEXT / REPLAY 4 / DATES SOON` |
+| Share card | Unchanged | `LAST TIME / 285 PLAYERS / SEP 12–13, 2026` and `NEXT / REPLAY 4 / DATES SOON` |
 
 **Naming.** These strings say "REPLAY 3" and "REPLAY 4", numbered from the
 edition slug; the next edition is the recap number plus one. Elsewhere the site
@@ -179,7 +179,7 @@ so they cannot disagree.
 | Games on the shelf | `GET /api/catalogue`, already fetched at build | Site |
 | Partners on the floor | the recap edition's `sponsors` rows | Site, which already reads them |
 
-REPLAY 3's figures on 24 September: 287 people (156 Saturday, 185 Sunday, 54
+REPLAY 3's figures on 24 September: 285 people (154 Saturday, 185 Sunday, 54
 came both days), 69 programme items, 286 seats booked, 145 games borrowed
 (Hot Streak 7, Skull 6, Trio 6, boop. 5, Magical Athlete 5), 585 games on the
 shelf, 24 partners.
@@ -194,7 +194,7 @@ Of 459 sign-up rows for REPLAY 3, 157 were cancelled and 16 still waitlisted.
 - **A figure that is zero or missing is left out, not shown as 0.** REPLAY 1
   and 2 were imported from spreadsheets before the app existed and have no
   check-ins, bookings or loans.
-- The headline is "287 people came to play." when there is a people figure,
+- The headline is "285 people came to play." when there is a people figure,
   and "That was REPLAY 2." when there is not.
 - "54 of them came both days" appears only for a two-day edition with arrivals
   on both days.
@@ -207,7 +207,7 @@ Of 459 sign-up rows for REPLAY 3, 157 were cancelled and 16 still waitlisted.
   photos →" when the recap edition has an album, and "What was on →"
   (`/schedule`).
 - During `pre_event`, the same data gives one line under the new dates: "Last
-  time, 287 people came to play at REPLAY 3. See the photos →". The line needs
+  time, 285 people came to play at REPLAY 3. See the photos →". The line needs
   a people figure, and the link appears only when there is an album.
 
 ### `GET /api/recap/:slug`
@@ -217,7 +217,7 @@ A public Worker endpoint. The site calls it once per build.
 ```json
 {
   "edition": { "slug": "replay-3", "start_date": "2026-09-12", "end_date": "2026-09-13" },
-  "attendance": { "people": 287, "by_day": { "day1": 156, "day2": 185 }, "both_days": 54 },
+  "attendance": { "people": 285, "by_day": { "day1": 154, "day2": 185 }, "both_days": 54 },
   "sessions": {
     "seats_booked": 286,
     "sessions_booked": 38,

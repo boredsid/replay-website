@@ -83,6 +83,9 @@ export function countWindows(timestamps: Array<string | null>, now: Date): Windo
  * desk must not leave a phantom arrival. Re-entry after lunch is a second "in"
  * on the same day and is deliberately not a new arrival: the projector greets
  * people once a day, not every time they step out for air.
+ *
+ * `edition_recap` (20260924180138_between_editions.sql) restates this rule in
+ * SQL to count the people who came. Change both together.
  */
 export function firstArrivals(events: CheckInRow[]): Array<{ id: string; attendee_id: string; day: string; occurred_at: string }> {
   const voided = new Set(events.map((e) => e.voids_event_id).filter((id): id is string => Boolean(id)));

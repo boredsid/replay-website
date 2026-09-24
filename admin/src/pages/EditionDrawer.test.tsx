@@ -80,6 +80,23 @@ it('loads and saves the Plan Your Visit fields', async () => {
   expect(payload.help_on_the_day).toBe('Ask at the help desk.');
 });
 
+it('adds a photo album to a past edition, and clears it again', async () => {
+  renderDrawer({ ...ONE_DAY, photos_url: null });
+
+  const album = await screen.findByLabelText('Photo album');
+  expect(album).toHaveValue('');
+  await userEvent.type(album, 'https://photos.app.goo.gl/2oKWtdKCofYAGhUa6');
+  await userEvent.click(screen.getByRole('button', { name: /save edition/i }));
+  await waitFor(() => expect((fetchAdmin as any)).toHaveBeenCalledWith('/api/admin/editions/e1', expect.anything()));
+  const saved = JSON.parse((fetchAdmin as any).mock.calls.find((c: any[]) => c[0] === '/api/admin/editions/e1')[1].body);
+  expect(saved.photos_url).toBe('https://photos.app.goo.gl/2oKWtdKCofYAGhUa6');
+});
+
+it('shows an edition album that is already set', async () => {
+  renderDrawer({ ...TWO_DAY, photos_url: 'https://drive.google.com/drive/folders/1AbC' });
+  expect(await screen.findByLabelText('Photo album')).toHaveValue('https://drive.google.com/drive/folders/1AbC');
+});
+
 it('edits a single-day edition without forcing day2 or campaign, and prompts rebuild in-app', async () => {
   renderDrawer();
 

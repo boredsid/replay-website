@@ -34,8 +34,12 @@ VAPID_SUBJECT = "mailto:hello@replaycon.in"
 #
 # Still cheap enough to leave running year-round: outside the event dates both
 # queries match nothing and the handler returns immediately.
+#
+# The second expression is 03:00 in Bengaluru. It only rebuilds the public site
+# on the mornings its phase changes (an edition's first day, and the day after
+# its last) -- see src/site-phase-cron.ts, which must use the same string.
 [triggers]
-crons = ["* * * * *"]
+crons = ["* * * * *", "30 21 * * *"]
 
 [[routes]]
 pattern = "api.replaycon.in"

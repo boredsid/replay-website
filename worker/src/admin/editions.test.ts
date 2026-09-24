@@ -158,3 +158,69 @@ describe('handleEdPatch', () => {
     expect(await res.json()).toEqual({ error: 'invalid_google_maps_url' });
   });
 });
+
+describe('handleEdPatch photos_url', () => {
+  const before = { id: 'e3', slug: 'replay-3', name: 'REPLAY', start_date: '2026-09-12', end_date: '2026-09-13', daily_start_time: '10:00', daily_end_time: '19:00', venue: 'Indiqube Symphony, MG Road', pricing: PRICING, capacity_per_day: CAP, registration_status: 'closed', is_current: true, is_published: true, photos_url: null };
+
+  function patchClient() {
+    const seen: { patch?: any } = {};
+    const sb: any = {
+      from: (t: string) => {
+        if (t === 'editions') return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: before, error: null }) }) }),
+          update: (patch: any) => {
+            seen.patch = patch;
+            return { eq: () => ({ select: () => ({ single: async () => ({ data: { ...before, ...patch }, error: null }) }) }) };
+          },
+        };
+        if (t === 'admin_audit_log') return { insert: async () => ({ error: null }) };
+        return {} as any;
+      },
+    };
+    return { sb, seen };
+  }
+
+  async function patch(body: unknown) {
+    const { sb, seen } = patchClient();
+    const req = new Request('https://x/api/admin/editions/e3', { method: 'PATCH', body: JSON.stringify(body) });
+    const res = await handleEdPatch(req, {} as any, sb, 'e3', 'sid@x.com', O);
+    return { res, seen };
+  }
+
+  it('accepts a Google Photos short link, such as REPLAY 3 album', async () => {
+    const { res, seen } = await patch({ photos_url: '  https://photos.app.goo.gl/2oKWtdKCofYAGhUa6 ' });
+    expect(res.status).toBe(200);
+    expect(seen.patch.photos_url).toBe('https://photos.app.goo.gl/2oKWtdKCofYAGhUa6');
+  });
+
+  it('accepts a full shared-album link and a Google Drive folder', async () => {
+    const album = 'https://photos.google.com/share/AF1QipAbc?key=xyz';
+    expect((await patch({ photos_url: album })).seen.patch.photos_url).toBe(album);
+    const folder = 'https://drive.google.com/drive/folders/1AbC?usp=sharing';
+    expect((await patch({ photos_url: folder })).seen.patch.photos_url).toBe(folder);
+  });
+
+  it('clears the link when it is emptied', async () => {
+    const { res, seen } = await patch({ photos_url: '' });
+    expect(res.status).toBe(200);
+    expect(seen.patch.photos_url).toBeNull();
+  });
+
+  it.each([
+    ['plain http', 'http://photos.app.goo.gl/2oKWtdKCofYAGhUa6'],
+    ['another host', 'https://www.flickr.com/photos/replay/albums/1'],
+    ['a look-alike host', 'https://photos.google.com.evil.example/share/x'],
+    ['a script', 'javascript:alert(1)'],
+    ['not a string', 42],
+  ])('rejects %s', async (_label, value) => {
+    const { res } = await patch({ photos_url: value });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_photos_url' });
+  });
+
+  it('leaves the link alone when a patch does not mention it', async () => {
+    const { res, seen } = await patch({ registration_status: 'closed' });
+    expect(res.status).toBe(200);
+    expect('photos_url' in seen.patch).toBe(false);
+  });
+});

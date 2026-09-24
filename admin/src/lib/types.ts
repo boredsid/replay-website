@@ -112,6 +112,8 @@ export interface EditionVisitDetails {
   accessibility_details?: string | null;
   game_library_process?: string | null;
   help_on_the_day?: string | null;
+  /** Google Photos shared album or Google Drive folder; shown on the public /photos page. */
+  photos_url?: string | null;
 }
 
 export interface EditionRow extends EditionVisitDetails {

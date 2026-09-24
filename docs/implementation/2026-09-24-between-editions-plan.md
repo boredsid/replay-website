@@ -32,7 +32,7 @@ The order below is the build order. Each step leaves the tests green. Steps
 - `revoke all on function public.edition_recap(uuid) from public, anon, authenticated;`
   `grant execute … to service_role;`
 - **Validate before applying.** Run the function body as a plain query against
-  production (read-only) and check it returns 287 / 156 / 185 / 54 / 286 / 38 /
+  production (read-only) and check it returns 285 / 154 / 185 / 54 / 286 / 38 /
   145 for REPLAY 3. Then apply with the Supabase MCP's `apply_migration`, not
   `execute_sql`; the latter leaves the repository behind the database.
 
@@ -277,7 +277,7 @@ the REST fetch itself has no new logic.
 
 `src/lib/link-preview.ts`: `linkPreviewContent(state, recapView)`. `pre_event`
 and `live` behave as now. `wrapped` becomes eyebrow `REPLAY 3`, `when` = `LAST
-TIME / 287 PLAYERS / SEP 12–13, 2026`, and `where` = `NEXT / REPLAY 4 / DATES
+TIME / 285 PLAYERS / SEP 12–13, 2026`, and `where` = `NEXT / REPLAY 4 / DATES
 SOON`. Without a people figure, `when` shows the date range instead. It uses
 the existing renderer; `scripts/render-link-preview.ts` does not change.
 `src/pages/link-preview.png.ts` passes the state. Extend
@@ -298,7 +298,7 @@ Then build the site as of three dates and check what each one produced:
 |---|---|
 | `2026-09-10` | `pre_event`: the dates band, "Tickets", no recap band. The recap edition is REPLAY 2, which has no people figure, so there is no "Last time" line either; `dist/` matches `main` apart from the new "Photos" footer link. |
 | `2026-09-12` | `live`: the same as above. |
-| `2026-09-24` | `wrapped`: "287 people came to play." in `dist/index.html`; `/tickets` has no registration form; `/schedule` has "30 booked"; `/plan-your-visit` has no venue map; `/photos` lists REPLAY 3 with a cover in `dist/_astro/`; the header has no "in association with". |
+| `2026-09-24` | `wrapped`: "285 people came to play." in `dist/index.html`; `/tickets` has no registration form; `/schedule` has "30 booked"; `/plan-your-visit` has no venue map; `/photos` lists REPLAY 3 with a cover in `dist/_astro/`; the header has no "in association with". |
 
 Before the migration and Worker are live, the `wrapped` build runs against a
 Worker without `/api/recap`. It should succeed and show the fallback headline,

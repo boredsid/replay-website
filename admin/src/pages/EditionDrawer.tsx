@@ -14,6 +14,7 @@ type Form = {
   parking_availability: string; parking_charges: string;
   food_details: string; water_details: string; accessibility_details: string;
   game_library_process: string; help_on_the_day: string;
+  photos_url: string;
   daily_start_time: string; daily_end_time: string;
   registration_status: EditionRow['registration_status'];
   is_current: boolean; is_published: boolean;
@@ -28,6 +29,7 @@ const EMPTY: Form = {
   nearest_metro_name: '', nearest_metro_distance: '', nearest_bus_stop_name: '', nearest_bus_stop_distance: '',
   parking_availability: '', parking_charges: '', food_details: '', water_details: '', accessibility_details: '',
   game_library_process: '', help_on_the_day: '',
+  photos_url: '',
   daily_start_time: '10:00', daily_end_time: '19:00',
   registration_status: 'upcoming', is_current: false, is_published: false,
   oneshot: '700', caps: { day1: '250' }, campaign: '1200', adventurer_cap: '1000',
@@ -71,6 +73,7 @@ export default function EditionDrawer() {
           parking_availability: e.parking_availability ?? '', parking_charges: e.parking_charges ?? '',
           food_details: e.food_details ?? '', water_details: e.water_details ?? '', accessibility_details: e.accessibility_details ?? '',
           game_library_process: e.game_library_process ?? '', help_on_the_day: e.help_on_the_day ?? '',
+          photos_url: e.photos_url ?? '',
           daily_start_time: e.daily_start_time?.slice(0, 5) ?? '10:00', daily_end_time: e.daily_end_time?.slice(0, 5) ?? '19:00',
           registration_status: e.registration_status, is_current: e.is_current, is_published: e.is_published,
           oneshot: String(oneDayPrice(e.pricing)), caps,
@@ -106,6 +109,7 @@ export default function EditionDrawer() {
       parking_availability: form.parking_availability, parking_charges: form.parking_charges,
       food_details: form.food_details, water_details: form.water_details, accessibility_details: form.accessibility_details,
       game_library_process: form.game_library_process, help_on_the_day: form.help_on_the_day,
+      photos_url: form.photos_url,
       daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time,
       registration_status: form.registration_status, is_current: form.is_current, is_published: form.is_published,
       pricing: { oneshot: Number(form.oneshot), campaign: isMultiDay ? Number(form.campaign) : null, adventurer_cap: Number(form.adventurer_cap) },
@@ -206,6 +210,12 @@ export default function EditionDrawer() {
         </F>
         <F label="Help on the day">
           <textarea aria-label="Help on the day" rows={3} value={form.help_on_the_day} onChange={(e) => set('help_on_the_day', e.target.value)} className="w-full rounded-md border px-3 py-2" />
+        </F>
+
+        <div className="border-t pt-3 text-sm font-semibold">Photos</div>
+        <p className="text-xs text-muted-foreground">A Google Photos shared-album link, or a Google Drive folder shared with anyone who has the link. It appears on the public Photos page after a site rebuild, once the edition has ended.</p>
+        <F label="Photo album">
+          <input aria-label="Photo album" type="url" inputMode="url" placeholder="https://photos.app.goo.gl/…" value={form.photos_url} onChange={(e) => set('photos_url', e.target.value)} className="w-full rounded-md border px-3 py-2" />
         </F>
 
         <F label="Registration status">
