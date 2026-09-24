@@ -47,6 +47,28 @@ function readGoogleMapsUrl(value: unknown): string | null {
   }
 }
 
+/**
+ * Where an edition's photos live. The public /photos page labels its button by
+ * host ("Open the album on Google Photos"), so the host list is what keeps
+ * that label true; widening it is one entry here and a label in
+ * src/lib/photos.ts. The database only insists on https.
+ */
+export const PHOTO_HOSTS = ['photos.app.goo.gl', 'photos.google.com', 'drive.google.com'];
+
+function readPhotosUrl(value: unknown): string | null {
+  const text = readOptionalText(value, 500, 'photos_url');
+  if (!text) return null;
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error('invalid_photos_url');
+  }
+  if (url.protocol !== 'https:' || !PHOTO_HOSTS.includes(url.hostname)) throw new Error('invalid_photos_url');
+  return url.toString();
+}
+
+/** The Plan Your Visit fields, plus the photo album link, which rides along the same way. */
 function readVisitDetails(body: any, partial: boolean): Record<string, string | null> {
   const details: Record<string, string | null> = {};
   for (const [field, max] of Object.entries(VISIT_TEXT_LIMITS) as Array<[VisitTextField, number]>) {
@@ -55,6 +77,9 @@ function readVisitDetails(body: any, partial: boolean): Record<string, string | 
   }
   if (!partial || body.google_maps_url !== undefined) {
     details.google_maps_url = readGoogleMapsUrl(body.google_maps_url);
+  }
+  if (!partial || body.photos_url !== undefined) {
+    details.photos_url = readPhotosUrl(body.photos_url);
   }
   return details;
 }

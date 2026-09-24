@@ -9,13 +9,19 @@
  * refreshes the pages. No artwork to re-export per edition.
  */
 import type { APIRoute } from 'astro';
-import { getCurrentEdition } from '../lib/data';
-import { linkPreviewContent } from '../lib/link-preview';
+import { getCurrentEdition, getSiteState } from '../lib/data';
+import { linkPreviewContent, wrappedLinkPreviewContent } from '../lib/link-preview';
+import { getRecapView } from '../lib/recap-data';
 import { renderLinkPreview } from '../../scripts/render-link-preview.ts';
 
 export const GET: APIRoute = async () => {
-  const edition = await getCurrentEdition();
-  const png = await renderLinkPreview(linkPreviewContent(edition));
+  // Between editions the card stops advertising dates that have passed and
+  // says what the last edition added up to instead.
+  const site = await getSiteState();
+  const content = site.phase === 'wrapped' && site.recap
+    ? wrappedLinkPreviewContent({ ...site.recap, people: (await getRecapView())?.people ?? null })
+    : linkPreviewContent(await getCurrentEdition());
+  const png = await renderLinkPreview(content);
   return new Response(new Uint8Array(png), {
     headers: {
       'Content-Type': 'image/png',

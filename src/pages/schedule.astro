@@ -2,11 +2,22 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import ScheduleDay from '../components/ScheduleDay.astro';
-import { getCurrentEdition, getScheduleItems, editionOrdinal, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getScheduleItems, getSiteState, editionOrdinal, publicDateRange } from '../lib/data';
 import { clockTime, shortCalendarDate, weekdayName } from '../lib/edition-format';
+import { editionLabel, nextEditionLabel } from '../lib/site-phase';
+import { getSessionBookings } from '../lib/recap-data';
 
-const edition = await getCurrentEdition();
-const items = edition ? await getScheduleItems(edition.id) : [];
+// Between editions this page is the record of the edition that ended: its
+// programme as it ran, with bookings in place of "Book on App". Once the next
+// edition is announced, it goes back to being that edition's schedule.
+const site = await getSiteState();
+const wrapped = site.phase === 'wrapped' && site.recap !== null;
+const edition = wrapped ? site.recap : await getCurrentEdition();
+const items = edition ? (await getScheduleItems(edition.id)).filter((item) => !wrapped || item.public_status === 'published') : [];
+const bookings = wrapped ? await getSessionBookings() : {};
+const mostBooked = Object.entries(bookings).sort((a, b) => b[1] - a[1])[0];
+const mostBookedId = mostBooked && mostBooked[1] > 0 ? mostBooked[0] : null;
+const bookedSessions = Object.values(bookings).filter((n) => n > 0).length;
 const day1Items = edition ? items.filter((item) => item.day === edition.start_date) : [];
 const day2Items = edition ? items.filter((item) => item.day === edition.end_date) : [];
 const title = 'Schedule — REPLAY';
@@ -18,6 +29,16 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
 ---
 
 <Layout title={title} description="Browse the REPLAY programme by day, time, activity type, and location.">
+  {wrapped && edition ? (
+    <DarkBand
+      eyebrow={`▸ ${editionLabel(edition.slug)} · THE RECORD`}
+      eyebrowColor="var(--color-yellow)"
+      heading={`What was on at ${editionLabel(edition.slug)}.`}
+      headingLevel="h1"
+      body={`${items.length} things on the programme${bookedSessions > 0 ? `, ${bookedSessions} of them booked through the app` : ''}. ${range} · ${edition.venue}.`}
+      cta={{ text: `Hear about ${nextEditionLabel(edition.slug)} first →`, href: '/tickets', variant: 'primary' }}
+    />
+  ) : (
   <DarkBand
     eyebrow={edition ? `▸ ${ordinal.toUpperCase()}` : '▸ SCHEDULE'}
     eyebrowColor="var(--color-yellow)"
@@ -26,8 +47,13 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
     body={edition ? `${range} · ${edition.venue}. Explore all-day activities, timed sessions, playtests, showcases and the event floor.` : 'No upcoming edition is published right now.'}
     cta={edition ? { text: 'Get tickets →', href: '/tickets', variant: 'primary' } : undefined}
   />
+  )}
 
-  {edition && (
+  {wrapped && edition && (
+    <p class="schedule-ended">This edition has ended · {range}</p>
+  )}
+
+  {edition && !wrapped && (
     <section class="page-section page-section-yellow" aria-labelledby="schedule-essentials-heading">
       <div class="container-x">
         <span class="section-tag">At a glance</span>
@@ -44,7 +70,7 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
   <section class="page-section page-section-soft" aria-labelledby="programme-heading">
     <div class="container-x schedule-container">
       <span class="section-tag">Programme</span>
-      <h2 id="programme-heading" class="section-heading">What&apos;s happening.</h2>
+      <h2 id="programme-heading" class="section-heading">{wrapped ? 'The programme, as it ran.' : "What's happening."}</h2>
 
       {!edition ? (
         <div class="schedule-empty card-brutal">
@@ -84,16 +110,17 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
           </fieldset>
 
           <div class="day-panel day-panel--1">
-            <ScheduleDay date={edition.start_date} label={day1Name} items={day1Items} />
+            <ScheduleDay date={edition.start_date} label={day1Name} items={day1Items} archived={wrapped} bookings={bookings} mostBookedId={mostBookedId} />
           </div>
           <div class="day-panel day-panel--2">
-            <ScheduleDay date={edition.end_date} label={day2Name} items={day2Items} />
+            <ScheduleDay date={edition.end_date} label={day2Name} items={day2Items} archived={wrapped} bookings={bookings} mostBookedId={mostBookedId} />
           </div>
         </div>
       )}
     </div>
   </section>
 
+  {!wrapped && (
   <section class="page-section page-section-blue" aria-labelledby="schedule-notes-heading">
     <div class="container-x">
       <span class="section-tag">Good to know</span>
@@ -105,9 +132,34 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
       </div>
     </div>
   </section>
+  )}
 </Layout>
 
 <style>
+  .schedule-ended {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 12px 24px;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .schedule-ended::before {
+    content: "";
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-orange);
+  }
+
   .schedule-container { max-width: 960px; }
   .schedule-empty { margin-top: 32px; padding: clamp(28px, 6vw, 52px); }
   .schedule-empty h3 { margin-top: 18px; font-size: clamp(1.7rem, 4vw, 2.5rem); }

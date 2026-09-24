@@ -11,6 +11,8 @@ import { pickAdminOrigin, adminCorsHeaders, adminJson } from './admin/auth';
 import { serviceClient } from './supabase';
 import { handleWhoami } from './admin/whoami';
 import { handleCatalogue } from './catalogue';
+import { handleRecap } from './recap';
+import { PHASE_CRON, rebuildOnPhaseBoundary } from './site-phase-cron';
 import {
   handleCatalogueList,
   handleCatalogueGet,
@@ -117,15 +119,30 @@ export interface Env {
 
 export default {
   /**
-   * Session reminders and scheduled notices, on a cron trigger.
+   * Two cron triggers, told apart by their expression.
    *
+   * The nightly one (PHASE_CRON, 03:00 in Bengaluru) rebuilds the public site
+   * on the mornings its phase changes — an edition's first day and the day
+   * after its last. See site-phase-cron.ts.
+   *
+   * The every-minute one sends session reminders and scheduled notices.
    * Delivery is at-least-once, so both must be safe to run twice: the
    * reminded_at and notified_at stamps are what make them so, not the schedule.
-   *
    * They are dispatched independently. A notice about a room change should not
    * be lost because the reminder query failed, and the reverse.
    */
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (controller.cron === PHASE_CRON) {
+      ctx.waitUntil((async () => {
+        try {
+          const result = await rebuildOnPhaseBoundary(env, serviceClient(env), new Date());
+          if (result.phase) console.log('phase_rebuild', result);
+        } catch (error) {
+          console.error('phase_rebuild_failed', error);
+        }
+      })());
+      return;
+    }
     ctx.waitUntil((async () => {
       const sb = serviceClient(env);
       try {
@@ -339,6 +356,13 @@ export default {
       // already on a public page.
       if (path === '/api/catalogue' && req.method === 'GET') {
         return await handleCatalogue(env);
+      }
+      // What a finished edition added up to — people, bookings, loans. Read by
+      // `astro build` for the between-editions recap; aggregates only, and
+      // nothing at all until the edition has ended.
+      const recapMatch = path.match(/^\/api\/recap\/([^/]+)$/);
+      if (recapMatch && req.method === 'GET') {
+        return await handleRecap(req, env, recapMatch[1]);
       }
       if (path === '/api/app/pair' && req.method === 'POST') {
         return await handleAppPair(req, env);

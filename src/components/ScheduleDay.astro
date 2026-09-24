@@ -7,9 +7,17 @@ export interface Props {
   date: string;
   label: string;
   items: ScheduleItemRow[];
+  /**
+   * The edition has ended: the programme is a record, so "Book on App" becomes
+   * what happened — confirmed bookings per session, from the recap.
+   */
+  archived?: boolean;
+  bookings?: Record<string, number>;
+  /** The edition's most-booked session, badged across both days. */
+  mostBookedId?: string | null;
 }
 
-const { date, label, items } = Astro.props;
+const { date, label, items, archived = false, bookings = {}, mostBookedId = null } = Astro.props;
 
 const SECTIONS: Array<{ key: ScheduleSection; label: string; intro: string }> = [
   { key: 'always-on', label: 'Explore all day', intro: 'Drop in during event hours unless the listing says otherwise.' },
@@ -82,7 +90,8 @@ const timing = (item: ScheduleItemRow) => item.is_all_day
   ? 'All day'
   : `${hhmm(item.start_time)}–${hhmm(item.end_time)}`;
 
-const bookable = (item: ScheduleItemRow) => item.signup_mode !== 'none' && item.public_status !== 'cancelled';
+const bookable = (item: ScheduleItemRow) => !archived && item.signup_mode !== 'none' && item.public_status !== 'cancelled';
+const booked = (item: ScheduleItemRow) => (archived ? bookings[item.id] ?? 0 : 0);
 ---
 
 {/*
@@ -138,9 +147,11 @@ const bookable = (item: ScheduleItemRow) => item.signup_mode !== 'none' && item.
                   row can move it into a third column beside the title instead
                   of stacking it underneath.
                 */}
-                {(item.location || bookable(item)) && (
+                {(item.location || bookable(item) || booked(item) > 0) && (
                   <div class="schedule-card__details">
                     {item.location && <span class="schedule-card__location">◆ {item.location}</span>}
+                    {item.id === mostBookedId && <span class="pill pill-accent">Most booked</span>}
+                    {booked(item) > 0 && <span class="pill pill-green">{booked(item)} booked</span>}
                     {bookable(item) && (
                       <a
                         class="pill pill-black schedule-card__book"

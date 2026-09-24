@@ -24,6 +24,8 @@ import DarkBand from '../components/DarkBand.astro';
 import HeroPhotoBand from '../components/HeroPhotoBand.astro';
 import EditorialStripe from '../components/EditorialStripe.astro';
 import SponsorsBand from '../components/SponsorsBand.astro';
+import RecapBand from '../components/RecapBand.astro';
+import NotifyMeForm from '../components/NotifyMeForm';
 import LiveSpotsBadge from '../components/LiveSpotsBadge';
 import { Image } from 'astro:assets';
 
@@ -35,20 +37,28 @@ import stripeGames from '../assets/landing/stripe-games.jpeg';
 import stripeCommunity from '../assets/landing/stripe-community.jpeg';
 import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
-import { getCurrentEdition, editionOrdinal, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getSiteState, editionOrdinal, publicDateRange } from '../lib/data';
+import { getRecapView } from '../lib/recap-data';
 import { clockTime, weekdayName } from '../lib/edition-format';
 import { partnerLogos } from '../lib/partner-logos';
 
 const edition = await getCurrentEdition();
+const site = await getSiteState();
+// Between editions the homepage recaps the one that ended instead of
+// announcing its dates. See docs/specs/2026-09-24-between-editions-design.md.
+const wrapped = site.phase === 'wrapped';
+const recap = await getRecapView();
 
 const title = "REPLAY — Bangalore's gaming convention";
 
-// Dark hero CTA — only when there's a live edition to point at. One CTA only.
-const heroPrimaryCta = edition
-  ? edition.registration_status === 'open'
-    ? { text: 'Get tickets →', href: '/tickets', variant: 'primary' as const }
-    : { text: 'Get ticket updates →', href: '/tickets', variant: 'primary' as const }
-  : undefined;
+// Dark hero CTA — one only. Between editions it points at the next one.
+const heroPrimaryCta = wrapped && recap
+  ? { text: `Hear about ${recap.nextLabel} first →`, href: '/tickets', variant: 'primary' as const }
+  : edition
+    ? edition.registration_status === 'open'
+      ? { text: 'Get tickets →', href: '/tickets', variant: 'primary' as const }
+      : { text: 'Get ticket updates →', href: '/tickets', variant: 'primary' as const }
+    : undefined;
 
 const editionOrdinalLabel = edition ? editionOrdinal(edition.slug) : '';
 const dateRange = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
@@ -56,9 +66,17 @@ const day1Name = edition ? weekdayName(edition.start_date) : 'Day 1';
 const day2Name = edition ? weekdayName(edition.end_date) : 'Day 2';
 const dailyHours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(edition.daily_end_time)}` : '';
 
+const COMMUNITY_WHATSAPP = 'https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp';
+const wallHeading = wrapped && recap
+  ? {
+      tag: `${recap.label} partners`,
+      heading: `${recap.label} was made with ${partnerLogos.length === 1 ? 'this partner' : `these ${partnerLogos.length}`}.`,
+    }
+  : {};
+
 const closingVenueTail =
   edition && edition.venue && edition.venue !== 'TBD' ? ` · ${edition.venue}` : '';
-const eventJsonLd = edition ? JSON.stringify({
+const eventJsonLd = edition && !wrapped ? JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'Event',
   name: `${edition.name} ${editionOrdinalLabel}`.trim(),
@@ -94,6 +112,7 @@ const eventJsonLd = edition ? JSON.stringify({
   <DarkBand
     bg="#FFF8E7"
     tone="light"
+    eyebrow={wrapped && recap ? `▸ ${recap.nextLabel} · DATES COMING` : undefined}
     heading="A weekend to switch off."
     headingLevel="h1"
     body="Two days off your phone and in the real world. Everything offline gaming all in one place."
@@ -104,12 +123,20 @@ const eventJsonLd = edition ? JSON.stringify({
   <HeroPhotoBand photos={[hero1, hero2, hero3]} />
 
   {/* ──────────────────────────────────────────────────────────── 3. Event capacity (bgc-style yellow band) */}
-  {edition && (
+  {wrapped && recap && <RecapBand view={recap} />}
+
+  {edition && !wrapped && (
     <section class="event-capacity">
       <div class="container-x event-capacity__inner">
         <div class="event-capacity__eyebrow">▸ {editionOrdinalLabel.toUpperCase()}</div>
         <h2 class="event-capacity__heading">{dateRange}</h2>
         <p class="event-capacity__sub">Bangalore · {edition.venue === 'TBD' ? 'venue to be announced' : edition.venue} · {dailyHours} daily</p>
+        {recap?.lastTimeLine && (
+          <p class="event-capacity__last">
+            {recap.lastTimeLine.text}
+            {recap.lastTimeLine.photos && <> <a href={recap.lastTimeLine.photos.href} class="event-capacity__link">{recap.lastTimeLine.photos.text}</a></>}
+          </p>
+        )}
         <div class="event-capacity__bar" id="event-capacity-bar" hidden>
           <LiveSpotsBadge client:load editionId={edition.id} day1Label={day1Name} day2Label={day2Name} revealTargetId="event-capacity-bar" />
         </div>
@@ -129,7 +156,7 @@ const eventJsonLd = edition ? JSON.stringify({
     label="THE EVENT"
     heading="Two days. One library. Hundreds of games in motion."
     body={`Come for ${day1Name}, ${day2Name}, or both. Find open play, hosted events, and plenty of room to learn something new.`}
-    ctaText="See the schedule →"
+    ctaText={wrapped ? 'See what was on →' : 'See the schedule →'}
     ctaHref="/schedule"
     bgColor="#FFD166"
     photo={stripeEvent}
@@ -143,8 +170,8 @@ const eventJsonLd = edition ? JSON.stringify({
     label="200+ GAMES"
     heading="From 10-minute fillers to 4-hour epics."
     body="Bring a favourite, borrow from the REPLAY library, or try something you've never heard of. The collection runs from quick fillers to table-filling epics."
-    ctaText="Plan your visit →"
-    ctaHref="/plan-your-visit"
+    ctaText={wrapped ? 'Browse the library →' : 'Plan your visit →'}
+    ctaHref={wrapped ? '/library' : '/plan-your-visit'}
     bgColor="#4ECDC4"
     photo={stripeGames}
     photoAlt="Games at REPLAY"
@@ -159,7 +186,7 @@ const eventJsonLd = edition ? JSON.stringify({
       heading="The best of Bangalore, all in one room."
       body="New faces every edition. No prior experience needed — pick a game, find a table, ask the room."
       ctaText="Join the WhatsApp →"
-      ctaHref="https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp"
+      ctaHref={COMMUNITY_WHATSAPP}
       ctaExternal
       bgColor="#C3A6FF"
       photo={stripeCommunity}
@@ -181,7 +208,23 @@ const eventJsonLd = edition ? JSON.stringify({
     </div>
   </section>
 
-  {edition && (
+  {wrapped && recap && (
+    <section class="home-actions" aria-labelledby="home-actions-heading">
+      <div class="container-x home-actions__inner">
+        <span class="section-tag">Between editions</span>
+        <h2 id="home-actions-heading" class="section-heading">While {recap.nextLabel} is planned.</h2>
+        <div class="home-actions__grid">
+          <a href="/tickets" class="home-action-card home-action-card--orange"><span>Get notified</span><strong>Hear the dates before anyone else does.</strong><em>Leave your number →</em></a>
+          <a href="/photos" class="home-action-card home-action-card--blue"><span>Photos</span><strong>See {recap.label} in pictures.</strong><em>Open the photos →</em></a>
+          <a href="/library" class="home-action-card home-action-card--yellow"><span>Game library</span><strong>Browse every game on the shelf.</strong><em>See the library →</em></a>
+          <a href="/get-involved" class="home-action-card home-action-card--purple"><span>Partners</span><strong>Run an event, book a booth or sponsor {recap.nextLabel}.</strong><em>Get involved →</em></a>
+        </div>
+        <p class="home-actions__help">Anything else? <a href="/contact">Read common answers or contact the team →</a></p>
+      </div>
+    </section>
+  )}
+
+  {edition && !wrapped && (
     <section class="home-actions" aria-labelledby="home-actions-heading">
       <div class="container-x home-actions__inner">
         <span class="section-tag">Make a plan</span>
@@ -212,10 +255,53 @@ const eventJsonLd = edition ? JSON.stringify({
   />
 
   {/* ──────────────────────────────────────────────────────────── 8. Sponsors */}
-  <SponsorsBand logos={partnerLogos} />
+  <SponsorsBand logos={partnerLogos} {...wallHeading} />
 
   {/* ──────────────────────────────────────────────────────────── 9. Orange CTA finish */}
-  {edition && (
+  {wrapped && recap && site.recap && (
+    <section class="closing-cta" aria-labelledby="closing-cta-heading">
+      <Image
+        src={closingPhoto}
+        alt=""
+        layout="constrained"
+        width={1600}
+        widths={[800, 1600]}
+        sizes="100vw"
+        format="avif"
+        quality={55}
+        loading="lazy"
+        class="closing-cta__bg"
+      />
+
+      <span class="closing-cta__monogram" aria-hidden="true">R/</span>
+
+      <div class="container-x closing-cta__inner">
+        <span class="closing-cta__eyebrow">
+          <span class="closing-cta__dot" aria-hidden="true"></span>
+          {recap.nextLabel.toUpperCase()} · BEING PLANNED
+        </span>
+
+        <h2 id="closing-cta-heading" class="closing-cta__heading">
+          Save a seat at the next table.
+        </h2>
+
+        <p class="closing-cta__meta">Dates, venue and tickets — you'll hear first.</p>
+
+        <div class="closing-cta__notify">
+          <NotifyMeForm client:visible editionId={site.recap.id} editionName={site.recap.name} status="closed" />
+        </div>
+
+        <div class="closing-cta__row">
+          <a href={COMMUNITY_WHATSAPP} target="_blank" rel="noopener noreferrer" class="closing-cta__link">
+            Or wait with everyone on WhatsApp
+            <span aria-hidden="true" class="closing-cta__link-arrow">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {edition && !wrapped && (
     <section class="closing-cta" aria-labelledby="closing-cta-heading">
       <Image
         src={closingPhoto}
@@ -316,6 +402,25 @@ const eventJsonLd = edition ? JSON.stringify({
 
   .event-capacity__bar {
     margin-top: 20px;
+  }
+
+  .event-capacity__last {
+    margin-top: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  /* Between editions the closing band carries the notify form itself. */
+  .closing-cta__notify {
+    margin-top: 28px;
+    max-width: 440px;
+    padding: 20px 20px 22px;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: var(--border-thick);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
   }
 
   .event-capacity__cta-row {

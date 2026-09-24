@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import GameLibrary from '../components/GameLibrary';
-import { getCurrentEdition, getLibraryCatalogue } from '../lib/data';
+import { getLibraryCatalogue, getSiteState } from '../lib/data';
+import { displayEdition } from '../lib/site-phase';
 
 /**
  * Read at build time from the catalogue the admin console edits, so taking a
@@ -13,7 +14,9 @@ import { getCurrentEdition, getLibraryCatalogue } from '../lib/data';
 const snapshot = await getLibraryCatalogue();
 const games = snapshot.games;
 
-const edition = await getCurrentEdition();
+// The desk process of the edition that is coming, or of the last one while
+// there is nothing coming yet — the library itself does not stop existing.
+const edition = displayEdition(await getSiteState());
 const libraryProcess = edition?.game_library_process?.trim() || null;
 
 /** Physical copies on the shelf — more than the number of distinct games. */

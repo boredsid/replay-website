@@ -2,16 +2,34 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import { whatsappContactUrl } from '../lib/contact';
-import { editionOrdinal, getCurrentEdition, getSponsors, publicDateRange } from '../lib/data';
+import { editionOrdinal, getCurrentEdition, getSiteState, getSponsors, publicDateRange } from '../lib/data';
+import { getRecapView } from '../lib/recap-data';
+import { rupees } from '../lib/recap';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
 import { SPONSOR_TIERS, SPONSOR_BASELINE, tierStatus } from '../lib/sponsor-tiers';
 
 const edition = await getCurrentEdition();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
 
+// Between editions this page pitches the next one on the strength of the last:
+// its figures up front, a conversation instead of prices, and the tiers all
+// open again. See docs/specs/2026-09-24-between-editions-design.md.
+const site = await getSiteState();
+const recap = await getRecapView();
+const wrapped = site.phase === 'wrapped' && recap !== null;
+const offSeasonWhatsapp = whatsappContactUrl(`Hi, I'd like to talk about partnering with ${recap?.nextLabel ?? 'the next REPLAY'}.`);
+const pitchFigures = recap
+  ? [
+      recap.people && { value: recap.people, label: 'people over two days' },
+      recap.seatsBooked && { value: recap.seatsBooked, label: 'session seats booked' },
+      recap.partners && { value: recap.partners, label: 'partners on the floor' },
+    ].filter((f): f is { value: number; label: string } => Boolean(f))
+  : [];
+
 // A tier is closed because a sponsor holds it, not because someone remembered
-// to mark it closed. The rows are the ones uploaded in the admin console.
-const sponsors = edition ? await getSponsors(edition.id) : [];
+// to mark it closed. The rows are the ones uploaded in the admin console, for
+// the edition that is coming — once it has ended, every tier is open again.
+const sponsors = site.upcoming ? await getSponsors(site.upcoming.id) : [];
 const editionLabel = edition ? editionOrdinal(edition.slug) : '';
 const tiers = SPONSOR_TIERS.map((tier) => ({ tier, status: tierStatus(tier, sponsors, editionLabel) }));
 const partnerPricing = edition?.partner_pricing ?? DEFAULT_PARTNER_PRICING;
@@ -73,6 +91,30 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
 ---
 
 <Layout title="Get Involved — REPLAY" description="Run an event, book a booth, sponsor REPLAY, or work with the convention as a content creator.">
+  {wrapped && recap ? (
+    <>
+      <DarkBand
+        eyebrow={`▸ ${recap.nextLabel.toUpperCase()} PARTNERS`}
+        eyebrowColor="var(--color-yellow)"
+        heading="Put your table in front of Bangalore's players."
+        headingLevel="h1"
+        body={`${recap.nextLabel}'s floor is being planned now. Here's who you'd be meeting — ${recap.label}, in numbers.`}
+        cta={{ text: 'Talk to us on WhatsApp →', href: offSeasonWhatsapp, external: true, variant: 'primary' }}
+        cta2={{ text: 'Ways to partner ↓', href: '#ways-to-partner', variant: 'outline-white' }}
+      />
+      {pitchFigures.length > 0 && (
+        <section class="page-section page-section-paper pitch-figures" aria-label={`${recap.label} in numbers`}>
+          <div class="container-x">
+            <dl class="pitch-figures__grid">
+              {pitchFigures.map((figure) => (
+                <div class="pitch-figures__item"><dt>{figure.label}</dt><dd>{figure.value.toLocaleString('en-IN')}</dd></div>
+              ))}
+            </dl>
+          </div>
+        </section>
+      )}
+    </>
+  ) : (
   <DarkBand
     eyebrow="▸ GET INVOLVED"
     eyebrowColor="var(--color-yellow)"
@@ -81,6 +123,7 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
     body={edition ? `REPLAY is built with the people who make Bangalore's game community interesting. Partner with us for ${range}.` : "REPLAY is built with the people who make Bangalore's game community interesting."}
     cta={{ text: 'Choose a partnership ↓', href: '#ways-to-partner', variant: 'primary' }}
   />
+  )}
 
   <section id="ways-to-partner" class="page-section page-section-yellow" aria-labelledby="ways-heading">
     <div class="container-x">
@@ -148,6 +191,19 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
     </div>
   </section>
 
+  {wrapped && recap ? (
+    <section id="booth-pricing" class="page-section page-section-paper" aria-labelledby="booth-pricing-heading">
+      <div class="container-x">
+        <span class="section-tag">Booths &amp; engagements</span>
+        <h2 id="booth-pricing-heading" class="section-heading">Back on sale with {recap.nextLabel}'s dates.</h2>
+        <div class="pricing-shelved">
+          <p>Booths and community-engagement slots go back on sale once {recap.nextLabel} has dates and a venue.{recap.cheapestBooth > 0 && <> For reference, {recap.label} booths started at <strong>{rupees(recap.cheapestBooth)} + GST</strong>.</>}</p>
+          <a class="btn btn-secondary" href={offSeasonWhatsapp} target="_blank" rel="noopener noreferrer">Ask about {recap.nextLabel} →</a>
+        </div>
+      </div>
+    </section>
+  ) : (
+    <>
   <section id="booth-pricing" class="page-section page-section-paper" aria-labelledby="booth-pricing-heading">
     <div class="container-x">
       <span class="section-tag">Booth pricing</span>
@@ -187,6 +243,9 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
       <p class="commercial-note">Cancellations are accepted only until seven days before the event starts. After that deadline, cancellations are not accepted.</p>
     </div>
   </section>
+
+    </>
+  )}
 
   <section id="sponsorship" class="page-section page-section-soft" aria-labelledby="sponsorship-heading">
     <div class="container-x">
@@ -259,6 +318,56 @@ const coverageWhatsapp = whatsappContactUrl("Hi, I'd like to pitch coverage for 
 </Layout>
 
 <style>
+  /* Between editions: the last edition's figures under the pitch. */
+  .pitch-figures {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+
+  .pitch-figures__grid {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 16px;
+  }
+
+  .pitch-figures__item {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 16px 18px 14px;
+    background: var(--color-yellow);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .pitch-figures__item dd {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pitch-figures__item dt {
+    font-size: 0.9375rem;
+  }
+
+  .pricing-shelved {
+    margin-top: 24px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+    max-width: 62ch;
+    padding: 20px 22px;
+    border: 3px dashed var(--color-ink);
+    border-radius: var(--radius-md);
+  }
+
   .partner-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
   .partner-card { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; padding: 30px; border: 4px solid var(--color-ink); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
   .partner-card--blue { background: var(--color-blue); }

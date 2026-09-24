@@ -69,6 +69,33 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   (`/floor-display?key=…`, remembered by the browser), so a stranger polling the
   public endpoint cannot watch who arrives. With no key the banners are simply
   skipped. Rehearse with `?at=2026-09-12T14:30&demo=1`.
+- **Between editions** (2026-09-24) — once an edition has ended the site stops
+  advertising it and recaps it instead. The phase is worked out from the dates
+  (`src/lib/site-phase.ts`), never from a status an admin must remember to flip:
+  `pre_event`, `live` (same UI as pre-event for now), `wrapped`, or `none`.
+  "Today" is the Bengaluru date fixed once per build in `astro.config.mjs`
+  (`SITE_TODAY`, which can be set by hand to build as of any date). The edition
+  being recapped is the most recent *published* edition that has ended, current
+  or not — so marking a draft REPLAY 4 current no longer empties the site, which
+  it used to, because the single-current trigger clears REPLAY 3's flag. In
+  `wrapped`: the homepage dates band becomes a recap band built from
+  `GET /api/recap/:slug` (people through the door, bookings, loans — counted in
+  Postgres by `edition_recap`, service role only); `/schedule` becomes the record
+  of what was on, with booked counts; `/tickets` only collects numbers;
+  `/plan-your-visit` holds; `/get-involved` pitches the next edition with the
+  last one's figures and shelves prices; the header credit moves into the
+  recap; the share card changes. A figure that is zero is left out, because
+  REPLAY 1 and 2 have no app data. A nightly Worker cron (03:00 IST) fires the
+  deploy hook on an edition's first day and the morning after its last, so the
+  static site changes phase on its own. Copy lives in `src/lib/recap.ts`. See
+  `docs/specs/2026-09-24-between-editions-design.md`.
+- **Photos** (`/photos`, 2026-09-24) — every ended edition with an album link
+  (`editions.photos_url`, set in the Edition drawer; Google Photos or Google
+  Drive only), newest first, one card each. Google Photos can be neither framed
+  nor read through its API any more, so the page links out and shows only the
+  album's Open Graph cover, which the build downloads through `astro:assets`
+  and serves from `/_astro/` — no new CSP host, and nobody's browser fetches
+  from Google. In the header only between editions; in the footer always.
 
 ## Admin
 
@@ -440,3 +467,6 @@ Honest gaps. All are covered by tests and by nothing else.
   outside the event.
 - **`ADMIN_EMAILS`** is still set as a Worker secret and read by nothing. Left
   so a rollback has somewhere to land; delete it after the event.
+- **The nightly phase rebuild.** It went live on 2026-09-24, after REPLAY 3's
+  boundaries had passed, so its first real firing will be REPLAY 4's first day.
+  Check the audit log for a `site.rebuild` by `system:phase-cron` that morning.

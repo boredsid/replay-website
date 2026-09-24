@@ -3,10 +3,18 @@ import Layout from '../layouts/Layout.astro';
 import RegisterForm from '../components/RegisterForm';
 import NotifyMeForm from '../components/NotifyMeForm';
 import LiveSpotsBadge from '../components/LiveSpotsBadge';
-import { getCurrentEdition, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getSiteState, publicDateRange } from '../lib/data';
+import { nextEditionLabel, editionLabel } from '../lib/site-phase';
 import { weekdayName } from '../lib/edition-format';
 
 const edition = await getCurrentEdition();
+// Between editions this page only collects numbers for the next one: never the
+// registration form, whatever the ended edition's status says, and never a
+// live seat count for a weekend that is over.
+const site = await getSiteState();
+const wrapped = site.phase === 'wrapped' && site.recap !== null;
+const nextLabel = nextEditionLabel(site.recap?.slug);
+const recapLabel = site.recap ? editionLabel(site.recap.slug) : '';
 const upiId = import.meta.env.PUBLIC_UPI_ID ?? '';
 const title = 'Tickets — REPLAY';
 const dateRange = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
@@ -27,7 +35,17 @@ const statusCopy = edition?.registration_status === 'open'
       <div class="ticket-form-frame">
         <div class="ticket-form-frame__accent" aria-hidden="true"></div>
         <div class="ticket-form-frame__content">
-          {!edition ? (
+          {wrapped && site.recap ? (
+            <div class="ticket-form-message">
+              <span class="section-tag">{nextLabel}</span>
+              <h1 id="ticket-action-heading">The next one's being planned.</h1>
+              <p>Dates aren't set yet. Leave your number and you'll hear the moment tickets open — before it's on Instagram.</p>
+              <div class="ticket-notify">
+                <NotifyMeForm client:load editionId={site.recap.id} editionName={site.recap.name} status="closed" />
+              </div>
+              <p class="ticket-missed">Missed {recapLabel}? <a href="/">Here's what happened →</a></p>
+            </div>
+          ) : !edition ? (
             <div class="ticket-form-message">
               <span class="section-tag">Tickets</span>
               <h1 id="ticket-action-heading">Tickets are between editions.</h1>
@@ -57,7 +75,7 @@ const statusCopy = edition?.registration_status === 'open'
     </div>
   </section>
 
-  {edition && (
+  {edition && !wrapped && (
     <section class="page-section page-section-yellow" id="availability-section" aria-labelledby="availability-heading" hidden>
       <div class="availability-shell">
         <div class="availability-card">
@@ -70,6 +88,7 @@ const statusCopy = edition?.registration_status === 'open'
     </section>
   )}
 
+  {!wrapped && (
   <section class="page-section page-section-soft">
     <div class="container-x two-column">
       <div>
@@ -83,9 +102,21 @@ const statusCopy = edition?.registration_status === 'open'
       </div>
     </div>
   </section>
+  )}
 </Layout>
 
 <style>
+  .ticket-missed {
+    margin-top: 20px;
+    font-size: 0.9375rem;
+  }
+
+  .ticket-missed a {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
   .ticket-action {
     padding: 48px 20px 64px;
     background: var(--color-cream);

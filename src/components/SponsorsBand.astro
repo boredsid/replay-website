@@ -12,18 +12,22 @@ import type { PartnerLogo } from '../lib/partner-logos';
 
 export interface Props {
   logos: PartnerLogo[];
+  /** Section tag; between editions it names the edition the wall credits. */
+  tag?: string;
+  /** Between editions: "REPLAY 3 was made with these 24." */
+  heading?: string;
 }
 
-const { logos } = Astro.props;
+const { logos, tag = 'Partners & sponsors', heading = 'The people making REPLAY happen.' } = Astro.props;
 ---
 
 {
   logos.length > 0 && (
     <section class="sponsors-band" aria-labelledby="partners-sponsors-heading">
       <div class="container-x sponsors-band__inner">
-        <span class="section-tag">Partners &amp; sponsors</span>
+        <span class="section-tag">{tag}</span>
         <h2 id="partners-sponsors-heading" class="sponsors-band__heading">
-          The people making REPLAY happen.
+          {heading}
         </h2>
 
         <div class="sponsors-band__grid">
