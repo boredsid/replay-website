@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import VenueMap from '../components/VenueMap.astro';
-import { getCurrentEdition, getLibraryCatalogue, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getLibraryCatalogue, getSiteState, publicDateRange } from '../lib/data';
+import { nextEditionLabel } from '../lib/site-phase';
 import { clockTime, eventDayLabel } from '../lib/edition-format';
 
 /**
@@ -13,6 +14,12 @@ import { clockTime, eventDayLabel } from '../lib/edition-format';
 const libraryCount = Math.floor((await getLibraryCatalogue()).games.length / 50) * 50;
 
 const edition = await getCurrentEdition();
+// Between editions there is nowhere to plan a visit to: the directions below
+// would send somebody to a venue REPLAY has handed back. The page keeps its
+// URL for old links, says when it returns, and keeps only the library.
+const site = await getSiteState();
+const wrapped = site.phase === 'wrapped';
+const nextLabel = nextEditionLabel(site.recap?.slug);
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
 const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(edition.daily_end_time)}` : '';
 const venueConfirmed = Boolean(edition && edition.venue && edition.venue !== 'TBD');
@@ -38,6 +45,16 @@ const helpOnTheDay = text(edition?.help_on_the_day);
 ---
 
 <Layout title="Plan Your Visit — REPLAY" description="Dates, hours, venue status, arrival guidance, accessibility, food, transport, and other practical information for REPLAY.">
+  {wrapped ? (
+    <DarkBand
+      eyebrow="▸ PLAN YOUR VISIT"
+      eyebrowColor="var(--color-yellow)"
+      heading={`Back with ${nextLabel}.`}
+      headingLevel="h1"
+      body="Venue, travel, food and accessibility details go up here when the next edition's dates do."
+      cta={{ text: 'Get notified →', href: '/tickets', variant: 'primary' }}
+    />
+  ) : (
   <DarkBand
     eyebrow="▸ PLAN YOUR VISIT"
     eyebrowColor="var(--color-yellow)"
@@ -46,7 +63,10 @@ const helpOnTheDay = text(edition?.help_on_the_day);
     body={edition ? `${range} · ${hours} each day. Everything confirmed about getting there and getting in lives on this page.` : 'Practical information for the next REPLAY edition will appear here.'}
     cta={edition ? { text: 'Get tickets →', href: '/tickets', variant: 'primary' } : undefined}
   />
+  )}
 
+  {!wrapped && (
+    <>
   <section class="page-section page-section-yellow" aria-labelledby="essentials-heading">
     <div class="container-x">
       <span class="section-tag">Essentials</span>
@@ -95,6 +115,9 @@ const helpOnTheDay = text(edition?.help_on_the_day);
 
   <VenueMap />
 
+    </>
+  )}
+
   <section class="page-section page-section-blue" aria-labelledby="library-heading">
     <div class="container-x two-column">
       <div>
@@ -114,6 +137,8 @@ const helpOnTheDay = text(edition?.help_on_the_day);
     </div>
   </section>
 
+  {!wrapped && (
+    <>
   <section class="page-section page-section-soft" aria-labelledby="venue-guide-heading">
     <div class="container-x">
       <span class="section-tag">Getting there</span>
@@ -162,6 +187,8 @@ const helpOnTheDay = text(edition?.help_on_the_day);
       </div>
     </div>
   </section>
+    </>
+  )}
 </Layout>
 
 <style>

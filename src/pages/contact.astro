@@ -2,10 +2,16 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import { whatsappContactUrl } from '../lib/contact';
-import { getCurrentEdition, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getSiteState, publicDateRange } from '../lib/data';
+import { editionLabel, nextEditionLabel } from '../lib/site-phase';
 
 const edition = await getCurrentEdition();
+const site = await getSiteState();
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
+// Between editions the venue answer is history, and the next one is not set.
+const pastVenue = site.phase === 'wrapped' && site.recap && site.recap.venue !== 'TBD'
+  ? `${editionLabel(site.recap.slug)} was at ${site.recap.venue}, Bangalore. ${nextEditionLabel(site.recap.slug)}'s venue is announced with its dates.`
+  : null;
 const contactWhatsapp = whatsappContactUrl('Hi, I have a question about REPLAY.');
 
 const faqs = [
@@ -62,9 +68,9 @@ const faqs = [
   {
     category: 'Venue + access',
     question: 'Where is the event?',
-    answer: edition && edition.venue !== 'TBD'
+    answer: pastVenue ?? (edition && edition.venue !== 'TBD'
       ? `${edition.venue}, Bangalore. See Plan Your Visit for the current map and arrival guidance.`
-      : 'The Bangalore venue and full address are still being confirmed. They will be published before ticket sales open.',
+      : 'The Bangalore venue and full address are still being confirmed. They will be published before ticket sales open.'),
   },
   {
     category: 'Venue + access',

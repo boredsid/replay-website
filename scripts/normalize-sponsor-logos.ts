@@ -28,6 +28,7 @@ import {
 } from '../src/lib/logo-normalize.ts';
 import { buildWall, type SponsorWallRow, type WallEntry } from '../src/lib/sponsor-wall.ts';
 import { restUrl } from '../src/lib/supabase-rest.ts';
+import { displayEdition, resolveSitePhase, siteToday, type PhaseEdition } from '../src/lib/site-phase.ts';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = join(repoRoot, 'sponsor-logos');
@@ -102,10 +103,23 @@ async function fetchSponsorRows(sources: NormalizeSources): Promise<SponsorWallR
   }
 
   const credentials = { supabaseUrl, supabaseAnonKey };
-  const editions = await supabaseSelect(credentials, 'editions?select=id&is_current=eq.true&is_published=eq.true');
-  const editionId = editions[0]?.id;
+  // The wall belongs to the same edition the pages describe: the upcoming one,
+  // or once it has ended, the one being recapped. Same rule, same "today" —
+  // astro.config.mjs fixes SITE_TODAY before this hook runs.
+  const today = siteToday();
+  const fields = 'id,slug,start_date,end_date';
+  const [current, latestEnded] = await Promise.all([
+    supabaseSelect(credentials, `editions?select=${fields}&is_current=eq.true&is_published=eq.true`),
+    supabaseSelect(credentials, `editions?select=${fields}&is_published=eq.true&end_date=lt.${today}&order=end_date.desc&limit=1`),
+  ]);
+  const edition = displayEdition(resolveSitePhase({
+    current: (current[0] as PhaseEdition & { id: string }) ?? null,
+    latestEnded: (latestEnded[0] as PhaseEdition & { id: string }) ?? null,
+    today,
+  }));
+  const editionId = edition?.id;
   if (!editionId) {
-    console.warn('[sponsor-logos] no published current edition; using only the artwork in sponsor-logos/.');
+    console.warn('[sponsor-logos] no edition to show; using only the artwork in sponsor-logos/.');
     return [];
   }
 

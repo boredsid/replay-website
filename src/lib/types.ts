@@ -85,6 +85,36 @@ export interface EditionRow extends EditionVisitDetails {
   registration_status: RegistrationStatus;
   is_current: boolean;
   is_published: boolean;
+  /** Google Photos shared album or Google Drive folder, shown on /photos once the edition has ended. */
+  photos_url?: string | null;
+}
+
+/**
+ * An edition as /photos and the recap need it: no prices, because REPLAY 1's
+ * one-day pricing (campaign: null) does not satisfy readEditionPricing, and
+ * nothing that describes a finished edition shows a ticket price.
+ */
+export interface PastEditionRow {
+  id: string;
+  slug: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  venue: string;
+  photos_url: string | null;
+  partner_pricing: PartnerPricing;
+}
+
+/** GET /api/recap/:slug — see worker/src/recap.ts for the contract. */
+export interface RecapResponse {
+  edition: { slug: string; start_date: string; end_date: string };
+  attendance: { people: number; by_day: Partial<Record<Day, number>>; both_days: number };
+  sessions: {
+    seats_booked: number;
+    sessions_booked: number;
+    by_item: Array<{ schedule_item_id: string; booked: number }>;
+  };
+  library: { loans: number; most_borrowed: Array<{ title: string; loans: number }> };
 }
 
 export interface SponsorRow {
@@ -96,6 +126,8 @@ export interface SponsorRow {
   /** Object key in the `sponsor-logos` bucket, or null if hosted elsewhere. */
   logo_path: string | null;
   website_url: string | null;
+  /** Whether a title or association sponsor is credited in the header lockup (and, between editions, the recap). */
+  show_in_header?: boolean;
 }
 
 export interface ScheduleItemRow {

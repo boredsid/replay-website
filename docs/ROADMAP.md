@@ -16,24 +16,10 @@ against, record it here rather than removing it silently.
 
 ## Open
 
-**Between editions**, in progress on branch `between-editions`. This covers
-what replaycon.in says once an edition has ended:
+Nothing. Between editions and `/photos` shipped on 2026-09-24, and P7 (booking
+management in the admin) on 2026-09-07 — see [`DELIVERED.md`](DELIVERED.md).
 
-- a phase worked out from the dates, rebuilt by a nightly Worker job;
-- a recap band built from check-ins, bookings and library loans;
-- the programme kept as a record;
-- an off-season Get involved page;
-- a photo album link on each edition, with a `/photos` page.
-
-Design:
-[`specs/2026-09-24-between-editions-design.md`](specs/2026-09-24-between-editions-design.md).
-Plan:
-[`implementation/2026-09-24-between-editions-plan.md`](implementation/2026-09-24-between-editions-plan.md).
-
-P7 (booking management in the admin) shipped on 2026-09-07 — see the
-events board in [`DELIVERED.md`](DELIVERED.md).
-
-Two things it deliberately did not do, recorded so they are decided rather than
+Two things P7 deliberately did not do, recorded so they are decided rather than
 forgotten:
 
 - **Moving somebody between sessions in one action.** Remove then add does it in

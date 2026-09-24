@@ -15,9 +15,10 @@ it as an event people can go to:
 - `/plan-your-visit` gives directions, entrance and parking for a terrace that
   is no longer REPLAY's. It is the one page that could send somebody somewhere
   on the wrong day.
-- `/get-involved` lists live booth prices with Book buttons. The Worker refuses
-  the sale (`partner_sales_closed`, `worker/src/partner-purchase.ts`), but only
-  after the partner has filled in the whole form.
+- `/get-involved` lists REPLAY 3's booth and engagement prices with "Buy this
+  booth" buttons, which open a WhatsApp chat as if the booths were still on
+  sale. (The self-serve checkout, `worker/src/partner-purchase.ts`, already
+  refuses after `end_date`, but no page uses it today.)
 - `/tickets` says "Ticket sales for this edition are closed", which reads like
   a missed deadline, not an event that happened.
 - The header still credits Meeple Syrup as REPLAY's association partner.
@@ -39,7 +40,7 @@ branches: no dates band on the homepage, and a Tickets page with no way to
 leave a number.
 
 The backend is already mostly honest. Registration refuses unless the status
-is `open`, and partner purchases refuse after `end_date`. Registration
+is `open`, and the partner checkout refuses after `end_date`. Registration
 does not check the dates; that gap is tracked as its own task, separate from
 this design.
 
@@ -69,8 +70,8 @@ Taken 2026-09-24, after the mock (claude.ai artifact "REPLAY Between Editions").
 3. **The dates decide the phase**, and a nightly Worker job rebuilds the site on
    the mornings a phase changes. Nobody has to remember to flip anything.
 4. **Get involved makes a real off-season pitch** built on the last edition's
-   numbers, routes partners to a WhatsApp conversation, and shelves
-   self-serve checkout until the next edition has dates and prices.
+   numbers, routes partners to a WhatsApp conversation, and shelves the
+   booth and engagement prices until the next edition has dates and prices.
 5. **The header credit moves into the recap.** "In association with Meeple
    Syrup" was sold for REPLAY 3; between editions it appears as "REPLAY 3 was
    made in association with Meeple Syrup."
@@ -144,7 +145,7 @@ scope for the same reason.
 | `/plan-your-visit` | Unchanged | "Back with REPLAY 4." Arrival, map, venue guide and help sections removed; the library section stays; not in the nav |
 | `/contact` | Unchanged | The venue answer turns past tense: "REPLAY 3 was at Indiqube Symphony, MG Road. REPLAY 4's venue is announced with its dates." |
 | `/library` | Unchanged | Unchanged. The desk process text comes from the upcoming edition, or the recap edition if there is none. |
-| Share card | Unchanged | `LAST TIME / 285 PLAYERS / SEP 12–13, 2026` and `NEXT / REPLAY 4 / DATES SOON` |
+| Share card | Unchanged | Eyebrow `THAT WAS REPLAY 3`, then `LAST TIME / 285 PLAYERS / SEP 12–13, 2026` and `NEXT / REPLAY 4 / DATES SOON` |
 
 **Naming.** These strings say "REPLAY 3" and "REPLAY 4", numbered from the
 edition slug; the next edition is the recap number plus one. Elsewhere the site
@@ -157,8 +158,8 @@ so they cannot disagree.
 - Hero: "Put your table in front of Bangalore's players." Three figures from
   the recap edition: people, session seats booked, partners on the floor.
 - Primary CTA: "Talk to us on WhatsApp →", through `whatsappContactUrl`.
-- The booth and community-engagement pricing sections, and their checkout
-  forms, are replaced by one card: "Booths and engagements go back on sale with
+- The booth and community-engagement pricing sections, and their Buy buttons,
+  are replaced by one card: "Booths and engagements go back on sale with
   REPLAY 4's dates. For reference, REPLAY 3 booths started at ₹6,500 + GST",
   the lower of the recap edition's two booth prices.
 - The sponsorship ladder and the "how partnering works" section stay. They

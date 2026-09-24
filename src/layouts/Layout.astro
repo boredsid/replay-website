@@ -5,6 +5,7 @@ import '@fontsource-variable/inter/wght.css';
 import '@fontsource-variable/space-grotesk/wght.css';
 import { headerLockup } from '../lib/header-lockup';
 import { partnerLogos, type PartnerLogo } from '../lib/partner-logos';
+import { getSiteState } from '../lib/data';
 
 export interface Props {
   title: string;
@@ -43,20 +44,44 @@ if (ogImage === DEFAULT_OG_IMAGE && linkPreviewVersion) {
 }
 const ogImageHref = ogImageUrl.toString();
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
-const nav = [
-  { href: '/', label: 'Home' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/plan-your-visit', label: 'Plan your visit' },
-  { href: '/get-involved', label: 'Get involved' },
-  { href: '/contact', label: 'Contact us' },
-];
+const site = await getSiteState();
+const wrapped = site.phase === 'wrapped';
+
+/**
+ * Between editions there is no venue to plan a visit to, and the programme is
+ * a record of what was on; the photos and the library are what is worth a
+ * click. See docs/specs/2026-09-24-between-editions-design.md.
+ */
+const nav = wrapped
+  ? [
+      { href: '/', label: 'Home' },
+      { href: '/photos', label: 'Photos' },
+      { href: '/schedule', label: 'What was on' },
+      { href: '/library', label: 'Game library' },
+      { href: '/get-involved', label: 'Get involved' },
+      { href: '/contact', label: 'Contact us' },
+    ]
+  : [
+      { href: '/', label: 'Home' },
+      { href: '/schedule', label: 'Schedule' },
+      { href: '/plan-your-visit', label: 'Plan your visit' },
+      { href: '/get-involved', label: 'Get involved' },
+      { href: '/contact', label: 'Contact us' },
+    ];
+const ticketsLabel = wrapped ? 'Get notified' : 'Tickets';
 const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
 
 /**
  * “X presents REPLAY in association with Y”, built from whoever holds those
  * two tiers this edition. Neither sold, and the header is the wordmark alone.
+ *
+ * Only while an edition is coming or on. The credit was sold for that
+ * edition; once it has ended it moves into the recap band on the homepage
+ * ("Made in association with …"), where it is still true.
  */
-const lockup = headerLockup(partnerLogos);
+const lockup = site.upcoming
+  ? headerLockup(partnerLogos)
+  : { presenter: null, associate: null, hasCredits: false };
 
 /**
  * A tile is the mark centred on a padded 3:2 canvas — right for the wall's
@@ -169,7 +194,7 @@ const markWindow = (logo: PartnerLogo) => [
             </a>
           ))}
           <a href="/tickets" class="btn btn-primary btn-sm" aria-current={path === '/tickets' ? 'page' : undefined}>
-            Tickets
+            {ticketsLabel}
           </a>
         </nav>
 
@@ -179,7 +204,7 @@ const markWindow = (logo: PartnerLogo) => [
             {nav.map((item) => (
               <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>{item.label}</a>
             ))}
-            <a href="/tickets" class="mobile-menu__tickets" aria-current={path === '/tickets' ? 'page' : undefined}>Tickets</a>
+            <a href="/tickets" class="mobile-menu__tickets" aria-current={path === '/tickets' ? 'page' : undefined}>{ticketsLabel}</a>
           </nav>
         </details>
       </div>
@@ -197,10 +222,11 @@ const markWindow = (logo: PartnerLogo) => [
         </div>
 
         <nav aria-label="Footer navigation" class="site-footer__links">
-          <a href="/tickets">Tickets</a>
-          <a href="/schedule">Schedule</a>
+          <a href="/tickets">{ticketsLabel}</a>
+          <a href="/schedule">{wrapped ? 'What was on' : 'Schedule'}</a>
+          <a href="/photos">Photos</a>
           <a href="/library">Game library</a>
-          <a href="/plan-your-visit">Plan your visit</a>
+          {!wrapped && <a href="/plan-your-visit">Plan your visit</a>}
           <a href="/get-involved">Get involved</a>
           <a href="/contact">Contact us</a>
         </nav>

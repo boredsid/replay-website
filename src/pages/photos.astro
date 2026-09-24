@@ -1,0 +1,209 @@
+---
+/**
+ * /photos — every finished edition's album, newest first.
+ *
+ * The page links to albums; it cannot show them (Google Photos refuses to be
+ * framed, and its API no longer reads shared albums). Each card shows the
+ * album's own cover — the picture any chat app shows when the link is pasted —
+ * copied at build time so visitors never load anything from Google.
+ * See src/lib/photos.ts and docs/specs/2026-09-24-between-editions-design.md.
+ *
+ * Built in every phase; it is in the header only between editions.
+ */
+import { Image } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import DarkBand from '../components/DarkBand.astro';
+import NotifyMeForm from '../components/NotifyMeForm';
+import { getPastEditions, getSiteState, publicDateRange } from '../lib/data';
+import { getRecapView } from '../lib/recap-data';
+import { editionLabel, nextEditionLabel } from '../lib/site-phase';
+import { ALBUM_SERVICE, albumCards, albumHost } from '../lib/photos';
+import { COVER_HEIGHT, COVER_WIDTH, fetchAlbumCover } from '../lib/album-cover';
+
+const COMMUNITY_WHATSAPP = 'https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp';
+
+const site = await getSiteState();
+const recap = await getRecapView();
+const past = await getPastEditions(site.today);
+const { albums, awaiting } = albumCards(past, site.recap?.slug ?? null);
+
+const cards = await Promise.all(albums.map(async (edition) => {
+  const host = albumHost(edition.photos_url)!;
+  return {
+    edition,
+    label: editionLabel(edition.slug),
+    when: publicDateRange(edition.start_date, edition.end_date),
+    venue: edition.venue && edition.venue !== 'TBD' ? edition.venue : null,
+    service: ALBUM_SERVICE[host],
+    cover: await fetchAlbumCover(edition.photos_url),
+    // The people figure only exists for the edition the recap describes.
+    people: edition.slug === site.recap?.slug ? recap?.people ?? null : null,
+  };
+}));
+
+const ACCENTS = ['yellow', 'blue', 'purple'] as const;
+const nextLabel = nextEditionLabel(site.recap?.slug);
+---
+
+<Layout title="Photos — REPLAY" description="Photo albums from every REPLAY edition, Bangalore's board-game convention.">
+  <DarkBand
+    eyebrow="▸ PHOTOS"
+    eyebrowColor="var(--color-yellow)"
+    heading="Every REPLAY, in pictures."
+    headingLevel="h1"
+    body="An album for each edition, from the people who were there. Each one opens where it is kept."
+  />
+
+  <section class="page-section page-section-paper" aria-label="Albums">
+    <div class="container-x photo-albums">
+      {awaiting && (
+        <article class="album-card album-card--awaiting">
+          <div class="album-card__body">
+            <span class="section-tag">Coming soon</span>
+            <h2 class="album-card__heading">{editionLabel(awaiting.slug)}'s photos are being sorted.</h2>
+            <p class="album-card__meta">{publicDateRange(awaiting.start_date, awaiting.end_date)}{awaiting.venue && awaiting.venue !== 'TBD' ? ` · ${awaiting.venue}` : ''}</p>
+            <p>They'll be here soon. In the meantime, leave your number to hear about {nextLabel} first.</p>
+            <div class="album-card__notify">
+              <NotifyMeForm client:visible editionId={awaiting.id} editionName={awaiting.name} status="closed" />
+            </div>
+            <a class="text-link" href={COMMUNITY_WHATSAPP} target="_blank" rel="noopener noreferrer">Or join the REPLAY WhatsApp ↗</a>
+          </div>
+        </article>
+      )}
+
+      {cards.map((card, index) => (
+        <article class:list={['album-card', `album-card--${ACCENTS[index % ACCENTS.length]}`, !card.cover && 'album-card--no-cover']}>
+          {card.cover && (
+            <a class="album-card__cover" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">
+              <Image
+                src={card.cover}
+                alt=""
+                width={COVER_WIDTH}
+                height={COVER_HEIGHT}
+                widths={[800, 1600]}
+                sizes="(min-width: 900px) 55vw, 100vw"
+                format="webp"
+                quality={70}
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            </a>
+          )}
+          <div class="album-card__body">
+            <span class="section-tag">{card.service} album</span>
+            <h2 class="album-card__heading">{card.label}</h2>
+            <p class="album-card__meta">{[card.when, card.venue].filter(Boolean).join(' · ')}</p>
+            {card.people && <p class="album-card__people">{card.people} people came to play.</p>}
+            <a class="btn btn-black" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer">
+              Open the album on {card.service} <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </article>
+      ))}
+
+      {!awaiting && cards.length === 0 && (
+        <article class="album-card album-card--awaiting">
+          <div class="album-card__body">
+            <h2 class="album-card__heading">No albums yet.</h2>
+            <p>Photos from each edition appear here once it has ended.</p>
+            <a class="text-link" href={COMMUNITY_WHATSAPP} target="_blank" rel="noopener noreferrer">Join the REPLAY WhatsApp ↗</a>
+          </div>
+        </article>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .photo-albums {
+    display: grid;
+    gap: 32px;
+  }
+
+  .album-card {
+    display: grid;
+    overflow: hidden;
+    border: var(--border-thick);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    background: var(--color-paper);
+  }
+
+  @media (min-width: 900px) {
+    .album-card {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    }
+
+    .album-card--no-cover,
+    .album-card--awaiting {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .album-card--yellow .album-card__body { background: var(--color-yellow); }
+  .album-card--blue .album-card__body { background: var(--color-blue); }
+  .album-card--purple .album-card__body { background: var(--color-purple); }
+  .album-card--awaiting .album-card__body { background: var(--color-cream); }
+
+  .album-card__cover {
+    display: block;
+    background: var(--color-ink);
+    border-bottom: var(--border-thick);
+  }
+
+  @media (min-width: 900px) {
+    .album-card__cover {
+      border-bottom: 0;
+      border-right: var(--border-thick);
+    }
+  }
+
+  .album-card__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .album-card__body {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 12px;
+    padding: 28px 24px;
+  }
+
+  .album-card__body .section-tag {
+    margin-bottom: 0;
+  }
+
+  .album-card__heading {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .album-card__meta {
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .album-card__people {
+    font-size: 1.0625rem;
+  }
+
+  .album-card__body .btn {
+    margin-top: 8px;
+    white-space: normal;
+  }
+
+  .album-card__notify {
+    width: 100%;
+    max-width: 420px;
+    padding: 18px;
+    background: var(--color-paper);
+    border: var(--border);
+    border-radius: var(--radius-md);
+  }
+</style>

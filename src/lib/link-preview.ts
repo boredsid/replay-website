@@ -5,6 +5,7 @@
 // say", never "where does it sit".
 import type { EditionRow } from './types';
 import { editionOrdinal } from './data';
+import { editionLabel, nextEditionLabel } from './site-phase';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -138,5 +139,34 @@ export function linkPreviewContent(edition: EditionRow | null): LinkPreviewConte
       value: wrapToLines(name.toUpperCase(), 18, 2),
       note: locality.toUpperCase(),
     },
+  };
+}
+
+export interface WrappedPreviewInput {
+  /** The edition that has ended. */
+  slug: string;
+  start_date: string;
+  end_date: string;
+  /** People through the door, when the recap has the figure. */
+  people: number | null;
+}
+
+/**
+ * The card between editions: what the last one added up to, and that the next
+ * one is coming. No dates for an event anybody could still go to — the whole
+ * point of this card is that there are none yet.
+ */
+export function wrappedLinkPreviewContent(input: WrappedPreviewInput): LinkPreviewContent {
+  const label = editionLabel(input.slug).toUpperCase();
+  const next = nextEditionLabel(input.slug).toUpperCase();
+  const range = previewDateRange(input.start_date, input.end_date);
+  const year = parseIsoDate(input.end_date)?.year;
+  return {
+    eyebrow: `THAT WAS ${label}`,
+    tagline: LINK_PREVIEW_TAGLINE,
+    when: input.people
+      ? { label: 'LAST TIME', value: [`${input.people} PLAYERS`], note: year ? `${range}, ${year}` : range }
+      : { label: 'LAST TIME', value: [range], note: previewDayNote(input.start_date, input.end_date) },
+    where: { label: 'NEXT', value: wrapToLines(next, 18, 2), note: 'DATES SOON' },
   };
 }

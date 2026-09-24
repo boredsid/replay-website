@@ -2,10 +2,11 @@
 // Build-time supabase reads from Astro frontmatter. RLS gates every
 // query — only is_published rows are visible to the anon client.
 import { supabase } from './supabase';
-import type { EditionPricing, EditionRow, SponsorRow, ScheduleItemRow } from './types';
+import type { EditionPricing, EditionRow, PastEditionRow, RecapResponse, SponsorRow, ScheduleItemRow } from './types';
 import { readPartnerPricing } from './partner-packages';
 import type { LibrarySnapshot } from './game-library';
 import { SPONSOR_TIER_ORDER } from './sponsor-wall';
+import { resolveSitePhase, siteToday, type SiteState } from './site-phase';
 
 export function readEditionPricing(input: unknown): EditionPricing {
   if (!input || typeof input !== 'object') throw new Error('edition pricing is not an object');
@@ -95,6 +96,113 @@ export async function getCurrentEdition(): Promise<EditionRow | null> {
     pricing: readEditionPricing(row.pricing),
     partner_pricing: readPartnerPricing(row.partner_pricing),
   };
+}
+
+/**
+ * An ended edition read for the recap. Its ticket prices are never shown, and
+ * REPLAY 1's one-day pricing (campaign: null) does not satisfy
+ * readEditionPricing — so a price that will not parse becomes zeroes here
+ * instead of stopping the build over a number nobody reads.
+ */
+function endedEditionRow(data: unknown): EditionRow {
+  const row = data as Omit<EditionRow, 'pricing' | 'partner_pricing'> & { pricing: unknown; partner_pricing?: unknown };
+  let pricing: EditionPricing;
+  try {
+    pricing = readEditionPricing(row.pricing);
+  } catch {
+    pricing = { oneshot: 0, campaign: 0 };
+  }
+  return { ...row, pricing, partner_pricing: readPartnerPricing(row.partner_pricing) };
+}
+
+/** The most recent published edition that ended before `today` (a Bengaluru date). */
+export async function getLatestEndedEdition(today: string): Promise<EditionRow | null> {
+  const { data, error } = await supabase
+    .from('editions')
+    .select('*')
+    .eq('is_published', true)
+    .lt('end_date', today)
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`getLatestEndedEdition failed: ${error.message}`);
+  return data ? endedEditionRow(data) : null;
+}
+
+let siteStateOnce: Promise<SiteState<EditionRow>> | null = null;
+
+/**
+ * The site's phase for this build — pre_event, live, wrapped or none — and the
+ * two editions it is decided from. Fetched once; every page and the layout
+ * share the answer. See src/lib/site-phase.ts.
+ */
+export function getSiteState(): Promise<SiteState<EditionRow>> {
+  siteStateOnce ??= (async () => {
+    const today = siteToday();
+    const [current, latestEnded] = await Promise.all([getCurrentEdition(), getLatestEndedEdition(today)]);
+    return resolveSitePhase({ current, latestEnded, today });
+  })();
+  return siteStateOnce;
+}
+
+/** Every published edition that has ended, newest first — for /photos. */
+export async function getPastEditions(today: string): Promise<PastEditionRow[]> {
+  const { data, error } = await supabase
+    .from('editions')
+    .select('id, slug, name, start_date, end_date, venue, photos_url, partner_pricing')
+    .eq('is_published', true)
+    .lt('end_date', today)
+    .order('end_date', { ascending: false });
+  if (error) throw new Error(`getPastEditions failed: ${error.message}`);
+  return ((data ?? []) as Array<Omit<PastEditionRow, 'partner_pricing'> & { partner_pricing?: unknown }>).map((row) => ({
+    ...row,
+    photos_url: row.photos_url ?? null,
+    partner_pricing: readPartnerPricing(row.partner_pricing),
+  }));
+}
+
+const recapOnce = new Map<string, Promise<RecapResponse | null>>();
+
+/**
+ * What a finished edition added up to, from `GET /api/recap/:slug`.
+ *
+ * Degrades rather than throws — the opposite of the catalogue below, on
+ * purpose. The rebuild the morning after an edition is what moves the site
+ * into `wrapped`, and a failed Pages build leaves the previous deployment live.
+ * Stopping over a missing recap would leave the site advertising a finished
+ * event. Without it the recap band still says "That was REPLAY 3".
+ */
+export function getEditionRecap(slug: string): Promise<RecapResponse | null> {
+  let pending = recapOnce.get(slug);
+  if (!pending) {
+    pending = fetchEditionRecap(slug);
+    recapOnce.set(slug, pending);
+  }
+  return pending;
+}
+
+async function fetchEditionRecap(slug: string): Promise<RecapResponse | null> {
+  const url = import.meta.env.PUBLIC_WORKER_URL;
+  if (!url) {
+    console.warn('[recap] PUBLIC_WORKER_URL not set; building without the recap figures.');
+    return null;
+  }
+  try {
+    const response = await fetch(`${String(url).trim().replace(/\/$/, '')}/api/recap/${encodeURIComponent(slug)}`);
+    if (!response.ok) {
+      console.warn(`[recap] ${slug}: ${response.status} ${response.statusText}; building without the recap figures.`);
+      return null;
+    }
+    const body = (await response.json()) as RecapResponse;
+    if (!body || typeof body.attendance !== 'object' || typeof body.sessions !== 'object' || typeof body.library !== 'object') {
+      console.warn(`[recap] ${slug}: unexpected response; building without the recap figures.`);
+      return null;
+    }
+    return body;
+  } catch (error) {
+    console.warn(`[recap] ${slug}: ${error instanceof Error ? error.message : String(error)}; building without the recap figures.`);
+    return null;
+  }
 }
 
 export async function getSponsors(editionId: string): Promise<SponsorRow[]> {

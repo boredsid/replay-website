@@ -5,6 +5,7 @@ import sitemap from "@astrojs/sitemap";
 import mdx from "@astrojs/mdx";
 import tailwindcss from "@tailwindcss/vite";
 import { normalizeSponsorLogos } from "./scripts/normalize-sponsor-logos.ts";
+import { siteToday } from "./src/lib/site-phase.ts";
 
 /**
  * Cache-busting stamp for the generated link-preview card, exposed to pages as
@@ -23,6 +24,22 @@ import { normalizeSponsorLogos } from "./scripts/normalize-sponsor-logos.ts";
  * it up, and so every page in a build stamps the same value.
  */
 process.env.PUBLIC_LINK_PREVIEW_VERSION ||= Date.now().toString(36);
+
+/**
+ * The build's "today", as a date in Bengaluru.
+ *
+ * What the site says depends on it — before an edition, during it, or after
+ * it has ended (src/lib/site-phase.ts). Fixed here, once, at module scope, for
+ * the same reason as the stamp above: every page and the sponsor-logo
+ * normaliser read this one value, so a build that runs across midnight cannot
+ * contain two phases.
+ *
+ * Set SITE_TODAY by hand to build the site as of any date:
+ *   SITE_TODAY=2026-09-10 npm run build   (before REPLAY 3)
+ *   SITE_TODAY=2026-09-24 npm run build   (after it)
+ * siteToday() refuses a value that is not a date.
+ */
+process.env.SITE_TODAY = siteToday();
 
 /**
  * Rebuild `src/generated/sponsor-logos/` before Vite resolves the glob that
@@ -60,4 +77,10 @@ export default defineConfig({
   // to say to a crawler.
   integrations: [sponsorLogos(), react(), mdx(), sitemap({ filter: (page) => !page.includes('/partner/') && !page.includes('/floor-display') })],
   vite: { plugins: [tailwindcss()] },
+  image: {
+    // Album covers on /photos. Astro downloads each one once at build time and
+    // serves it from /_astro/, so visitors never fetch from Google and the CSP
+    // in public/_headers needs no new image host. See src/lib/album-cover.ts.
+    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
+  },
 });
