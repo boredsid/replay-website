@@ -16,7 +16,21 @@ against, record it here rather than removing it silently.
 
 ## Open
 
-Nothing. P7 (booking management in the admin) shipped on 2026-09-07 — see the
+**Between editions**, in progress on branch `between-editions`. This covers
+what replaycon.in says once an edition has ended:
+
+- a phase worked out from the dates, rebuilt by a nightly Worker job;
+- a recap band built from check-ins, bookings and library loans;
+- the programme kept as a record;
+- an off-season Get involved page;
+- a photo album link on each edition, with a `/photos` page.
+
+Design:
+[`specs/2026-09-24-between-editions-design.md`](specs/2026-09-24-between-editions-design.md).
+Plan:
+[`implementation/2026-09-24-between-editions-plan.md`](implementation/2026-09-24-between-editions-plan.md).
+
+P7 (booking management in the admin) shipped on 2026-09-07 — see the
 events board in [`DELIVERED.md`](DELIVERED.md).
 
 Two things it deliberately did not do, recorded so they are decided rather than
@@ -54,6 +68,12 @@ Things nobody has decided. Each blocks nothing today.
    promotion is first-come and capacity is enforced in the database. Raised by
    the events board (2026-09-07) and left undecided, because the answer changes
    what a waitlist position promises the person holding it.
+6. **Whether past editions' photos are shown on replaycon.in itself**, rather
+   than linked. Google Photos albums cannot be embedded or read through
+   Google's API, so `/photos` links to each album and shows only its cover. To
+   show more, admins would upload a selection per edition, which the homepage
+   photo band could then use too. That is about as much work as the whole
+   between-editions build. Raised 2026-09-24.
 
 ## Not this edition
 
@@ -65,6 +85,18 @@ Things nobody has decided. Each blocks nothing today.
   ledger covers the same failure more simply, and adding offline write-replay
   close to an event is more risk than it removes. A deliberate omission, not an
   oversight.
+- **What the site says during the event days.** The between-editions build
+  recognises a `live` phase and rebuilds into it, but on event days the site
+  still behaves as it did before the event. Leading with the floor map and
+  today's programme is a separate design.
+- **A permanent page for each past edition.** Between editions, the programme
+  record lives at `/schedule`. Once the next edition is announced it is
+  replaced; the recap survives only as a "Last time" line, and the album on
+  `/photos`.
+- **The attendee app between editions.** Not looked at by the
+  between-editions work, which covers the public site only.
+- **A partner wall for a newly announced edition with no sponsors yet.** It
+  hides itself; it does not fall back to the previous edition's partners.
 
 ## Explicitly out of scope
 
