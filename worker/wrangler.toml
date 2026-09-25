@@ -38,6 +38,10 @@ VAPID_SUBJECT = "mailto:hello@replaycon.in"
 # The second expression is 03:00 in Bengaluru. It only rebuilds the public site
 # on the mornings its phase changes (an edition's first day, and the day after
 # its last) -- see src/site-phase-cron.ts, which must use the same string.
+# Optional secret DRIVE_API_KEY: lists photo albums that are Google Drive
+# folders, for the /photos/<slug>/ gallery (src/edition-photos.ts). Without it
+# those galleries link out to Drive. `wrangler secret put DRIVE_API_KEY`.
+
 [triggers]
 crons = ["* * * * *", "30 21 * * *"]
 

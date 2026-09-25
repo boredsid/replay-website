@@ -94,13 +94,27 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   deploy hook on an edition's first day and the morning after its last, so the
   static site changes phase on its own. Copy lives in `src/lib/recap.ts`. See
   `docs/specs/2026-09-24-between-editions-design.md`.
-- **Photos** (`/photos`, 2026-09-24) — every ended edition with an album link
-  (`editions.photos_url`, set in the Edition drawer; Google Photos or Google
-  Drive only), newest first, one card each. Google Photos can be neither framed
-  nor read through its API any more, so the page links out and shows only the
-  album's Open Graph cover, which the build downloads through `astro:assets`
-  and serves from `/_astro/` — no new CSP host, and nobody's browser fetches
-  from Google. In the header only between editions; in the footer always.
+- **Photos** (`/photos`, 2026-09-24; galleries 2026-09-25) — every ended
+  edition with an album link (`editions.photos_url`, set in the Edition drawer;
+  Google Photos or Google Drive only), newest first, one card each with the
+  album's Open Graph cover copied at build time. Each card opens
+  **`/photos/<slug>/`**, a gallery on the site: grid, lightbox with arrow-key
+  stepping, Download (Google's original), Share (the photo itself as a file,
+  through the Worker's same-origin copy, falling back to the link) and Copy
+  link (`?photo=<id>` opens that photo). The page is static; the photos are
+  read at view time from `GET /api/photos/:slug` (`worker/src/edition-photos.ts`),
+  edge-cached for an hour, so new photos need no rebuild. **Google Photos**
+  albums are read from the album's public share page with the parser ported
+  unchanged from bgc-website (`worker/src/google-photos.ts`) — undocumented and
+  fail-soft: when Google changes the page the gallery says so and links to the
+  album. **Drive** folders use the Drive API and need the Worker secret
+  `DRIVE_API_KEY`; REPLAY's Drive albums keep one subfolder per photographer,
+  so they are read one level deep and each subfolder becomes a "By Amrit"
+  section. Without the key, Drive galleries link out. Google Photos videos
+  cannot be embedded, so they open on Google Photos to play. REPLAY 3E's album
+  is 763 items (604 photos, 159 videos) and takes about nine seconds to read
+  cold. Thumbnails load from Google, so `img-src` allows
+  `*.googleusercontent.com` and `drive.google.com`.
 
 ## Admin
 

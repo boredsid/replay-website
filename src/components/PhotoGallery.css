@@ -1,0 +1,257 @@
+/* The /photos/<slug>/ gallery. An island, so its styles live here rather than
+   in an Astro <style> block; everything is prefixed to stay out of the way. */
+
+.gallery {
+  display: grid;
+  gap: 28px;
+}
+
+.gallery__summary {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.gallery__summary a,
+.gallery__more a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+
+.gallery__section {
+  display: grid;
+  gap: 12px;
+}
+
+.gallery__section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.375rem;
+  letter-spacing: -0.01em;
+}
+
+.gallery__section-title span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(26, 26, 26, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(46%, 150px), 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .gallery__grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+}
+
+.gallery__tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: rgba(26, 26, 26, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.gallery__tile:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.gallery__tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery__tile--skeleton {
+  cursor: default;
+  animation: gallery-pulse 1.4s ease-in-out infinite;
+}
+
+.gallery__tile--skeleton:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes gallery-pulse {
+  50% { opacity: 0.5; }
+}
+
+.gallery__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(26, 26, 26, 0.65);
+  color: #fff;
+  font-size: 1rem;
+  padding-left: 3px;
+}
+
+.gallery__play--large {
+  width: 72px;
+  height: 72px;
+  font-size: 1.75rem;
+}
+
+.gallery__more {
+  font-size: 0.9375rem;
+}
+
+.gallery__fallback {
+  justify-items: start;
+  gap: 16px;
+  padding: 28px 24px;
+  border: 3px dashed var(--color-ink);
+  border-radius: var(--radius-md);
+}
+
+/* Lightbox */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(16px, env(safe-area-inset-bottom, 0px));
+  background: rgba(18, 16, 14, 0.97);
+  color: #fff;
+}
+
+.lightbox__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.lightbox__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.lightbox__close,
+.lightbox__nav {
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  background: rgba(26, 26, 26, 0.6);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--font-heading);
+}
+
+.lightbox__close {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+}
+
+/* Flex, not grid: a percentage max-height on a grid item's image resolves
+   against an auto-sized track and does nothing, which let a tall photo push
+   the Download and Share buttons off the screen. A flex container with a
+   definite height gives the image a real 100% to stay inside. */
+.lightbox__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.lightbox__image,
+.lightbox__video img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.lightbox__video {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  transform: translateY(-50%);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.lightbox__nav--prev { left: 4px; }
+.lightbox__nav--next { right: 4px; }
+
+.lightbox__close:focus-visible,
+.lightbox__nav:focus-visible {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+.lightbox__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.lightbox__actions .btn {
+  padding: 10px 18px;
+  font-size: 0.9375rem;
+}
+
+.lightbox__notice {
+  min-height: 1.4em;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__tile,
+  .gallery__tile--skeleton {
+    transition: none;
+    animation: none;
+  }
+}

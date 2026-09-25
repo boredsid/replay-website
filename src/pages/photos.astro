@@ -1,11 +1,9 @@
 ---
 /**
- * /photos — every finished edition's album, newest first.
- *
- * The page links to albums; it cannot show them (Google Photos refuses to be
- * framed, and its API no longer reads shared albums). Each card shows the
- * album's own cover — the picture any chat app shows when the link is pasted —
- * copied at build time so visitors never load anything from Google.
+ * /photos — every finished edition's album, newest first. Each card opens the
+ * edition's gallery on the site (/photos/<slug>/), and keeps a link to the
+ * album where it is kept. The cover is the album's own — the picture any chat
+ * app shows when the link is pasted — copied at build time.
  * See src/lib/photos.ts and docs/specs/2026-09-24-between-editions-design.md.
  *
  * Built in every phase; it is in the header only between editions.
@@ -19,6 +17,7 @@ import { getRecapView } from '../lib/recap-data';
 import { editionLabel, nextEditionLabel } from '../lib/site-phase';
 import { ALBUM_SERVICE, albumCards, albumHost } from '../lib/photos';
 import { COVER_HEIGHT, COVER_WIDTH, fetchAlbumCover } from '../lib/album-cover';
+import { galleryPath } from '../lib/gallery';
 
 const COMMUNITY_WHATSAPP = 'https://chat.whatsapp.com/GL1h4jipksfCW4vm7OtZjp';
 
@@ -74,7 +73,7 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
       {cards.map((card, index) => (
         <article class:list={['album-card', `album-card--${ACCENTS[index % ACCENTS.length]}`, !card.cover && 'album-card--no-cover']}>
           {card.cover && (
-            <a class="album-card__cover" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">
+            <a class="album-card__cover" href={galleryPath(card.edition.slug)} tabindex="-1" aria-hidden="true">
               <Image
                 src={card.cover}
                 alt=""
@@ -93,8 +92,11 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
             <h2 class="album-card__heading">{card.label}</h2>
             <p class="album-card__meta">{[card.when, card.venue].filter(Boolean).join(' · ')}</p>
             {card.tickets && <p class="album-card__figure">{card.tickets}</p>}
-            <a class="btn btn-black" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer">
-              Open the album on {card.service} <span aria-hidden="true">↗</span>
+            <a class="btn btn-black" href={galleryPath(card.edition.slug)}>
+              See the photos <span aria-hidden="true">→</span>
+            </a>
+            <a class="album-card__elsewhere" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer">
+              Or open the album on {card.service} ↗
             </a>
           </div>
         </article>
@@ -196,6 +198,14 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
   .album-card__body .btn {
     margin-top: 8px;
     white-space: normal;
+  }
+
+  .album-card__elsewhere {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .album-card__notify {

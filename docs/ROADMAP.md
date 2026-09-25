@@ -54,12 +54,6 @@ Things nobody has decided. Each blocks nothing today.
    promotion is first-come and capacity is enforced in the database. Raised by
    the events board (2026-09-07) and left undecided, because the answer changes
    what a waitlist position promises the person holding it.
-6. **Whether past editions' photos are shown on replaycon.in itself**, rather
-   than linked. Google Photos albums cannot be embedded or read through
-   Google's API, so `/photos` links to each album and shows only its cover. To
-   show more, admins would upload a selection per edition, which the homepage
-   photo band could then use too. That is about as much work as the whole
-   between-editions build. Raised 2026-09-24.
 
 ## Not this edition
 
@@ -99,6 +93,7 @@ Recorded so they are not raised again.
 |---|---|---|
 | **Named reconciliation owner** for the library ledger | 2026-09-05 | Never software. Who counts the shelf on Sunday is a rota question, and a name in an export header buys nothing the export does not already give you. Was written into five documents, which is why it kept resurfacing. *Payment* reconciliation is a different thing and remains. |
 | **Who owns capacity numbers** | 2026-09-05 | Never a decision. Capacity is a number somebody types into the programme editor and `signup_mode` is the checkbox beside it — whoever edits the programme decides, exactly as they decide a session's title. |
+| **Uploading a curated photo selection per edition** | 2026-09-25 | Superseded: the `/photos/<slug>/` gallery shows every photo in the album directly, read from Google Photos or Drive at view time, so nobody has to pick and upload a selection. See "Photos" in `DELIVERED.md`. |
 | **P5 — venue accessibility annotations** | 2026-09-02 | Not abandoned as a goal, but not code. See "Not this edition". |
 | **Library inventory source** (BGC import vs REPLAY-owned) | 2026-09-02 | Settled: REPLAY-owned copies, which include the BGC catalogue anyway. It also shaped far less than the spec claimed — it decides where title metadata comes from, not the loan model, which keys on copies either way. |
 | **Reminder lead time** | 2026-09-02 | Settled at 15 minutes with a 10-minute catch-up window. |

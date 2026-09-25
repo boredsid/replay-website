@@ -118,8 +118,8 @@ describe('recapView — with an album', () => {
   const view = recapView({ ...base, edition: { ...REPLAY_3, photos_url: 'https://photos.app.goo.gl/2oKWtdKCofYAGhUa6' } });
 
   it('links to the photos from the band and the "Last time" line', () => {
-    expect(view.links.map((l) => l.href)).toEqual(['/tickets', '/photos', '/schedule']);
-    expect(view.lastTimeLine?.photos).toEqual({ text: 'See the photos →', href: '/photos' });
+    expect(view.links.map((l) => l.href)).toEqual(['/tickets', '/photos/replay-3/', '/schedule']);
+    expect(view.lastTimeLine?.photos).toEqual({ text: 'See the photos →', href: '/photos/replay-3/' });
   });
 });
 
