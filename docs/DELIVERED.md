@@ -79,13 +79,18 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   or not — so marking a draft REPLAY 4 current no longer empties the site, which
   it used to, because the single-current trigger clears REPLAY 3's flag. In
   `wrapped`: the homepage dates band becomes a recap band built from
-  `GET /api/recap/:slug` (people through the door, bookings, loans — counted in
-  Postgres by `edition_recap`, service role only); `/schedule` becomes the record
+  `GET /api/recap/:slug` (tickets, bookings, loans — counted in Postgres by
+  `edition_recap`, service role only). Its headline is **tickets across the
+  edition's days** — "446 tickets across two days", a weekend ticket counted
+  once per day — chosen on 2026-09-25 as the deliberately bigger figure over
+  unique people through the door (285), which the site no longer cites. It
+  includes complimentary tickets, so the copy says "tickets", never "sold"; `/schedule` becomes the record
   of what was on, with booked counts; `/tickets` only collects numbers;
   `/plan-your-visit` holds; `/get-involved` pitches the next edition with the
   last one's figures and shelves prices; the header credit moves into the
   recap; the share card changes. A figure that is zero is left out, because
-  REPLAY 1 and 2 have no app data. A nightly Worker cron (03:00 IST) fires the
+  REPLAY 1 and 2 have no app data (they do have tickets, so their recaps still
+  lead with a number). A nightly Worker cron (03:00 IST) fires the
   deploy hook on an edition's first day and the morning after its last, so the
   static site changes phase on its own. Copy lives in `src/lib/recap.ts`. See
   `docs/specs/2026-09-24-between-editions-design.md`.

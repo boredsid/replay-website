@@ -25,6 +25,8 @@ import { istDate } from './display-feed';
 export interface RecapBody {
   edition: { slug: string; start_date: string; end_date: string };
   attendance: { people: number; by_day: Record<string, number>; both_days: number };
+  /** Tickets across the edition's days: a weekend ticket counts once per day it admits. */
+  tickets: { across_days: number; by_day: Record<string, number> };
   sessions: {
     seats_booked: number;
     sessions_booked: number;
@@ -59,19 +61,27 @@ function list(value: unknown): unknown[] {
 export function shapeRecap(raw: unknown): Shaped {
   const root = record(raw);
   const attendance = record(root.attendance);
+  const tickets = record(root.tickets);
   const sessions = record(root.sessions);
   const library = record(root.library);
 
-  const byDay: Record<string, number> = {};
-  for (const [day, n] of Object.entries(record(attendance.by_day))) {
-    if (day === 'day1' || day === 'day2') byDay[day] = count(n);
-  }
+  const eventDays = (value: unknown): Record<string, number> => {
+    const days: Record<string, number> = {};
+    for (const [day, n] of Object.entries(record(value))) {
+      if (day === 'day1' || day === 'day2') days[day] = count(n);
+    }
+    return days;
+  };
 
   return {
     attendance: {
       people: count(attendance.people),
-      by_day: byDay,
+      by_day: eventDays(attendance.by_day),
       both_days: count(attendance.both_days),
+    },
+    tickets: {
+      across_days: count(tickets.across_days),
+      by_day: eventDays(tickets.by_day),
     },
     sessions: {
       seats_booked: count(sessions.seats_booked),

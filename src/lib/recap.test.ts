@@ -17,6 +17,7 @@ const REPLAY_3 = {
 const RECAP: RecapResponse = {
   edition: { slug: 'replay-3', start_date: '2026-09-12', end_date: '2026-09-13' },
   attendance: { people: 285, by_day: { day1: 154, day2: 185 }, both_days: 54 },
+  tickets: { across_days: 446, by_day: { day1: 200, day2: 246 } },
   sessions: { seats_booked: 286, sessions_booked: 38, by_item: [{ schedule_item_id: 'quiz', booked: 30 }] },
   library: {
     loans: 145,
@@ -59,13 +60,13 @@ describe('recapView — REPLAY 3E', () => {
     expect(view.label).toBe('REPLAY 3E');
     expect(view.nextLabel).toBe('REPLAY 4E');
     expect(view.eyebrow).toBe('That was REPLAY 3E · Sep 12–13, 2026 · Indiqube Symphony, MG Road');
-    expect(view.headline).toBe('285 people came to play.');
-    expect(view.sub).toBe('Two days at Indiqube Symphony, MG Road. 54 of them came both days.');
+    expect(view.headline).toBe('446 tickets across two days.');
+    expect(view.sub).toBe('Two days at Indiqube Symphony, MG Road. 200 on Saturday, 246 on Sunday.');
   });
 
   it('shows six figures, counting only published programme items', () => {
     expect(view.tiles).toEqual([
-      { value: 285, label: 'people through the door' },
+      { value: 446, label: 'tickets across two days' },
       { value: 69, label: 'things on the programme' },
       { value: 286, label: 'seats booked across 38 sessions' },
       { value: 145, label: 'games borrowed from the library' },
@@ -98,7 +99,13 @@ describe('recapView — REPLAY 3E', () => {
   });
 
   it('gives the pre-event "Last time" line', () => {
-    expect(view.lastTimeLine).toEqual({ text: 'Last time, 285 people came to play at REPLAY 3E.', photos: null });
+    expect(view.lastTimeLine).toEqual({ text: 'Last time: 446 tickets across two days at REPLAY 3E.', photos: null });
+  });
+
+  it('cites tickets, never the unique head count', () => {
+    expect(view.tickets).toBe(446);
+    expect(view.ticketsLabel).toBe('tickets across two days');
+    expect(JSON.stringify(view)).not.toMatch(/\b285\b|people|players/i);
   });
 
   it('quotes the cheaper booth for Get involved', () => {
@@ -116,7 +123,29 @@ describe('recapView — with an album', () => {
   });
 });
 
-describe('recapView — an edition with no app data', () => {
+describe('recapView — an imported edition: tickets, but no app data', () => {
+  const REPLAY_2 = { ...REPLAY_3, slug: 'replay-2', start_date: '2026-04-18', end_date: '2026-04-19', venue: 'The Bangalore Local, Koramangala' };
+  const IMPORTED: RecapResponse = {
+    edition: { slug: 'replay-2', start_date: '2026-04-18', end_date: '2026-04-19' },
+    attendance: { people: 0, by_day: {}, both_days: 0 },
+    tickets: { across_days: 145, by_day: { day1: 75, day2: 70 } },
+    sessions: { seats_booked: 0, sessions_booked: 0, by_item: [] },
+    library: { loans: 0, most_borrowed: [] },
+  };
+  const view = recapView({ edition: REPLAY_2, recap: IMPORTED, scheduleItems: [], shelfCount: 585, sponsors: [] });
+
+  it('leads with its tickets and shows no zero', () => {
+    expect(view.headline).toBe('145 tickets across two days.');
+    expect(view.sub).toBe('Two days at The Bangalore Local, Koramangala. 75 on Saturday, 70 on Sunday.');
+    expect(view.tiles).toEqual([
+      { value: 145, label: 'tickets across two days' },
+      { value: 585, label: 'games on the shelf' },
+    ]);
+    expect(view.lastTimeLine?.text).toBe('Last time: 145 tickets across two days at REPLAY 2E.');
+  });
+});
+
+describe('recapView — an edition with no figures at all', () => {
   const REPLAY_2 = { ...REPLAY_3, slug: 'replay-2', start_date: '2026-04-18', end_date: '2026-04-19', venue: 'The Bangalore Local, Koramangala' };
   const EMPTY: RecapResponse = {
     edition: { slug: 'replay-2', start_date: '2026-04-18', end_date: '2026-04-19' },
@@ -133,10 +162,10 @@ describe('recapView — an edition with no app data', () => {
     expect(view.mostBorrowed).toBeNull();
     expect(view.fullest).toBeNull();
     expect(view.credit).toBeNull();
-    expect(view.people).toBeNull();
+    expect(view.tickets).toBeNull();
   });
 
-  it('has no "Last time" line without a people figure', () => {
+  it('has no "Last time" line without a ticket figure', () => {
     expect(view.lastTimeLine).toBeNull();
   });
 });
@@ -159,10 +188,19 @@ describe('recapView — smaller cases', () => {
     expect(recapView({ ...base, recap }).mostBorrowed).toBeNull();
   });
 
-  it('leaves out the both-days sentence for a one-day edition', () => {
+  it('says "in one day", with no day split, for a one-day edition', () => {
     const mini = { ...REPLAY_3, slug: 'replay-1', start_date: '2026-01-31', end_date: '2026-01-31' };
-    const recap = { ...RECAP, attendance: { people: 40, by_day: { day1: 40 }, both_days: 0 } };
-    expect(recapView({ ...base, edition: mini, recap }).sub).toBe('One day at Indiqube Symphony, MG Road.');
+    const recap = { ...RECAP, tickets: { across_days: 46, by_day: { day1: 46 } } };
+    const view = recapView({ ...base, edition: mini, recap });
+    expect(view.headline).toBe('46 tickets in one day.');
+    expect(view.sub).toBe('One day at Indiqube Symphony, MG Road.');
+  });
+
+  it('falls back to the edition name for a Worker that predates the ticket figure, rather than citing people', () => {
+    const { tickets: _omitted, ...older } = RECAP;
+    const view = recapView({ ...base, recap: older });
+    expect(view.headline).toBe('That was REPLAY 3E.');
+    expect(view.tiles[0]).toEqual({ value: 69, label: 'things on the programme' });
   });
 
   it('has no fullest session when the busiest one is not on the published programme', () => {
@@ -178,7 +216,7 @@ describe('recapView — smaller cases', () => {
   it('leaves out a venue that was never confirmed', () => {
     const view = recapView({ ...base, edition: { ...REPLAY_3, venue: 'TBD' } });
     expect(view.eyebrow).toBe('That was REPLAY 3E · Sep 12–13, 2026');
-    expect(view.sub).toBe('54 of them came both days.');
+    expect(view.sub).toBe('200 on Saturday, 246 on Sunday.');
   });
 });
 

@@ -24,6 +24,8 @@ beforeEach(() => {
 describe('publicDateRange', () => {
   it('formats a same-month range without locale artifacts', () => {
     expect(publicDateRange('2026-09-12', '2026-09-13')).toBe('Sep 12–13, 2026');
+    // REPLAY 1E was one day; it must not read "Jan 31–31".
+    expect(publicDateRange('2026-01-31', '2026-01-31')).toBe('Jan 31, 2026');
   });
 
   it('formats cross-month and cross-year ranges', () => {

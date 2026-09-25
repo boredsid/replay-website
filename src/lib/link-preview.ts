@@ -146,8 +146,8 @@ export interface WrappedPreviewInput {
   slug: string;
   start_date: string;
   end_date: string;
-  /** People through the door, when the recap has the figure. */
-  people: number | null;
+  /** Tickets across the edition's days, when the recap has the figure. */
+  tickets: number | null;
 }
 
 /**
@@ -163,8 +163,8 @@ export function wrappedLinkPreviewContent(input: WrappedPreviewInput): LinkPrevi
   return {
     eyebrow: `THAT WAS ${label}`,
     tagline: LINK_PREVIEW_TAGLINE,
-    when: input.people
-      ? { label: 'LAST TIME', value: [`${input.people} PLAYERS`], note: year ? `${range}, ${year}` : range }
+    when: input.tickets
+      ? { label: 'LAST TIME', value: [`${input.tickets} TICKETS`], note: year ? `${range}, ${year}` : range }
       : { label: 'LAST TIME', value: [range], note: previewDayNote(input.start_date, input.end_date) },
     where: { label: 'NEXT', value: wrapToLines(next, 18, 2), note: 'DATES SOON' },
   };

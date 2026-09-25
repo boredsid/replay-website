@@ -11,6 +11,7 @@ const REPLAY_3 = {
 
 const RAW = {
   attendance: { people: 285, by_day: { day1: 154, day2: 185 }, both_days: 54 },
+  tickets: { across_days: 446, by_day: { day1: 200, day2: 246 } },
   sessions: {
     seats_booked: 286,
     sessions_booked: 38,
@@ -88,7 +89,8 @@ describe('buildRecap', () => {
       { data: { ...RAW, attendance: { ...RAW.attendance, attendee_ids: ['a-1'] }, owners: ['Priya'] }, error: null },
     );
     const body = await (await buildRecap(sb, 'replay-3', MORNING_AFTER)).json();
-    expect(Object.keys(body).sort()).toEqual(['attendance', 'edition', 'library', 'sessions']);
+    expect(Object.keys(body).sort()).toEqual(['attendance', 'edition', 'library', 'sessions', 'tickets']);
+    expect(Object.keys(body.tickets).sort()).toEqual(['across_days', 'by_day']);
     expect(Object.keys(body.attendance).sort()).toEqual(['both_days', 'by_day', 'people']);
     expect(Object.keys(body.sessions).sort()).toEqual(['by_item', 'seats_booked', 'sessions_booked']);
     expect(Object.keys(body.library).sort()).toEqual(['loans', 'most_borrowed']);
@@ -105,6 +107,7 @@ describe('shapeRecap', () => {
   it('turns anything that is not a count into zero', () => {
     const shaped = shapeRecap({ attendance: { people: '285', both_days: -3, by_day: { day1: null } } });
     expect(shaped.attendance).toEqual({ people: 285, both_days: 0, by_day: { day1: 0 } });
+    expect(shaped.tickets).toEqual({ across_days: 0, by_day: {} });
     expect(shaped.sessions).toEqual({ seats_booked: 0, sessions_booked: 0, by_item: [] });
     expect(shaped.library).toEqual({ loans: 0, most_borrowed: [] });
   });

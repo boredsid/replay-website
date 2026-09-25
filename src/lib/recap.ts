@@ -6,7 +6,13 @@
 //
 // The rule that shapes most of it: a figure that is zero or missing is left
 // out, never shown as 0. REPLAY 1 and 2 were imported from spreadsheets before
-// the attendee app existed and have no check-ins, bookings or loans.
+// the attendee app existed and have no check-ins, bookings or loans — though
+// they do have tickets.
+//
+// The headline figure is tickets across the edition's days (a weekend ticket
+// counts once per day), not unique people: it is the big number, on purpose.
+// It includes complimentary tickets, so the copy says "tickets", never "sold",
+// and it counts tickets, not arrivals, so it never says "people".
 //
 // Design: docs/specs/2026-09-24-between-editions-design.md
 
@@ -40,7 +46,10 @@ export interface RecapView {
   /** The first is the band's button; the rest are text links. */
   links: RecapLink[];
   lastTimeLine: { text: string; photos: RecapLink | null } | null;
-  people: number | null;
+  /** Tickets across the edition's days: 446 for REPLAY 3E. */
+  tickets: number | null;
+  /** "tickets across two days" — the words that go with `tickets`. */
+  ticketsLabel: string;
   seatsBooked: number | null;
   partners: number | null;
   /** The lower of the two booth prices, before GST. */
@@ -102,7 +111,10 @@ export function recapView(input: RecapInput): RecapView {
   const days = daySpan(edition.start_date, edition.end_date);
   const hasAlbum = Boolean(edition.photos_url);
 
-  const people = positive(recap?.attendance.people);
+  const tickets = positive(recap?.tickets?.across_days);
+  const ticketsLabel = days === 1
+    ? 'tickets in one day'
+    : `tickets across ${(SPELLED[days] ?? String(days)).toLowerCase()} days`;
   const seatsBooked = positive(recap?.sessions.seats_booked);
   const sessionsBooked = positive(recap?.sessions.sessions_booked);
   const loans = positive(recap?.library.loans);
@@ -110,23 +122,24 @@ export function recapView(input: RecapInput): RecapView {
   const shelf = positive(shelfCount);
   const partners = positive(sponsors.length);
 
-  // With a people figure the headline is the number, so the eyebrow names the
+  // With a ticket figure the headline is the number, so the eyebrow names the
   // edition; without one the headline names it, and the eyebrow must not repeat it.
-  const headline = people ? `${people} people came to play.` : `That was ${label}.`;
-  const eyebrow = [people ? `That was ${label}` : label, publicDateRange(edition.start_date, edition.end_date), venue]
+  const headline = tickets ? `${tickets} ${ticketsLabel}.` : `That was ${label}.`;
+  const eyebrow = [tickets ? `That was ${label}` : label, publicDateRange(edition.start_date, edition.end_date), venue]
     .filter(Boolean)
     .join(' · ');
 
   const subParts: string[] = [];
   if (venue) subParts.push(`${SPELLED[days] ?? days} ${days === 1 ? 'day' : 'days'} at ${venue}.`);
-  const day1 = positive(recap?.attendance.by_day.day1);
-  const day2 = positive(recap?.attendance.by_day.day2);
-  const bothDays = positive(recap?.attendance.both_days);
-  if (days === 2 && day1 && day2 && bothDays && people) subParts.push(`${bothDays} of them came both days.`);
+  const day1 = positive(recap?.tickets?.by_day.day1);
+  const day2 = positive(recap?.tickets?.by_day.day2);
+  if (days === 2 && day1 && day2) {
+    subParts.push(`${day1} on ${weekdayName(edition.start_date)}, ${day2} on ${weekdayName(edition.end_date)}.`);
+  }
   const sub = subParts.length ? subParts.join(' ') : null;
 
   const tiles: RecapTile[] = [];
-  if (people) tiles.push({ value: people, label: 'people through the door' });
+  if (tickets) tiles.push({ value: tickets, label: ticketsLabel });
   if (programme) tiles.push({ value: programme, label: 'things on the programme' });
   if (seatsBooked) {
     tiles.push({
@@ -158,8 +171,8 @@ export function recapView(input: RecapInput): RecapView {
   if (hasAlbum) links.push(PHOTOS_LINK);
   links.push({ text: 'What was on →', href: '/schedule' });
 
-  const lastTimeLine = people
-    ? { text: `Last time, ${people} people came to play at ${label}.`, photos: hasAlbum ? PHOTOS_LINK : null }
+  const lastTimeLine = tickets
+    ? { text: `Last time: ${tickets} ${ticketsLabel} at ${label}.`, photos: hasAlbum ? PHOTOS_LINK : null }
     : null;
 
   const booths = [edition.partner_pricing.standard_booth, edition.partner_pricing.community_booth].filter((n) => n > 0);
@@ -176,7 +189,8 @@ export function recapView(input: RecapInput): RecapView {
     credit: recapCredit(sponsors),
     links,
     lastTimeLine,
-    people,
+    tickets,
+    ticketsLabel,
     seatsBooked,
     partners,
     cheapestBooth: booths.length ? Math.min(...booths) : 0,

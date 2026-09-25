@@ -21,7 +21,7 @@ const wrapped = site.phase === 'wrapped' && recap !== null;
 const offSeasonWhatsapp = whatsappContactUrl(`Hi, I'd like to talk about partnering with ${recap?.nextLabel ?? 'the next REPLAY'}.`);
 const pitchFigures = recap
   ? [
-      recap.people && { value: recap.people, label: 'people over two days' },
+      recap.tickets && { value: recap.tickets, label: recap.ticketsLabel },
       recap.seatsBooked && { value: recap.seatsBooked, label: 'session seats booked' },
       recap.partners && { value: recap.partners, label: 'partners on the floor' },
     ].filter((f): f is { value: number; label: string } => Boolean(f))
