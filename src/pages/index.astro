@@ -37,7 +37,8 @@ import stripeGames from '../assets/landing/stripe-games.jpeg';
 import stripeCommunity from '../assets/landing/stripe-community.jpeg';
 import closingPhoto from '../assets/landing/closing-cta.jpeg';
 
-import { getCurrentEdition, getSiteState, editionOrdinal, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getSiteState, publicDateRange } from '../lib/data';
+import { editionLabel } from '../lib/site-phase';
 import { getRecapView } from '../lib/recap-data';
 import { clockTime, weekdayName } from '../lib/edition-format';
 import { partnerLogos } from '../lib/partner-logos';
@@ -60,7 +61,7 @@ const heroPrimaryCta = wrapped && recap
       : { text: 'Get ticket updates →', href: '/tickets', variant: 'primary' as const }
     : undefined;
 
-const editionOrdinalLabel = edition ? editionOrdinal(edition.slug) : '';
+const editionName = edition ? editionLabel(edition.slug) : '';
 const dateRange = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
 const day1Name = edition ? weekdayName(edition.start_date) : 'Day 1';
 const day2Name = edition ? weekdayName(edition.end_date) : 'Day 2';
@@ -79,7 +80,7 @@ const closingVenueTail =
 const eventJsonLd = edition && !wrapped ? JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'Event',
-  name: `${edition.name} ${editionOrdinalLabel}`.trim(),
+  name: editionName,
   description: "Bangalore's board-game convention with open play, community-run events, and a library of 200+ games.",
   startDate: edition.start_date,
   endDate: edition.end_date,
@@ -128,7 +129,7 @@ const eventJsonLd = edition && !wrapped ? JSON.stringify({
   {edition && !wrapped && (
     <section class="event-capacity">
       <div class="container-x event-capacity__inner">
-        <div class="event-capacity__eyebrow">▸ {editionOrdinalLabel.toUpperCase()}</div>
+        <div class="event-capacity__eyebrow">▸ {editionName.toUpperCase()}</div>
         <h2 class="event-capacity__heading">{dateRange}</h2>
         <p class="event-capacity__sub">Bangalore · {edition.venue === 'TBD' ? 'venue to be announced' : edition.venue} · {dailyHours} daily</p>
         {recap?.lastTimeLine && (
@@ -329,7 +330,7 @@ const eventJsonLd = edition && !wrapped ? JSON.stringify({
         </h2>
 
         <p class="closing-cta__meta">
-          <strong>{editionOrdinalLabel}</strong>
+          <strong>{editionName}</strong>
           <span class="closing-cta__bullet" aria-hidden="true">·</span>
           {dateRange}{closingVenueTail}
         </p>

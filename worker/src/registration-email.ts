@@ -3,7 +3,7 @@ import type { Env } from './index';
 import { sendEmail } from './apps-script';
 import type { EditionRow } from './editions';
 import { dayLabel } from './editions';
-import { editionOrdinal, shortDateRange, capitalize } from './format';
+import { editionName, shortDateRange, capitalize } from './format';
 import { buildGoogleCalendarUrl, buildWhatsAppShareUrl } from './calendar';
 import type { Day, PassType } from './validation';
 
@@ -28,8 +28,7 @@ export async function sendRegistrationConfirmation(
   edition: EditionRow,
   input: ConfirmationInput,
 ): Promise<void> {
-  const ord = editionOrdinal(edition.slug);
-  const editionDisplayName = (ord ? `REPLAY ${ord}` : 'REPLAY').trim();
+  const editionDisplayName = editionName(edition.slug);
   await sendEmail(env, {
     template: 'replay-registration',
     to: input.email,

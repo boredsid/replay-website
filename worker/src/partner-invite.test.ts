@@ -127,7 +127,7 @@ describe('partner invite link', () => {
       payment_required: true,
       payment_claimed: false,
     });
-    expect(body.invite.edition).toMatchObject({ name: 'REPLAY 3rd edition', venue: 'IndiQube Symphony' });
+    expect(body.invite.edition).toMatchObject({ name: 'REPLAY 3E', venue: 'IndiQube Symphony' });
     expect(JSON.stringify(body)).not.toContain('Introduced by Asha');
   });
 

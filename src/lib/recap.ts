@@ -26,9 +26,9 @@ export interface RecapLink {
 }
 
 export interface RecapView {
-  /** "REPLAY 3" */
+  /** "REPLAY 3E" */
   label: string;
-  /** "REPLAY 4" */
+  /** "REPLAY 4E" */
   nextLabel: string;
   eyebrow: string;
   headline: string;

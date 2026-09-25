@@ -450,6 +450,13 @@ Four triggers, and nothing else:
   different origins, so a missing method fails at preflight and surfaces in the
   app as "you are offline". This has happened twice, to `DELETE` and `PUT`.
 - Worker handlers are one per file with a colocated `.test.ts`.
+- **An edition is called "REPLAY 3E"** — the slug's number plus `E`, for every
+  edition — on the site, in emails, calendar entries, ICS files and partner
+  invites. Two helpers make it, and nothing else should: `editionLabel` in
+  `src/lib/site-phase.ts` and `editionName` in `worker/src/format.ts`, which
+  must agree. The older "3rd edition" wording (`editionOrdinal`) is gone.
+  `editions.name` stays "REPLAY", and the BGC pass-status contract still
+  returns that.
 
 ## Shipped but never exercised by a human
 

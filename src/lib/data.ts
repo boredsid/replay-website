@@ -36,16 +36,6 @@ export function readEditionPricing(input: unknown): EditionPricing {
   };
 }
 
-/** "replay-3" → "3rd edition", "replay-21" → "21st edition", etc. */
-export function editionOrdinal(slug: string): string {
-  const n = parseInt(slug.replace(/^replay-/, ''), 10);
-  if (!Number.isFinite(n)) return '';
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  const suffix = s[(v - 20) % 10] || s[v] || s[0];
-  return `${n}${suffix} edition`;
-}
-
 /** "2026-09-12" → "Sep 12" (no year, no locale weirdness). */
 export function shortDate(iso: string): string {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -170,7 +160,7 @@ const recapOnce = new Map<string, Promise<RecapResponse | null>>();
  * purpose. The rebuild the morning after an edition is what moves the site
  * into `wrapped`, and a failed Pages build leaves the previous deployment live.
  * Stopping over a missing recap would leave the site advertising a finished
- * event. Without it the recap band still says "That was REPLAY 3".
+ * event. Without it the recap band still says "That was REPLAY 3E".
  */
 export function getEditionRecap(slug: string): Promise<RecapResponse | null> {
   let pending = recapOnce.get(slug);

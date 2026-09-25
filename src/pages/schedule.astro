@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import ScheduleDay from '../components/ScheduleDay.astro';
-import { getCurrentEdition, getScheduleItems, getSiteState, editionOrdinal, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getScheduleItems, getSiteState, publicDateRange } from '../lib/data';
 import { clockTime, shortCalendarDate, weekdayName } from '../lib/edition-format';
 import { editionLabel, nextEditionLabel } from '../lib/site-phase';
 import { getSessionBookings } from '../lib/recap-data';
@@ -21,7 +21,6 @@ const bookedSessions = Object.values(bookings).filter((n) => n > 0).length;
 const day1Items = edition ? items.filter((item) => item.day === edition.start_date) : [];
 const day2Items = edition ? items.filter((item) => item.day === edition.end_date) : [];
 const title = 'Schedule — REPLAY';
-const ordinal = edition ? editionOrdinal(edition.slug) : '';
 const range = edition ? publicDateRange(edition.start_date, edition.end_date) : '';
 const day1Name = edition ? weekdayName(edition.start_date) : 'Day 1';
 const day2Name = edition ? weekdayName(edition.end_date) : 'Day 2';
@@ -40,7 +39,7 @@ const hours = edition ? `${clockTime(edition.daily_start_time)}–${clockTime(ed
     />
   ) : (
   <DarkBand
-    eyebrow={edition ? `▸ ${ordinal.toUpperCase()}` : '▸ SCHEDULE'}
+    eyebrow={edition ? `▸ ${editionLabel(edition.slug).toUpperCase()}` : '▸ SCHEDULE'}
     eyebrowColor="var(--color-yellow)"
     heading="Make room for one more game."
     headingLevel="h1"

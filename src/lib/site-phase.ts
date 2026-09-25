@@ -91,14 +91,19 @@ export function editionNumber(slug: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-/** "REPLAY 3", or plain "REPLAY" when the slug has no number to show. */
+/**
+ * How an edition is named everywhere: "replay-3" → "REPLAY 3E". Plain
+ * "REPLAY" when the slug has no number to show. The Worker's emails, calendar
+ * entries and invites use the same rule — editionName in worker/src/format.ts;
+ * keep them in sync.
+ */
 export function editionLabel(slug: string): string {
   const n = editionNumber(slug);
-  return n === null ? 'REPLAY' : `REPLAY ${n}`;
+  return n === null ? 'REPLAY' : `REPLAY ${n}E`;
 }
 
-/** The edition after the recap edition: "REPLAY 4", or "the next REPLAY". */
+/** The edition after the recap edition: "REPLAY 4E", or "the next REPLAY". */
 export function nextEditionLabel(recapSlug: string | null | undefined): string {
   const n = recapSlug ? editionNumber(recapSlug) : null;
-  return n === null ? 'the next REPLAY' : `REPLAY ${n + 1}`;
+  return n === null ? 'the next REPLAY' : `REPLAY ${n + 1}E`;
 }

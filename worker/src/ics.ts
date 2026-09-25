@@ -3,7 +3,7 @@
 // Apple Mail + Outlook consume this when opening the email's calendar CTA.
 import type { Env } from './index';
 import { serviceClient } from './supabase';
-import { editionOrdinal } from './format';
+import { editionName } from './format';
 import { toUtcBasic } from './calendar';
 
 interface EditionRow {
@@ -48,8 +48,7 @@ export async function handleIcsRequest(req: Request, env: Env): Promise<Response
   const edition = data as EditionRow | null;
   if (!edition) return new Response('not found', { status: 404 });
 
-  const ord = editionOrdinal(edition.slug);
-  const summary = ord ? `REPLAY ${ord}` : 'REPLAY';
+  const summary = editionName(edition.slug);
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',

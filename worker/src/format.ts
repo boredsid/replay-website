@@ -3,16 +3,14 @@
 // surfaces (currently: email templates). No I/O.
 
 /**
- * "replay-3" → "3rd edition", "replay-21" → "21st edition". Empty string if slug doesn't match.
- * Mirrors src/lib/data.ts editionOrdinal — keep in sync.
+ * "replay-3" → "REPLAY 3E", "replay-12" → "REPLAY 12E": how an edition is
+ * named everywhere — emails, calendar entries, invites and the public site.
+ * Plain "REPLAY" when the slug carries no number.
+ * Mirrors src/lib/site-phase.ts editionLabel — keep in sync.
  */
-export function editionOrdinal(slug: string): string {
-  const n = parseInt(String(slug).replace(/^replay-/, ''), 10);
-  if (!Number.isFinite(n)) return '';
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  const suffix = s[(v - 20) % 10] || s[v] || s[0];
-  return `${n}${suffix} edition`;
+export function editionName(slug: string): string {
+  const match = String(slug).match(/^replay-(\d+)$/);
+  return match ? `REPLAY ${Number(match[1])}E` : 'REPLAY';
 }
 
 /** "2026-09-12" → "Sep 12" (no year, no locale weirdness).
