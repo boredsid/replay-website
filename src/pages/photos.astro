@@ -34,7 +34,7 @@ const cards = await Promise.all(albums.map(async (edition) => {
     when: publicDateRange(edition.start_date, edition.end_date),
     venue: edition.venue && edition.venue !== 'TBD' ? edition.venue : null,
     service: ALBUM_SERVICE[host],
-    cover: await fetchAlbumCover(edition.photos_url),
+    cover: await fetchAlbumCover(edition.photos_url, edition.slug),
     // The ticket figure is fetched only for the edition the recap describes.
     tickets: edition.slug === site.recap?.slug && recap?.tickets ? `${recap.tickets} ${recap.ticketsLabel}.` : null,
   };
@@ -50,7 +50,7 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
     eyebrowColor="var(--color-yellow)"
     heading="Every REPLAY, in pictures."
     headingLevel="h1"
-    body="An album for each edition, from the people who were there. Each one opens where it is kept."
+    body="An album for each edition, from the people who were there. Browse them here, and download or share any photo."
   />
 
   <section class="page-section page-section-paper" aria-label="Albums">
@@ -79,6 +79,7 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
                 alt=""
                 width={COVER_WIDTH}
                 height={COVER_HEIGHT}
+                fit="cover"
                 widths={[800, 1600]}
                 sizes="(min-width: 900px) 55vw, 100vw"
                 format="webp"

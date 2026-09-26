@@ -81,6 +81,11 @@ export default defineConfig({
     // Album covers on /photos. Astro downloads each one once at build time and
     // serves it from /_astro/, so visitors never fetch from Google and the CSP
     // in public/_headers needs no new image host. See src/lib/album-cover.ts.
-    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
+    // Google Photos covers come from Google; Drive covers come through the
+    // Worker's image proxy, which holds the Drive key.
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "api.replaycon.in", pathname: "/api/photos/image/**" },
+    ],
   },
 });

@@ -1,12 +1,9 @@
 // src/lib/photos.ts
 //
-// /photos: every finished edition's album, newest first.
-//
-// The site links to albums; it cannot show them. Google Photos answers
-// `x-frame-options: SAMEORIGIN`, and since 31 March 2025 its API reads only
-// media an app uploaded itself. What an album does publish is the Open Graph
-// cover every chat app shows when the link is pasted, and that is the one
-// picture the page uses — copied at build time (see album-cover.ts).
+// /photos: every finished edition's album, newest first, each card opening
+// the edition's gallery (/photos/<slug>/, src/lib/gallery.ts). This module
+// decides which albums are listed and what their links and covers are; the
+// covers themselves are fetched in album-cover.ts.
 //
 // Pure: no fetching here, so every rule is testable against a string.
 
@@ -81,6 +78,41 @@ export function coverAtSize(ogImage: string | undefined, width: number, height: 
   const size = `=w${width}-h${height}-p-k-no`;
   const path = url.pathname.includes('=') ? url.pathname.replace(/=[^/=]*$/, size) : `${url.pathname}${size}`;
   return `${url.origin}${path}`;
+}
+
+/** Every photo in gallery order, videos left out: the candidates for a Drive cover. */
+export function imagesInOrder<P extends { kind: 'image' | 'video' }>(sections: Array<{ photos: P[] }>): P[] {
+  return sections.flatMap((section) => section.photos.filter((p) => p.kind === 'image'));
+}
+
+/**
+ * Width and height from the first bytes of a JPEG or PNG, or null for anything
+ * else. Enough to tell a landscape photo from a portrait one without decoding
+ * it, and without a native image library in a module the pages import.
+ */
+export function imageSize(bytes: Uint8Array): { width: number; height: number } | null {
+  // PNG: the IHDR chunk always comes first.
+  if (bytes.length >= 24 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return { width: view.getUint32(16), height: view.getUint32(20) };
+  }
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  // JPEG: walk the segments to the first start-of-frame marker.
+  let i = 2;
+  while (i + 9 < bytes.length) {
+    if (bytes[i] !== 0xff) return null;
+    const marker = bytes[i + 1];
+    if (marker === 0xff) { i += 1; continue; }
+    const isFrame = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    if (isFrame) return { height: (bytes[i + 5] << 8) | bytes[i + 6], width: (bytes[i + 7] << 8) | bytes[i + 8] };
+    i += 2 + ((bytes[i + 2] << 8) | bytes[i + 3]);
+  }
+  return null;
+}
+
+/** Wide enough to fill a 16:9 cover without losing people off the top and bottom. */
+export function isLandscape(size: { width: number; height: number } | null): boolean {
+  return Boolean(size && size.width >= size.height * 1.2);
 }
 
 export interface AlbumEdition {
