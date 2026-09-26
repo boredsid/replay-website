@@ -1,6 +1,6 @@
 // worker/src/calendar.ts
 // Pure URL builders for the email's "add to calendar" + "share" CTAs.
-import { editionOrdinal } from './format';
+import { editionName } from './format';
 
 interface EditionLike {
   slug: string;
@@ -29,8 +29,7 @@ export function toUtcBasic(dateIso: string, localTime: string): string {
 }
 
 function displayName(edition: EditionLike): string {
-  const ord = editionOrdinal(edition.slug);
-  return ord ? `REPLAY ${ord}` : 'REPLAY';
+  return editionName(edition.slug);
 }
 
 export function buildGoogleCalendarUrl(edition: EditionLike): string {

@@ -59,7 +59,7 @@ describe('handleIcsRequest', () => {
     const body = await res.text();
     expect(body).toContain('BEGIN:VCALENDAR');
     expect(body).toContain('BEGIN:VEVENT');
-    expect(body).toContain('SUMMARY:REPLAY 3rd edition');
+    expect(body).toContain('SUMMARY:REPLAY 3E');
     expect(body).toContain('DTSTART:20260912T043000Z');
     expect(body).toContain('DTEND:20260913T133000Z');
     expect(body).toContain('LOCATION:The Foundry\\, Bangalore');

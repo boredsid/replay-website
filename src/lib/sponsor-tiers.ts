@@ -153,7 +153,7 @@ export interface TieredSponsor {
 }
 
 export interface TierStatus {
-  /** e.g. “Closed for REPLAY 3rd edition”. */
+  /** e.g. “Closed for REPLAY 3E”. */
   label: string;
   /** e.g. “Indiqube is the venue partner for this edition.” */
   detail: string;
@@ -177,8 +177,9 @@ export function tierHolders(sponsors: TieredSponsor[], key: SponsorTierKey): str
  * tier never closes, and neither does a tier whose holders are fewer than its
  * slots — a second zone partner does not shut the door on the third.
  *
- * `editionLabel` is `editionOrdinal(edition.slug)`, i.e. "3rd edition"; it is
- * dropped from the label when the slug does not carry a number.
+ * `editionLabel` is the edition's name, "REPLAY 3E" (editionLabel in
+ * site-phase.ts); pass an empty string when the slug carries no number and
+ * the label falls back to "this edition".
  */
 export function tierStatus(
   tier: SponsorTier,
@@ -192,7 +193,7 @@ export function tierStatus(
     ? tier.creditNoun
     : tier.creditNounPlural ?? `${tier.creditNoun}s`;
   return {
-    label: editionLabel ? `Closed for REPLAY ${editionLabel}` : 'Closed for this edition',
+    label: editionLabel ? `Closed for ${editionLabel}` : 'Closed for this edition',
     detail: `${nameList(holders)} ${holders.length === 1 ? 'is' : 'are'} the ${noun} for this edition.`,
   };
 }

@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import DarkBand from '../components/DarkBand.astro';
 import { whatsappContactUrl } from '../lib/contact';
-import { editionOrdinal, getCurrentEdition, getSiteState, getSponsors, publicDateRange } from '../lib/data';
+import { getCurrentEdition, getSiteState, getSponsors, publicDateRange } from '../lib/data';
+import { editionLabel as nameEdition, editionNumber } from '../lib/site-phase';
 import { getRecapView } from '../lib/recap-data';
 import { rupees } from '../lib/recap';
 import { DEFAULT_PARTNER_PRICING } from '../lib/partner-packages';
@@ -30,7 +31,8 @@ const pitchFigures = recap
 // to mark it closed. The rows are the ones uploaded in the admin console, for
 // the edition that is coming — once it has ended, every tier is open again.
 const sponsors = site.upcoming ? await getSponsors(site.upcoming.id) : [];
-const editionLabel = edition ? editionOrdinal(edition.slug) : '';
+// "Closed for REPLAY 3E" names the edition the tier was sold for: the one coming.
+const editionLabel = site.upcoming && editionNumber(site.upcoming.slug) !== null ? nameEdition(site.upcoming.slug) : '';
 const tiers = SPONSOR_TIERS.map((tier) => ({ tier, status: tierStatus(tier, sponsors, editionLabel) }));
 const partnerPricing = edition?.partner_pricing ?? DEFAULT_PARTNER_PRICING;
 const money = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;

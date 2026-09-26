@@ -28,7 +28,7 @@ function invite(overrides: Partial<ApiPartnerInvite> = {}): ApiPartnerInvite {
     payment_claimed: false,
     payment_reference: '11111111-1111-4111-8111-111111111111',
     edition: {
-      name: 'REPLAY 3rd edition',
+      name: 'REPLAY 3E',
       venue: 'IndiQube Symphony',
       start_date: '2026-09-12',
       end_date: '2026-09-13',

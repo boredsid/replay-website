@@ -25,13 +25,13 @@ describe('tierHolders', () => {
 
 describe('tierStatus', () => {
   it('leaves a tier open while nobody holds it', () => {
-    expect(tierStatus(tier('title'), [{ name: 'Indiqube', tier: 'venue' }], '3rd edition')).toBeNull();
+    expect(tierStatus(tier('title'), [{ name: 'Indiqube', tier: 'venue' }], 'REPLAY 3E')).toBeNull();
   });
 
   it('closes an exclusive tier as soon as one sponsor holds it', () => {
-    const status = tierStatus(tier('venue'), [{ name: 'Indiqube', tier: 'venue' }], '3rd edition');
+    const status = tierStatus(tier('venue'), [{ name: 'Indiqube', tier: 'venue' }], 'REPLAY 3E');
     expect(status).toEqual({
-      label: 'Closed for REPLAY 3rd edition',
+      label: 'Closed for REPLAY 3E',
       detail: 'Indiqube is the venue partner for this edition.',
     });
   });
@@ -41,7 +41,7 @@ describe('tierStatus', () => {
       { name: 'Indiqube', tier: 'venue' },
       { name: 'Meeple Syrup', tier: 'association' },
     ];
-    expect(tierStatus(tier('association'), sponsors, '3rd edition')?.detail).toBe(
+    expect(tierStatus(tier('association'), sponsors, 'REPLAY 3E')?.detail).toBe(
       'Meeple Syrup is the association partner for this edition.',
     );
   });
@@ -51,16 +51,16 @@ describe('tierStatus', () => {
       { name: 'Alpha', tier: 'zone' },
       { name: 'Beta', tier: 'zone' },
     ];
-    expect(tierStatus(tier('zone'), two, '3rd edition')).toBeNull();
+    expect(tierStatus(tier('zone'), two, 'REPLAY 3E')).toBeNull();
     const three = [...two, { name: 'Gamma', tier: 'zone' }];
-    expect(tierStatus(tier('zone'), three, '3rd edition')?.detail).toBe(
+    expect(tierStatus(tier('zone'), three, 'REPLAY 3E')?.detail).toBe(
       'Alpha, Beta and Gamma are the zone partners for this edition.',
     );
   });
 
   it('never closes an uncapped tier', () => {
     const many = Array.from({ length: 9 }, (_, i) => ({ name: `Venue ${i}`, tier: 'gaming' }));
-    expect(tierStatus(tier('gaming'), many, '3rd edition')).toBeNull();
+    expect(tierStatus(tier('gaming'), many, 'REPLAY 3E')).toBeNull();
   });
 
   it('drops the edition from the label when the slug carries no number', () => {

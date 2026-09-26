@@ -1,6 +1,6 @@
 import type { Env } from './index';
 import { getEditionById } from './editions';
-import { editionOrdinal, shortDateRange } from './format';
+import { editionName, shortDateRange } from './format';
 import {
   PARTNER_OFFER_LABELS,
   partnerOfferDays,
@@ -94,7 +94,6 @@ async function loadInvite(env: Env, token: string): Promise<PartnerInviteRow | R
  */
 async function invitePayload(env: Env, invite: PartnerInviteRow) {
   const edition = await getEditionById(env, invite.edition_id);
-  const ordinal = edition ? editionOrdinal(edition.slug) : '';
   const total = Number(invite.total_amount);
   return {
     organization_name: invite.organization_name,
@@ -118,7 +117,7 @@ async function invitePayload(env: Env, invite: PartnerInviteRow) {
     payment_reference: invite.id,
     edition: edition
       ? {
-          name: (ordinal ? `REPLAY ${ordinal}` : 'REPLAY').trim(),
+          name: editionName(edition.slug),
           venue: edition.venue,
           start_date: edition.start_date,
           end_date: edition.end_date,

@@ -20,9 +20,9 @@ describe('buildGoogleCalendarUrl', () => {
     const url = buildGoogleCalendarUrl({ ...edition, daily_start_time: '09:15', daily_end_time: '20:30' });
     expect(url).toContain('dates=20260912T034500Z%2F20260913T150000Z');
   });
-  it('URL-encodes the title with ordinal label', () => {
+  it('URL-encodes the title with the edition name', () => {
     const url = buildGoogleCalendarUrl(edition);
-    expect(url).toContain('text=REPLAY%203rd%20edition');
+    expect(url).toContain('text=REPLAY%203E');
   });
   it('URL-encodes the venue as location', () => {
     const url = buildGoogleCalendarUrl(edition);
@@ -40,7 +40,7 @@ describe('buildWhatsAppShareUrl', () => {
     const url = buildWhatsAppShareUrl(edition);
     expect(url.startsWith('https://wa.me/?text=')).toBe(true);
     const text = decodeURIComponent(url.split('text=')[1]);
-    expect(text).toContain('REPLAY 3rd edition');
+    expect(text).toContain('REPLAY 3E');
     expect(text).toContain('replaycon.in');
   });
 });

@@ -124,7 +124,7 @@ describe('linkPreviewContent', () => {
 
   it('builds the card from the current edition', () => {
     expect(linkPreviewContent(edition())).toEqual({
-      eyebrow: '3RD EDITION',
+      eyebrow: 'REPLAY 3E',
       tagline: LINK_PREVIEW_TAGLINE,
       when: { label: 'WHEN', value: ['SEP 12–13'], note: 'SAT & SUN' },
       where: { label: 'WHERE', value: ['INDIQUBE SYMPHONY'], note: 'MG ROAD' },
@@ -154,20 +154,20 @@ describe('linkPreviewContent', () => {
 describe('wrappedLinkPreviewContent', () => {
   const REPLAY_3 = { slug: 'replay-3', start_date: '2026-09-12', end_date: '2026-09-13' };
 
-  it('says what REPLAY 3 added up to, and that REPLAY 4 has no dates yet', () => {
+  it('says what REPLAY 3E added up to, and that REPLAY 4E has no dates yet', () => {
     expect(wrappedLinkPreviewContent({ ...REPLAY_3, people: 285 })).toEqual({
-      eyebrow: 'THAT WAS REPLAY 3',
+      eyebrow: 'THAT WAS REPLAY 3E',
       tagline: LINK_PREVIEW_TAGLINE,
       when: { label: 'LAST TIME', value: ['285 PLAYERS'], note: 'SEP 12–13, 2026' },
-      where: { label: 'NEXT', value: ['REPLAY 4'], note: 'DATES SOON' },
+      where: { label: 'NEXT', value: ['REPLAY 4E'], note: 'DATES SOON' },
     });
   });
 
   it('falls back to the dates when there is no people figure', () => {
     const content = wrappedLinkPreviewContent({ ...REPLAY_3, slug: 'replay-2', start_date: '2026-04-18', end_date: '2026-04-19', people: null });
-    expect(content.eyebrow).toBe('THAT WAS REPLAY 2');
+    expect(content.eyebrow).toBe('THAT WAS REPLAY 2E');
     expect(content.when).toEqual({ label: 'LAST TIME', value: ['APR 18–19'], note: 'SAT & SUN' });
-    expect(content.where?.value).toEqual(['REPLAY 3']);
+    expect(content.where?.value).toEqual(['REPLAY 3E']);
   });
 
   it('names "the next REPLAY" when the slug carries no number', () => {

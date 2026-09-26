@@ -2,7 +2,7 @@ import type { Env } from './index';
 import type { EditionRow } from './editions';
 import { sendEmail } from './apps-script';
 import { dayLabel } from './editions';
-import { editionOrdinal, shortDateRange } from './format';
+import { editionName as nameOf, shortDateRange } from './format';
 import { PARTNER_OFFER_LABELS, type PartnerOfferKey } from './partner-offers';
 
 export interface PartnerConfirmationInput {
@@ -22,8 +22,7 @@ export async function sendPartnerConfirmation(
   edition: EditionRow,
   input: PartnerConfirmationInput,
 ): Promise<void> {
-  const ordinal = editionOrdinal(edition.slug);
-  const editionName = (ordinal ? `REPLAY ${ordinal}` : 'REPLAY').trim();
+  const editionName = nameOf(edition.slug);
   await sendEmail(env, {
     template: 'replay-partner',
     to: input.email,

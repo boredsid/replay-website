@@ -14,26 +14,26 @@ const REPLAY_4 = { slug: 'replay-4', start_date: '2027-02-06', end_date: '2027-0
 const TODAY = '2026-09-24';
 
 describe('resolveSitePhase — the spec state table', () => {
-  it('REPLAY 3 current and ended, no REPLAY 4 yet: wrapped on REPLAY 3', () => {
+  it('REPLAY 3E current and ended, no REPLAY 4E yet: wrapped on REPLAY 3E', () => {
     const state = resolveSitePhase({ current: REPLAY_3, latestEnded: REPLAY_3, today: TODAY });
     expect(state).toEqual({ phase: 'wrapped', today: TODAY, upcoming: null, recap: REPLAY_3 });
   });
 
-  it('REPLAY 4 drafted but neither published nor current: still wrapped on REPLAY 3', () => {
+  it('REPLAY 4E drafted but neither published nor current: still wrapped on REPLAY 3E', () => {
     // A draft is invisible to the anon client, so the inputs are the same as above.
     const state = resolveSitePhase({ current: REPLAY_3, latestEnded: REPLAY_3, today: TODAY });
     expect(state.phase).toBe('wrapped');
     expect(state.recap).toBe(REPLAY_3);
   });
 
-  it('REPLAY 4 marked current but unpublished: no current edition is visible, and the site stays wrapped', () => {
-    // The single-current trigger cleared REPLAY 3's flag; the unpublished
-    // REPLAY 4 is invisible. Before this model the site had no edition here.
+  it('REPLAY 4E marked current but unpublished: no current edition is visible, and the site stays wrapped', () => {
+    // The single-current trigger cleared REPLAY 3E's flag; the unpublished
+    // REPLAY 4E is invisible. Before this model the site had no edition here.
     const state = resolveSitePhase({ current: null, latestEnded: REPLAY_3, today: TODAY });
     expect(state).toEqual({ phase: 'wrapped', today: TODAY, upcoming: null, recap: REPLAY_3 });
   });
 
-  it('REPLAY 4 published and current: pre_event, with REPLAY 3 still available as the recap', () => {
+  it('REPLAY 4E published and current: pre_event, with REPLAY 3E still available as the recap', () => {
     const state = resolveSitePhase({ current: REPLAY_4, latestEnded: REPLAY_3, today: TODAY });
     expect(state).toEqual({ phase: 'pre_event', today: TODAY, upcoming: REPLAY_4, recap: REPLAY_3 });
   });
@@ -92,12 +92,12 @@ describe('edition names', () => {
   it('numbers editions from their slug', () => {
     expect(editionNumber('replay-3')).toBe(3);
     expect(editionNumber('replay-mini')).toBeNull();
-    expect(editionLabel('replay-3')).toBe('REPLAY 3');
+    expect(editionLabel('replay-3')).toBe('REPLAY 3E');
     expect(editionLabel('special')).toBe('REPLAY');
   });
 
   it('names the next edition after the recap', () => {
-    expect(nextEditionLabel('replay-3')).toBe('REPLAY 4');
+    expect(nextEditionLabel('replay-3')).toBe('REPLAY 4E');
     expect(nextEditionLabel('replay-mini')).toBe('the next REPLAY');
     expect(nextEditionLabel(null)).toBe('the next REPLAY');
   });

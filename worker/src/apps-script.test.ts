@@ -35,7 +35,7 @@ describe('sendEmail', () => {
     vi.stubGlobal('fetch', fetchMock);
     const unicodePayload = {
       ...payload,
-      subject: 'REPLAY 3rd edition — registration confirmed',
+      subject: 'REPLAY 3E — registration confirmed',
       variables: { name: 'Siddhānt' },
     };
 

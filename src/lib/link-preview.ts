@@ -4,8 +4,7 @@
 // `scripts/render-link-preview.ts`; everything here is "what does the card
 // say", never "where does it sit".
 import type { EditionRow } from './types';
-import { editionOrdinal } from './data';
-import { editionLabel, nextEditionLabel } from './site-phase';
+import { editionLabel, editionNumber, nextEditionLabel } from './site-phase';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -20,7 +19,7 @@ export interface LinkPreviewField {
 }
 
 export interface LinkPreviewContent {
-  /** "3RD EDITION", or null when there is no published edition to name. */
+  /** "REPLAY 3E", or null when there is no numbered edition to name. */
   eyebrow: string | null;
   tagline: string;
   when: LinkPreviewField | null;
@@ -127,7 +126,7 @@ export function linkPreviewContent(edition: EditionRow | null): LinkPreviewConte
   }
   const { name, locality } = splitVenue(edition.venue);
   return {
-    eyebrow: editionOrdinal(edition.slug).toUpperCase() || null,
+    eyebrow: editionNumber(edition.slug) === null ? null : editionLabel(edition.slug).toUpperCase(),
     tagline: LINK_PREVIEW_TAGLINE,
     when: {
       label: 'WHEN',

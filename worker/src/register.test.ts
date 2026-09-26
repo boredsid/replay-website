@@ -288,12 +288,12 @@ describe('handleRegister', () => {
 
     // New payload assertions for Phase 1F.
     const call = (sendEmail as any).mock.calls[0][1];
-    expect(call.subject).toBe('REPLAY 3rd edition — registration confirmed');
-    expect(call.variables.edition_name).toBe('REPLAY 3rd edition');
+    expect(call.subject).toBe('REPLAY 3E — registration confirmed');
+    expect(call.variables.edition_name).toBe('REPLAY 3E');
     expect(call.variables.date_range).toBe('Sep 12 – Sep 13');
     expect(call.variables.guild_tier).toBe('Guildmaster');
     expect(call.variables.calendar_google_url).toContain('calendar.google.com');
-    expect(call.variables.calendar_google_url).toContain('text=REPLAY%203rd%20edition');
+    expect(call.variables.calendar_google_url).toContain('text=REPLAY%203E');
     expect(call.variables.calendar_ics_url).toBe('https://api.replaycon.in/api/ics/replay-3.ics');
     expect(call.variables.schedule_url).toBe('https://replaycon.in/schedule');
     expect(call.variables.instagram_url).toBe('https://replaycon.in/instagram');

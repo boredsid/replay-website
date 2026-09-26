@@ -13,7 +13,7 @@ const REPLAY_3 = {
   photos_url: null as string | null,
 };
 
-// REPLAY 3's real figures on 24 September 2026.
+// REPLAY 3E's real figures on 24 September 2026.
 const RECAP: RecapResponse = {
   edition: { slug: 'replay-3', start_date: '2026-09-12', end_date: '2026-09-13' },
   attendance: { people: 285, by_day: { day1: 154, day2: 185 }, both_days: 54 },
@@ -52,13 +52,13 @@ const SPONSORS: RecapInput['sponsors'] = [
 
 const base: RecapInput = { edition: REPLAY_3, recap: RECAP, scheduleItems: PROGRAMME, shelfCount: 585, sponsors: SPONSORS };
 
-describe('recapView — REPLAY 3', () => {
+describe('recapView — REPLAY 3E', () => {
   const view = recapView(base);
 
   it('says what the mock says', () => {
-    expect(view.label).toBe('REPLAY 3');
-    expect(view.nextLabel).toBe('REPLAY 4');
-    expect(view.eyebrow).toBe('That was REPLAY 3 · Sep 12–13, 2026 · Indiqube Symphony, MG Road');
+    expect(view.label).toBe('REPLAY 3E');
+    expect(view.nextLabel).toBe('REPLAY 4E');
+    expect(view.eyebrow).toBe('That was REPLAY 3E · Sep 12–13, 2026 · Indiqube Symphony, MG Road');
     expect(view.headline).toBe('285 people came to play.');
     expect(view.sub).toBe('Two days at Indiqube Symphony, MG Road. 54 of them came both days.');
   });
@@ -92,13 +92,13 @@ describe('recapView — REPLAY 3', () => {
 
   it('leads with dates for the next edition, then what was on', () => {
     expect(view.links).toEqual([
-      { text: 'Get REPLAY 4 dates first →', href: '/tickets' },
+      { text: 'Get REPLAY 4E dates first →', href: '/tickets' },
       { text: 'What was on →', href: '/schedule' },
     ]);
   });
 
   it('gives the pre-event "Last time" line', () => {
-    expect(view.lastTimeLine).toEqual({ text: 'Last time, 285 people came to play at REPLAY 3.', photos: null });
+    expect(view.lastTimeLine).toEqual({ text: 'Last time, 285 people came to play at REPLAY 3E.', photos: null });
   });
 
   it('quotes the cheaper booth for Get involved', () => {
@@ -127,7 +127,7 @@ describe('recapView — an edition with no app data', () => {
   const view = recapView({ edition: REPLAY_2, recap: EMPTY, scheduleItems: [], shelfCount: 585, sponsors: [] });
 
   it('falls back to naming the edition, and shows no zero', () => {
-    expect(view.headline).toBe('That was REPLAY 2.');
+    expect(view.headline).toBe('That was REPLAY 2E.');
     expect(view.sub).toBe('Two days at The Bangalore Local, Koramangala.');
     expect(view.tiles).toEqual([{ value: 585, label: 'games on the shelf' }]);
     expect(view.mostBorrowed).toBeNull();
@@ -145,10 +145,10 @@ describe('recapView — when the Worker could not be reached', () => {
   const view = recapView({ ...base, recap: null });
 
   it('still names the edition and keeps its links', () => {
-    expect(view.headline).toBe('That was REPLAY 3.');
-    expect(view.eyebrow).toBe('REPLAY 3 · Sep 12–13, 2026 · Indiqube Symphony, MG Road');
+    expect(view.headline).toBe('That was REPLAY 3E.');
+    expect(view.eyebrow).toBe('REPLAY 3E · Sep 12–13, 2026 · Indiqube Symphony, MG Road');
     expect(view.sub).toBe('Two days at Indiqube Symphony, MG Road.');
-    expect(view.links[0]).toEqual({ text: 'Get REPLAY 4 dates first →', href: '/tickets' });
+    expect(view.links[0]).toEqual({ text: 'Get REPLAY 4E dates first →', href: '/tickets' });
     expect(view.tiles.map((t) => t.label)).toEqual(['things on the programme', 'games on the shelf', 'partners on the floor']);
   });
 });
@@ -177,7 +177,7 @@ describe('recapView — smaller cases', () => {
 
   it('leaves out a venue that was never confirmed', () => {
     const view = recapView({ ...base, edition: { ...REPLAY_3, venue: 'TBD' } });
-    expect(view.eyebrow).toBe('That was REPLAY 3 · Sep 12–13, 2026');
+    expect(view.eyebrow).toBe('That was REPLAY 3E · Sep 12–13, 2026');
     expect(view.sub).toBe('54 of them came both days.');
   });
 });
