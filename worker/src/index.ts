@@ -12,6 +12,7 @@ import { serviceClient } from './supabase';
 import { handleWhoami } from './admin/whoami';
 import { handleCatalogue } from './catalogue';
 import { handleRecap } from './recap';
+import { handleGallery, handlePhotoImage } from './edition-photos';
 import { PHASE_CRON, rebuildOnPhaseBoundary } from './site-phase-cron';
 import {
   handleCatalogueList,
@@ -113,6 +114,12 @@ export interface Env {
    * `/api/display/feed`; absent means the display never receives any.
    */
   DISPLAY_KEY?: string;
+  /**
+   * Google Drive API key, for editions whose photo album is a Drive folder
+   * (`wrangler secret put DRIVE_API_KEY`). Absent means those galleries link
+   * out to Drive instead; Google Photos albums need no key.
+   */
+  DRIVE_API_KEY?: string;
   PUBLIC_RATE_LIMITER?: RateLimit;
   SUBJECT_RATE_LIMITER?: RateLimit;
 }
@@ -360,6 +367,16 @@ export default {
       // What a finished edition added up to — people, bookings, loans. Read by
       // `astro build` for the between-editions recap; aggregates only, and
       // nothing at all until the edition has ended.
+      // An edition's photo album, read at view time for /photos/<slug>/, and
+      // one photo from it, readable cross-origin so the share sheet gets a file.
+      const photoImageMatch = path.match(/^\/api\/photos\/image\/(google|drive)\/([^/]+)$/);
+      if (photoImageMatch && req.method === 'GET') {
+        return await handlePhotoImage(req, env, ctx, photoImageMatch[1], photoImageMatch[2]);
+      }
+      const galleryMatch = path.match(/^\/api\/photos\/([^/]+)$/);
+      if (galleryMatch && req.method === 'GET') {
+        return await handleGallery(req, env, ctx, galleryMatch[1]);
+      }
       const recapMatch = path.match(/^\/api\/recap\/([^/]+)$/);
       if (recapMatch && req.method === 'GET') {
         return await handleRecap(req, env, recapMatch[1]);

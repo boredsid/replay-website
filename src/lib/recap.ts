@@ -20,6 +20,7 @@ import type { EditionRow, RecapResponse, ScheduleItemRow, SponsorRow } from './t
 import { publicDateRange } from './data';
 import { clockTime, weekdayName } from './edition-format';
 import { editionLabel, nextEditionLabel } from './site-phase';
+import { galleryPath } from './gallery';
 
 export interface RecapTile {
   value: number;
@@ -66,7 +67,6 @@ export interface RecapInput {
   sponsors: Array<Pick<SponsorRow, 'name' | 'tier'> & { show_in_header?: boolean }>;
 }
 
-const PHOTOS_LINK: RecapLink = { text: 'See the photos →', href: '/photos' };
 
 function positive(n: number | null | undefined): number | null {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null;
@@ -110,6 +110,8 @@ export function recapView(input: RecapInput): RecapView {
   const venue = venueOf(edition.venue);
   const days = daySpan(edition.start_date, edition.end_date);
   const hasAlbum = Boolean(edition.photos_url);
+  // Straight to this edition's gallery, not the list of every album.
+  const photosLink: RecapLink = { text: 'See the photos →', href: galleryPath(edition.slug) };
 
   const tickets = positive(recap?.tickets?.across_days);
   const ticketsLabel = days === 1
@@ -168,11 +170,11 @@ export function recapView(input: RecapInput): RecapView {
   }
 
   const links: RecapLink[] = [{ text: `Get ${nextLabel} dates first →`, href: '/tickets' }];
-  if (hasAlbum) links.push(PHOTOS_LINK);
+  if (hasAlbum) links.push(photosLink);
   links.push({ text: 'What was on →', href: '/schedule' });
 
   const lastTimeLine = tickets
-    ? { text: `Last time: ${tickets} ${ticketsLabel} at ${label}.`, photos: hasAlbum ? PHOTOS_LINK : null }
+    ? { text: `Last time: ${tickets} ${ticketsLabel} at ${label}.`, photos: hasAlbum ? photosLink : null }
     : null;
 
   const booths = [edition.partner_pricing.standard_booth, edition.partner_pricing.community_booth].filter((n) => n > 0);

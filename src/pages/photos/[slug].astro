@@ -1,0 +1,73 @@
+---
+/**
+ * /photos/<slug>/ — one edition's album, on the site: a grid, a lightbox, and
+ * download, share and copy-link on every photo.
+ *
+ * One page per ended edition with an album. The page is static; the photos are
+ * read when it is opened (PhotoGallery → GET /api/photos/:slug), so photos added
+ * to the album later appear without a rebuild. A link to this page previews with
+ * the album's own cover where Google Photos publishes one.
+ */
+import { getImage } from 'astro:assets';
+import Layout from '../../layouts/Layout.astro';
+import DarkBand from '../../components/DarkBand.astro';
+import PhotoGallery from '../../components/PhotoGallery';
+import { getPastEditions, publicDateRange } from '../../lib/data';
+import { editionLabel, siteToday } from '../../lib/site-phase';
+import { ALBUM_SERVICE, albumHost } from '../../lib/photos';
+import { fetchAlbumCover } from '../../lib/album-cover';
+import type { PastEditionRow } from '../../lib/types';
+
+export async function getStaticPaths() {
+  const editions = await getPastEditions(siteToday());
+  return editions
+    .filter((edition) => albumHost(edition.photos_url) !== null)
+    .map((edition) => ({ params: { slug: edition.slug }, props: { edition } }));
+}
+
+const { edition } = Astro.props as { edition: PastEditionRow };
+const label = editionLabel(edition.slug);
+const albumUrl = edition.photos_url as string;
+const service = ALBUM_SERVICE[albumHost(albumUrl)!];
+const when = publicDateRange(edition.start_date, edition.end_date);
+const venue = edition.venue && edition.venue !== 'TBD' ? edition.venue : null;
+
+const cover = await fetchAlbumCover(albumUrl);
+const ogImage = cover ? (await getImage({ src: cover, width: 1200, height: 675, format: 'jpg', quality: 80 })).src : undefined;
+---
+
+<Layout
+  title={`${label} photos — REPLAY`}
+  description={`Photos from ${label}, ${when}${venue ? ` at ${venue}` : ''}. View, download and share them.`}
+  ogImage={ogImage}
+>
+  <DarkBand
+    eyebrow="▸ PHOTOS"
+    eyebrowColor="var(--color-yellow)"
+    heading={`${label}, in pictures.`}
+    headingLevel="h1"
+    body={[when, venue].filter(Boolean).join(' · ') + '. Tap a photo to download it or send it on.'}
+  />
+
+  <section class="page-section page-section-paper" aria-label={`${label} photos`}>
+    <div class="container-x gallery-page">
+      <a class="gallery-page__back" href="/photos/">← All photos</a>
+      <PhotoGallery client:load slug={edition.slug} editionLabel={label} albumUrl={albumUrl} service={service} />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .gallery-page {
+    display: grid;
+    gap: 20px;
+  }
+
+  .gallery-page__back {
+    justify-self: start;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
