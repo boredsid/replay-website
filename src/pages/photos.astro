@@ -36,8 +36,8 @@ const cards = await Promise.all(albums.map(async (edition) => {
     venue: edition.venue && edition.venue !== 'TBD' ? edition.venue : null,
     service: ALBUM_SERVICE[host],
     cover: await fetchAlbumCover(edition.photos_url),
-    // The people figure only exists for the edition the recap describes.
-    people: edition.slug === site.recap?.slug ? recap?.people ?? null : null,
+    // The ticket figure is fetched only for the edition the recap describes.
+    tickets: edition.slug === site.recap?.slug && recap?.tickets ? `${recap.tickets} ${recap.ticketsLabel}.` : null,
   };
 }));
 
@@ -92,7 +92,7 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
             <span class="section-tag">{card.service} album</span>
             <h2 class="album-card__heading">{card.label}</h2>
             <p class="album-card__meta">{[card.when, card.venue].filter(Boolean).join(' · ')}</p>
-            {card.people && <p class="album-card__people">{card.people} people came to play.</p>}
+            {card.tickets && <p class="album-card__figure">{card.tickets}</p>}
             <a class="btn btn-black" href={card.edition.photos_url} target="_blank" rel="noopener noreferrer">
               Open the album on {card.service} <span aria-hidden="true">↗</span>
             </a>
@@ -189,7 +189,7 @@ const nextLabel = nextEditionLabel(site.recap?.slug);
     font-weight: 600;
   }
 
-  .album-card__people {
+  .album-card__figure {
     font-size: 1.0625rem;
   }
 

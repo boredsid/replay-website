@@ -109,6 +109,8 @@ export interface PastEditionRow {
 export interface RecapResponse {
   edition: { slug: string; start_date: string; end_date: string };
   attendance: { people: number; by_day: Partial<Record<Day, number>>; both_days: number };
+  /** Tickets across the edition's days; absent from a Worker older than 2026-09-25. */
+  tickets?: { across_days: number; by_day: Partial<Record<Day, number>> };
   sessions: {
     seats_booked: number;
     sessions_booked: number;

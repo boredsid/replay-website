@@ -49,7 +49,7 @@ export function shortDateRange(start: string, end: string): string {
   return `${shortDate(start)} – ${shortDate(end)}`;
 }
 
-/** "2026-09-12" + "2026-09-13" → "Sep 12–13, 2026". */
+/** "2026-09-12" + "2026-09-13" → "Sep 12–13, 2026"; a one-day edition → "Jan 31, 2026". */
 export function publicDateRange(start: string, end: string): string {
   const first = start.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const last = end.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -62,6 +62,8 @@ export function publicDateRange(start: string, end: string): string {
   const endMonth = Number(last[2]);
   const endDay = Number(last[3]);
   if (!months[startMonth - 1] || !months[endMonth - 1] || startDay < 1 || endDay < 1) return `${start} – ${end}`;
+  // A one-day edition (REPLAY 1E) is a date, not a range: never "Jan 31–31".
+  if (start === end) return `${months[startMonth - 1]} ${startDay}, ${startYear}`;
   if (startYear === endYear && startMonth === endMonth) {
     return `${months[startMonth - 1]} ${startDay}–${endDay}, ${endYear}`;
   }

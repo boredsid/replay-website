@@ -19,7 +19,7 @@ export const GET: APIRoute = async () => {
   // says what the last edition added up to instead.
   const site = await getSiteState();
   const content = site.phase === 'wrapped' && site.recap
-    ? wrappedLinkPreviewContent({ ...site.recap, people: (await getRecapView())?.people ?? null })
+    ? wrappedLinkPreviewContent({ ...site.recap, tickets: (await getRecapView())?.tickets ?? null })
     : linkPreviewContent(await getCurrentEdition());
   const png = await renderLinkPreview(content);
   return new Response(new Uint8Array(png), {
