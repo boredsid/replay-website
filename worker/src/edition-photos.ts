@@ -14,8 +14,9 @@
 // bgc-website reads its event albums (google-photos.ts, ported unchanged): from
 // the album's public share page. Drive folders go through the Drive API, which
 // needs the Worker secret DRIVE_API_KEY. REPLAY's Drive albums keep one
-// subfolder per photographer ("Amrit", "Cats from Hell"), so the folder is read
-// one level deep and each subfolder becomes a section of the gallery.
+// subfolder per photographer ("Amrit", "Cats from Hell"), and each subfolder
+// becomes a section of the gallery; a photographer's own folders inside that
+// (one more level) fold into their section. Deeper than that is not read.
 //
 // Everything fails soft: an album this cannot read answers with its link, and
 // the page offers "Open the album" instead of a broken grid.
@@ -77,6 +78,7 @@ const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
 // Safety stops, not expected limits: a photographer per subfolder, a few
 // hundred photos each.
 const MAX_SUBFOLDERS = 40;
+const MAX_NESTED_FOLDERS = 10;
 const MAX_DRIVE_PAGES = 5;
 // Reading REPLAY 3E's album (763 items, three pages) takes about nine seconds
 // from cold, so a read is kept for an hour: photos added to an album appear
@@ -181,11 +183,28 @@ async function driveChildren(folderId: string, key: string): Promise<DriveFile[]
   return files;
 }
 
+function isFolder(file: DriveFile): boolean {
+  return file.mimeType === DRIVE_FOLDER_MIME && DRIVE_ID.test(file.id);
+}
+
+/**
+ * A photographer's photos: what is in their folder, then whatever sits in
+ * folders inside it, one level down. Photographers sort their own uploads —
+ * REPLAY 2E's "Forensic Files" keeps its 33 photos in a "Videos" subfolder —
+ * and those belong in the photographer's section, not a section of their own.
+ */
+async function folderMedia(folderId: string, key: string): Promise<DriveFile[]> {
+  const children = await driveChildren(folderId, key);
+  const nested = children.filter(isFolder).slice(0, MAX_NESTED_FOLDERS);
+  const deeper = await Promise.all(nested.map(async (folder) => (await driveChildren(folder.id, key)).filter(isMedia)));
+  return [...children.filter(isMedia), ...deeper.flat()];
+}
+
 async function readDriveAlbum(folderId: string, key: string): Promise<GallerySection[]> {
   const top = await driveChildren(folderId, key);
-  const folders = top.filter((f) => f.mimeType === DRIVE_FOLDER_MIME && DRIVE_ID.test(f.id)).slice(0, MAX_SUBFOLDERS);
+  const folders = top.filter(isFolder).slice(0, MAX_SUBFOLDERS);
   const subfolders = await Promise.all(
-    folders.map(async (folder) => ({ name: folder.name, files: await driveChildren(folder.id, key) })),
+    folders.map(async (folder) => ({ name: folder.name, files: await folderMedia(folder.id, key) })),
   );
   return driveSections(top, subfolders);
 }
