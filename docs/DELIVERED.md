@@ -87,8 +87,12 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   includes complimentary tickets, so the copy says "tickets", never "sold"; `/schedule` becomes the record
   of what was on, with booked counts; `/tickets` only collects numbers;
   `/plan-your-visit` holds; `/get-involved` pitches the next edition with the
-  last one's figures and shelves prices; the header credit moves into the
-  recap; the share card changes. A figure that is zero is left out, because
+  last one's figures and shelves prices; `/contact` (2026-09-26) drops its
+  ticket questions, the same-day help notice and the "Planning for <dates>?"
+  line, and answers the people who ask between editions instead — when and
+  where the next one is, where the photos are, how to have a photo taken down,
+  receipts and feedback (copy in `src/lib/contact-page.ts`); the header credit
+  moves into the recap; the share card changes. A figure that is zero is left out, because
   REPLAY 1 and 2 have no app data (they do have tickets, so their recaps still
   lead with a number). A nightly Worker cron (03:00 IST) fires the
   deploy hook on an edition's first day and the morning after its last, so the
