@@ -144,6 +144,30 @@ describe('buildGallery — Google Drive', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("folds a photographer's own subfolders into their section, and reads no deeper", async () => {
+    const FORENSIC = 'forensicFolder1';
+    const PICS = 'forensicPics001';
+    const VIDEOS = 'forensicVids001';
+    const DEEPER = 'forensicDeep001';
+    vi.stubGlobal('fetch', driveApi({
+      [FOLDER]: [file(FORENSIC, 'Forensic Files', 'application/vnd.google-apps.folder')],
+      [FORENSIC]: [
+        file(PICS, 'Pics', 'application/vnd.google-apps.folder'),
+        file(VIDEOS, 'Videos', 'application/vnd.google-apps.folder'),
+      ],
+      [PICS]: [],
+      [VIDEOS]: [
+        file('forensicShot01', 'DSC_0001.jpg', 'image/jpeg'),
+        file(DEEPER, 'Too deep', 'application/vnd.google-apps.folder'),
+      ],
+      [DEEPER]: [file('forensicShot99', 'never.jpg', 'image/jpeg')],
+    }));
+    const body = await (await buildGallery(editions(REPLAY_2), { DRIVE_API_KEY: 'drive-key' }, 'replay-2')).json();
+    expect(body.sections.map((s: any) => [s.title, s.photos.map((p: any) => p.name)])).toEqual([
+      ['Forensic Files', ['DSC_0001.jpg']],
+    ]);
+  });
+
   it('links out to Drive when the Worker has no Drive key, without calling Google', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

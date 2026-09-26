@@ -108,9 +108,11 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   unchanged from bgc-website (`worker/src/google-photos.ts`) — undocumented and
   fail-soft: when Google changes the page the gallery says so and links to the
   album. **Drive** folders use the Drive API and need the Worker secret
-  `DRIVE_API_KEY`; REPLAY's Drive albums keep one subfolder per photographer,
-  so they are read one level deep and each subfolder becomes a "By Amrit"
-  section. Without the key, Drive galleries link out. Google Photos videos
+  `DRIVE_API_KEY` (set 2026-09-26); REPLAY's Drive albums keep one subfolder
+  per photographer, and each becomes a "By Amrit" section. A photographer's own
+  folders inside theirs fold into the same section — REPLAY 2E's "Forensic
+  Files" keeps its 33 photos in a "Videos" subfolder — and nothing deeper is
+  read. Without the key, Drive galleries link out. Google Photos videos
   cannot be embedded, so they open on Google Photos to play. REPLAY 3E's album
   is 763 items (604 photos, 159 videos) and takes about nine seconds to read
   cold. Thumbnails load from Google, so `img-src` allows
