@@ -6,7 +6,7 @@
  * One page per ended edition with an album. The page is static; the photos are
  * read when it is opened (PhotoGallery → GET /api/photos/:slug), so photos added
  * to the album later appear without a rebuild. A link to this page previews with
- * the album's own cover where Google Photos publishes one.
+ * the album's cover (src/lib/album-cover.ts).
  */
 import { getImage } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
@@ -32,8 +32,8 @@ const service = ALBUM_SERVICE[albumHost(albumUrl)!];
 const when = publicDateRange(edition.start_date, edition.end_date);
 const venue = edition.venue && edition.venue !== 'TBD' ? edition.venue : null;
 
-const cover = await fetchAlbumCover(albumUrl);
-const ogImage = cover ? (await getImage({ src: cover, width: 1200, height: 675, format: 'jpg', quality: 80 })).src : undefined;
+const cover = await fetchAlbumCover(albumUrl, edition.slug);
+const ogImage = cover ? (await getImage({ src: cover, width: 1200, height: 675, fit: 'cover', format: 'jpg', quality: 80 })).src : undefined;
 ---
 
 <Layout

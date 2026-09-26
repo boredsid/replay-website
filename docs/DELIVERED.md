@@ -96,8 +96,15 @@ changes nothing until a build runs** — push an empty commit to trigger one.
   `docs/specs/2026-09-24-between-editions-design.md`.
 - **Photos** (`/photos`, 2026-09-24; galleries 2026-09-25) — every ended
   edition with an album link (`editions.photos_url`, set in the Edition drawer;
-  Google Photos or Google Drive only), newest first, one card each with the
-  album's Open Graph cover copied at build time. Each card opens
+  Google Photos or Google Drive only), newest first, one card each with a
+  cover (`src/lib/album-cover.ts`), downloaded and cropped to 16:9 at build
+  time: a Google Photos album's own Open Graph cover, or for a Drive album the
+  first *landscape* photo in its gallery (found by reading thumbnail sizes;
+  portrait phone shots lose everyone's faces in a 16:9 crop), falling back to
+  its first photo. To choose a Drive album's cover, put that photo directly in
+  the album's top folder — top-folder photos come first. Every cover is
+  fetched and checked before Astro sees it, because a remote image Astro
+  cannot transform fails the whole build. Each card opens
   **`/photos/<slug>/`**, a gallery on the site: grid, lightbox with arrow-key
   stepping, Download (Google's original), Share (the photo itself as a file,
   through the Worker's same-origin copy, falling back to the link) and Copy
