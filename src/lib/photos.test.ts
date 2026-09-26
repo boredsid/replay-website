@@ -80,7 +80,7 @@ describe('albumCards', () => {
 });
 
 // A JPEG header with just enough segments for imageSize: SOI, an APP0 block, then SOF0.
-function jpeg(width: number, height: number): Uint8Array {
+function jpeg(width: number, height: number): Uint8Array<ArrayBuffer> {
   return new Uint8Array([
     0xff, 0xd8,
     0xff, 0xe0, 0x00, 0x06, 0x4a, 0x46, 0x49, 0x46,
@@ -88,7 +88,7 @@ function jpeg(width: number, height: number): Uint8Array {
   ]);
 }
 
-function png(width: number, height: number): Uint8Array {
+function png(width: number, height: number): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(24);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
   new DataView(bytes.buffer).setUint32(16, width);
